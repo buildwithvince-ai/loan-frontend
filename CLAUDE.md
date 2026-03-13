@@ -103,3 +103,10 @@ Read and strictly follow all instructions in these files before writing any code
 - borrower_business_name is a native Loandisk field
 - Barangay is a required field (maps to custom_field_26904 in Loandisk)
 - Group Loan and SBL forms are deferred — do not build these yet
+
+## Live URL
+https://gr8lendingcorporation.com
+
+## Hosting
+Netlify (client account) — free tier
+Custom domain with Let's Encrypt SSL enabled
