@@ -6,7 +6,16 @@ const TOTAL_STEPS = 10
 const PURPOSES = ['Working Capital', 'Equipment Purchase', 'Inventory', 'Business Expansion', 'Other']
 const BUSINESS_TYPES = ['Sole Proprietorship', 'Partnership', 'Corporation']
 const CIVIL_STATUSES = ['Single', 'Married', 'Widowed', 'Separated']
-const EMPLOYMENT_STATUSES = ['Employee', 'Self Employed', 'Business Owner', 'OFW']
+const EMPLOYMENT_STATUSES = [
+  { value: 'Employee', label: 'Employee' },
+  { value: 'Government Employee', label: 'Government Employee' },
+  { value: 'Private Sector Employee', label: 'Private Sector Employee' },
+  { value: 'Owner', label: 'Business Owner / Self-Employed' },
+  { value: 'Overseas Worker', label: 'Overseas Worker (OFW)' },
+  { value: 'Student', label: 'Student' },
+  { value: 'Pensioner', label: 'Pensioner' },
+  { value: 'Unemployed', label: 'Unemployed' },
+]
 const TERMS = [3, 6, 12, 24]
 
 const REQUIRED_DOCS = [
@@ -109,7 +118,10 @@ function Select({ value, onChange, options, placeholder, ...props }) {
       style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}
       {...props}>
       {placeholder && <option value="">{placeholder}</option>}
-      {options.map(o => <option key={o} value={o}>{o}</option>)}
+      {options.map(o => typeof o === 'string'
+        ? <option key={o} value={o}>{o}</option>
+        : <option key={o.value} value={o.value}>{o.label}</option>
+      )}
     </select>
   )
 }

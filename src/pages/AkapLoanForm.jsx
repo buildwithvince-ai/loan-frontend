@@ -6,6 +6,16 @@ const TOTAL_STEPS = 8
 const PURPOSES = ['Working Capital', 'Inventory', 'Equipment', 'Daily Operations', 'Other']
 const BUSINESS_TYPES = ['Sole Proprietorship', 'Sari-sari Store', 'Market Vendor', 'Other']
 const CIVIL_STATUSES = ['Single', 'Married', 'Widowed', 'Separated']
+const EMPLOYMENT_STATUSES = [
+  { value: 'Employee', label: 'Employee' },
+  { value: 'Government Employee', label: 'Government Employee' },
+  { value: 'Private Sector Employee', label: 'Private Sector Employee' },
+  { value: 'Owner', label: 'Business Owner / Self-Employed' },
+  { value: 'Overseas Worker', label: 'Overseas Worker (OFW)' },
+  { value: 'Student', label: 'Student' },
+  { value: 'Pensioner', label: 'Pensioner' },
+  { value: 'Unemployed', label: 'Unemployed' },
+]
 const TERMS = [3, 4, 5, 6]
 
 const REQUIRED_DOCS = [
@@ -32,7 +42,7 @@ const initialForm = {
   businessStreet: '', businessBarangay: '', businessCity: '', businessProvince: '', businessZip: '',
   monthlyGrossRevenue: '',
   firstName: '', middleName: '', lastName: '',
-  dateOfBirth: '', civilStatus: '', mobile: '', email: '', tin: '',
+  dateOfBirth: '', civilStatus: '', employmentStatus: '', mobile: '', email: '', tin: '',
   presentHouseStreet: '', presentBarangay: '', presentCity: '', presentProvince: '', presentZip: '', presentLengthOfStay: '',
   sameAsPresent: false,
   permanentHouseStreet: '', permanentBarangay: '', permanentCity: '', permanentProvince: '', permanentZip: '', permanentLengthOfStay: '',
@@ -68,7 +78,10 @@ function Select({ value, onChange, options, placeholder, ...props }) {
       style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}
       {...props}>
       {placeholder && <option value="">{placeholder}</option>}
-      {options.map(o => <option key={o} value={o}>{o}</option>)}
+      {options.map(o => typeof o === 'string'
+        ? <option key={o} value={o}>{o}</option>
+        : <option key={o.value} value={o.value}>{o.label}</option>
+      )}
     </select>
   )
 }
@@ -143,6 +156,7 @@ export default function AkapLoanForm() {
       if (!form.dateOfBirth) { e.dateOfBirth = 'Required' }
       else { const age = getAge(form.dateOfBirth); if (age < 21) e.dateOfBirth = 'Must be at least 21 years old'; if (age > 65) e.dateOfBirth = 'Must be 65 years old or younger' }
       if (!form.civilStatus) e.civilStatus = 'Required'
+      if (!form.employmentStatus) e.employmentStatus = 'Required'
       if (req('mobile')) { e.mobile = 'Required' } else if (!validMobile(form.mobile)) { e.mobile = 'Use format 09XXXXXXXXX' }
       if (req('email')) { e.email = 'Required' } else if (!validEmail(form.email)) { e.email = 'Invalid email' }
     }
@@ -457,6 +471,12 @@ function Step3({ form, set, errors }) {
         </div>
       </div>
 
+      <div className="max-w-xs">
+        <Label required>Employment Status</Label>
+        <Select value={form.employmentStatus} onChange={e => set('employmentStatus', e.target.value)} options={EMPLOYMENT_STATUSES} placeholder="Select status" />
+        <FieldError message={errors.employmentStatus} />
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label required>Mobile Number</Label>
@@ -668,6 +688,7 @@ function Step8({ form, set, docs, errors }) {
         ['Name', [form.firstName, form.middleName, form.lastName].filter(Boolean).join(' ')],
         ['Date of Birth', form.dateOfBirth],
         ['Civil Status', form.civilStatus],
+        ['Employment Status', form.employmentStatus],
         ['Mobile', form.mobile],
         ['Email', form.email],
         ...(form.tin ? [['TIN', form.tin]] : []),

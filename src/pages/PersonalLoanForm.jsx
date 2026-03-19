@@ -5,7 +5,16 @@ const TOTAL_STEPS = 9
 
 const PURPOSES = ['Medical', 'Education', 'Home Improvement', 'Business Capital', 'Emergency', 'Other']
 const CIVIL_STATUSES = ['Single', 'Married', 'Widowed', 'Separated']
-const EMPLOYMENT_STATUSES = ['Employee', 'Self Employed', 'Business Owner', 'OFW']
+const EMPLOYMENT_STATUSES = [
+  { value: 'Employee', label: 'Employee' },
+  { value: 'Government Employee', label: 'Government Employee' },
+  { value: 'Private Sector Employee', label: 'Private Sector Employee' },
+  { value: 'Owner', label: 'Business Owner / Self-Employed' },
+  { value: 'Overseas Worker', label: 'Overseas Worker (OFW)' },
+  { value: 'Student', label: 'Student' },
+  { value: 'Pensioner', label: 'Pensioner' },
+  { value: 'Unemployed', label: 'Unemployed' },
+]
 const TERMS = [3, 6, 12]
 
 const REQUIRED_DOCS = [
@@ -137,7 +146,10 @@ function Select({ value, onChange, options, placeholder, ...props }) {
       {...props}
     >
       {placeholder && <option value="">{placeholder}</option>}
-      {options.map(o => <option key={o} value={o}>{o}</option>)}
+      {options.map(o => typeof o === 'string'
+        ? <option key={o} value={o}>{o}</option>
+        : <option key={o.value} value={o.value}>{o.label}</option>
+      )}
     </select>
   )
 }
