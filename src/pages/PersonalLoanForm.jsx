@@ -5,7 +5,7 @@ const TOTAL_STEPS = 9
 
 const PURPOSES = ['Medical', 'Education', 'Home Improvement', 'Business Capital', 'Emergency', 'Other']
 const CIVIL_STATUSES = ['Single', 'Married', 'Widowed', 'Separated']
-const EMPLOYMENT_STATUSES = ['Employed', 'Self-Employed', 'Business Owner', 'OFW']
+const EMPLOYMENT_STATUSES = ['Employee', 'Self Employed', 'Business Owner', 'OFW']
 const TERMS = [3, 6, 12]
 
 const REQUIRED_DOCS = [
@@ -310,9 +310,10 @@ export default function PersonalLoanForm() {
     try {
       const fd = new FormData()
       fd.append('loanType', 'personal')
+      const keyMap = { presentBarangay: 'barangay' }
       Object.entries(form).forEach(([k, v]) => {
         if (k !== 'confirmAccurate' && k !== 'sameAsPresent' && k !== 'addSpouse') {
-          fd.append(k, v)
+          fd.append(keyMap[k] || k, v)
         }
       })
       Object.entries(docs).forEach(([k, file]) => {

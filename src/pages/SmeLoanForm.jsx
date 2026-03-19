@@ -6,7 +6,7 @@ const TOTAL_STEPS = 10
 const PURPOSES = ['Working Capital', 'Equipment Purchase', 'Inventory', 'Business Expansion', 'Other']
 const BUSINESS_TYPES = ['Sole Proprietorship', 'Partnership', 'Corporation']
 const CIVIL_STATUSES = ['Single', 'Married', 'Widowed', 'Separated']
-const EMPLOYMENT_STATUSES = ['Employed', 'Self-Employed', 'Business Owner', 'OFW']
+const EMPLOYMENT_STATUSES = ['Employee', 'Self Employed', 'Business Owner', 'OFW']
 const TERMS = [3, 6, 12, 24]
 
 const REQUIRED_DOCS = [
@@ -258,8 +258,9 @@ export default function SmeLoanForm() {
     try {
       const fd = new FormData()
       fd.append('loanType', 'sme')
+      const keyMap = { presentBarangay: 'barangay' }
       Object.entries(form).forEach(([k, v]) => {
-        if (k !== 'confirmAccurate' && k !== 'sameAsPresent' && k !== 'addSpouse') fd.append(k, v)
+        if (k !== 'confirmAccurate' && k !== 'sameAsPresent' && k !== 'addSpouse') fd.append(keyMap[k] || k, v)
       })
       Object.entries(docs).forEach(([k, file]) => fd.append(k, file))
       const res = await fetch('https://loan-backend-production-cd45.up.railway.app/api/application/submit', { method: 'POST', body: fd })

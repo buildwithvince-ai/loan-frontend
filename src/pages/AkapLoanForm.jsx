@@ -193,8 +193,9 @@ export default function AkapLoanForm() {
     try {
       const fd = new FormData()
       fd.append('loanType', 'akap')
+      const keyMap = { presentBarangay: 'barangay' }
       Object.entries(form).forEach(([k, v]) => {
-        if (k !== 'confirmAccurate' && k !== 'sameAsPresent' && k !== 'addCoBorrower') fd.append(k, v)
+        if (k !== 'confirmAccurate' && k !== 'sameAsPresent' && k !== 'addCoBorrower') fd.append(keyMap[k] || k, v)
       })
       Object.entries(docs).forEach(([k, file]) => fd.append(k, file))
       const res = await fetch('https://loan-backend-production-cd45.up.railway.app/api/application/submit', { method: 'POST', body: fd })
