@@ -389,7 +389,7 @@ export default function SmeLoanForm() {
 // ══════════════════════════════════════
 
 function Step1({ form, set, errors }) {
-  const amountPercent = ((form.loanAmount - 50000) / (100000 - 50000)) * 100
+  const amountPercent = ((form.loanAmount - 50000) / (300000 - 50000)) * 100
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-green mb-1">Loan Details</h2>
@@ -400,12 +400,12 @@ function Step1({ form, set, errors }) {
           <Label required>Loan Amount</Label>
           <span className="text-green text-2xl font-bold">{formatPeso(form.loanAmount)}</span>
         </div>
-        <input type="range" min={50000} max={100000} step={5000} value={form.loanAmount}
+        <input type="range" min={50000} max={300000} step={5000} value={form.loanAmount}
           onChange={e => set('loanAmount', Number(e.target.value))} className="w-full"
           style={{ background: `linear-gradient(to right, #5CB85C 0%, #5CB85C ${amountPercent}%, #1A2235 ${amountPercent}%, #1A2235 100%)` }} />
         <div className="flex justify-between mt-1">
           <span className="text-muted text-xs">₱50,000</span>
-          <span className="text-muted text-xs">₱100,000</span>
+          <span className="text-muted text-xs">₱300,000</span>
         </div>
       </div>
 

@@ -2,8 +2,10 @@ import { useState, useMemo } from 'react'
 
 const PRODUCTS = [
   { name: 'Personal Loan', min: 10000, max: 30000, terms: [3, 6, 12], rate: 0.035 },
-  { name: 'SME Loan', min: 50000, max: 100000, terms: [3, 6, 12, 24], rate: 0.03 },
+  { name: 'SME Loan', min: 50000, max: 300000, terms: [3, 6, 12, 24], rate: 0.03 },
   { name: 'AKAP Loan', min: 5000, max: 40000, terms: [3, 4, 5, 6], rate: 0.04 },
+  { name: 'SBL', min: 5000, max: 100000, terms: [3, 6, 12], rate: 0.05 },
+  { name: 'Group Loan', min: 10000, max: 50000, terms: [3, 6, 12], rate: 0.05 },
 ]
 
 export default function LoanCalculator() {
@@ -11,18 +13,40 @@ export default function LoanCalculator() {
   const product = PRODUCTS[productIndex]
   const [amount, setAmount] = useState(product.min)
   const [term, setTerm] = useState(product.terms[0])
+  const [inputValue, setInputValue] = useState(String(product.min))
 
   const handleProductChange = (idx) => {
     setProductIndex(idx)
     const p = PRODUCTS[idx]
     setAmount(p.min)
+    setInputValue(String(p.min))
     setTerm(p.terms[0])
+  }
+
+  const handleSliderChange = (val) => {
+    setAmount(val)
+    setInputValue(String(val))
+  }
+
+  const handleInputChange = (raw) => {
+    setInputValue(raw)
+    const num = parseInt(raw.replace(/[^0-9]/g, ''), 10)
+    if (!isNaN(num)) {
+      const clamped = Math.min(Math.max(num, product.min), product.max)
+      setAmount(clamped)
+    }
+  }
+
+  const handleInputBlur = () => {
+    const clamped = Math.min(Math.max(amount, product.min), product.max)
+    setAmount(clamped)
+    setInputValue(String(clamped))
   }
 
   const monthlyPayment = useMemo(() => {
     const r = product.rate
-    const total = amount * (1 + r * term)
-    return total / term
+    if (r === 0) return amount / term
+    return (amount * r) / (1 - Math.pow(1 + r, -term))
   }, [amount, term, product.rate])
 
   const totalPayment = monthlyPayment * term
@@ -43,12 +67,12 @@ export default function LoanCalculator() {
         <div className="max-w-4xl mx-auto">
           <div className="bg-surface/60 backdrop-blur-sm border border-border rounded-2xl p-8 md:p-10 shadow-2xl shadow-canvas/50">
             {/* Product tabs */}
-            <div className="flex gap-2 mb-10 bg-surface-alt/50 rounded-xl p-1.5">
+            <div className="flex flex-wrap gap-2 mb-10 bg-surface-alt/50 rounded-xl p-1.5">
               {PRODUCTS.map((p, i) => (
                 <button
                   key={p.name}
                   onClick={() => handleProductChange(i)}
-                  className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex-1 min-w-[100px] py-3 px-3 rounded-lg text-sm font-medium transition-all ${
                     i === productIndex
                       ? 'bg-green text-white shadow-lg shadow-green/20'
                       : 'text-muted hover:text-white hover:bg-surface-alt/50'
@@ -59,11 +83,21 @@ export default function LoanCalculator() {
               ))}
             </div>
 
-            {/* Amount slider */}
+            {/* Amount slider + input */}
             <div className="mb-8">
-              <div className="flex justify-between items-baseline mb-4">
+              <div className="flex justify-between items-center mb-4">
                 <label className="text-white text-sm font-medium">Loan Amount</label>
-                <span className="text-green text-3xl font-bold">{formatPeso(amount)}</span>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">₱</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={inputValue}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    onBlur={handleInputBlur}
+                    className="w-40 pl-8 pr-3 py-2 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
+                  />
+                </div>
               </div>
               <input
                 type="range"
@@ -71,7 +105,7 @@ export default function LoanCalculator() {
                 max={product.max}
                 step={1000}
                 value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
+                onChange={(e) => handleSliderChange(Number(e.target.value))}
                 className="w-full"
                 style={{
                   background: `linear-gradient(to right, #5CB85C 0%, #5CB85C ${amountPercent}%, #1A2235 ${amountPercent}%, #1A2235 100%)`

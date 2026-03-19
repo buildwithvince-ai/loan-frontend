@@ -6,6 +6,7 @@ const products = [
     description: 'Quick cash for your personal needs — medical bills, education, home improvement, or emergencies.',
     range: '₱10,000 – ₱30,000',
     terms: '3, 6, or 12 months',
+    repayment: 'Bimonthly',
     minIncome: '₱15,000/month',
     route: '/apply/personal',
     icon: (
@@ -17,8 +18,9 @@ const products = [
   {
     title: 'SME Loan',
     description: 'Fuel your business growth — working capital, equipment, inventory, or expansion funding.',
-    range: '₱50,000 – ₱100,000',
+    range: '₱50,000 – ₱300,000',
     terms: '3, 6, 12, or 24 months',
+    repayment: 'Monthly with PDCs',
     minIncome: '₱30,000/month',
     route: '/apply/sme',
     icon: (
@@ -32,11 +34,40 @@ const products = [
     description: 'Accessible micro-financing for small entrepreneurs and market vendors — low requirements, fast release.',
     range: '₱5,000 – ₱40,000',
     terms: '3, 4, 5, or 6 months',
+    repayment: 'Weekly',
     minIncome: '₱10,000/month',
     route: '/apply/akap',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-7 h-7">
         <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    title: 'SBL Loan',
+    description: 'Flexible small business lending with monthly repayment — ideal for growing enterprises with steady income.',
+    range: '₱5,000 – ₱100,000',
+    terms: '3, 6, or 12 months',
+    repayment: 'Monthly',
+    minIncome: '₱2,000/month',
+    route: '/apply/sbl',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-7 h-7">
+        <path d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    title: 'Group Loan',
+    description: 'Community-based lending for groups — shared accountability with bimonthly repayment schedules.',
+    range: '₱10,000 – ₱50,000',
+    terms: '3, 6, or 12 months',
+    repayment: 'Bimonthly',
+    minIncome: '₱15,000/month',
+    route: '/apply/group',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-7 h-7">
+        <path d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -52,10 +83,10 @@ export default function LoanProducts() {
         <div className="text-center mb-16">
           <span className="text-blue text-xs font-semibold tracking-[0.2em] uppercase">Our Products</span>
           <h2 className="text-3xl md:text-5xl text-green mt-3 font-bold">Choose the Right Loan for You</h2>
-          <p className="text-muted mt-4 max-w-lg mx-auto">Three loan products designed for different needs — from personal expenses to business growth.</p>
+          <p className="text-muted mt-4 max-w-lg mx-auto">Five loan products designed for different needs — from personal expenses to business growth.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
             <div
               key={product.title}
@@ -82,6 +113,10 @@ export default function LoanProducts() {
                   <div className="flex items-center justify-between py-2 border-b border-border/50">
                     <span className="text-muted text-xs uppercase tracking-wider">Terms</span>
                     <span className="text-white text-sm">{product.terms}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-border/50">
+                    <span className="text-muted text-xs uppercase tracking-wider">Repayment</span>
+                    <span className="text-white text-sm">{product.repayment}</span>
                   </div>
                   <div className="flex items-center justify-between py-2">
                     <span className="text-muted text-xs uppercase tracking-wider">Min Income</span>

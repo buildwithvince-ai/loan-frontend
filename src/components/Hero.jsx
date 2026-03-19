@@ -18,17 +18,13 @@ export default function Hero() {
         {/* Badge */}
         <div className="animate-fade-in-up inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface/80 border border-blue/20 mb-8">
           <span className="w-2 h-2 rounded-full bg-blue animate-pulse" />
-          <span className="text-blue text-xs font-medium tracking-wide uppercase">Trusted Lending Since Day One</span>
+          <span className="text-blue text-xs font-medium tracking-wide uppercase">Your Trusted Partner in Financial Solutions</span>
         </div>
 
         {/* Headline */}
         <h1 className="animate-fade-in-up delay-100 text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-green leading-[1.1] mb-6 font-bold">
           Get Your Loan Approved{' '}
           <span className="text-shimmer">Faster</span>
-          <br className="hidden sm:block" />
-          <span className="text-muted text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-light">
-            — Apply Online in Minutes
-          </span>
         </h1>
 
         {/* Subheadline */}
