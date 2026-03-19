@@ -329,7 +329,7 @@ export default function PersonalLoanForm() {
         }
       })
       Object.entries(docs).forEach(([k, file]) => {
-        fd.append(k, file)
+        fd.append(k, file, file.name)
       })
       const res = await fetch('https://loan-backend-production-cd45.up.railway.app/api/application/submit', {
         method: 'POST',

@@ -211,7 +211,7 @@ export default function AkapLoanForm() {
       Object.entries(form).forEach(([k, v]) => {
         if (k !== 'confirmAccurate' && k !== 'sameAsPresent' && k !== 'addCoBorrower') fd.append(keyMap[k] || k, v)
       })
-      Object.entries(docs).forEach(([k, file]) => fd.append(k, file))
+      Object.entries(docs).forEach(([k, file]) => fd.append(k, file, file.name))
       const res = await fetch('https://loan-backend-production-cd45.up.railway.app/api/application/submit', { method: 'POST', body: fd })
       const data = await res.json()
       setResult(data)
