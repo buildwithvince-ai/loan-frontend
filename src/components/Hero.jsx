@@ -51,11 +51,13 @@ export default function Hero() {
         </div>
 
         {/* Stats */}
-        <div className="animate-fade-in-up delay-500 mt-20 grid grid-cols-3 gap-8 max-w-md mx-auto">
+        <div className="animate-fade-in-up delay-500 mt-20 grid grid-cols-3 sm:grid-cols-5 gap-8 max-w-2xl mx-auto">
           {[
             { value: '₱30K', label: 'Personal Loans' },
-            { value: '₱100K', label: 'SME Loans' },
+            { value: '₱300K', label: 'SME Loans' },
             { value: '₱40K', label: 'AKAP Loans' },
+            { value: '₱100K', label: 'SBL Loans' },
+            { value: '₱50K', label: 'Group Loans' },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
               <div className="text-green text-2xl md:text-3xl font-bold">{stat.value}</div>
