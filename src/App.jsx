@@ -6,6 +6,7 @@ import PersonalLoanForm from './pages/PersonalLoanForm'
 import SmeLoanForm from './pages/SmeLoanForm'
 import AkapLoanForm from './pages/AkapLoanForm'
 import GroupLoanForm from './pages/GroupLoanForm'
+import SblLoanForm from './pages/SblLoanForm'
 import SelectProduct from './pages/SelectProduct'
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
             <Route path="/apply/sme" element={<SmeLoanForm />} />
             <Route path="/apply/akap" element={<AkapLoanForm />} />
             <Route path="/apply/group" element={<GroupLoanForm />} />
+            <Route path="/apply/sbl" element={<SblLoanForm />} />
           </Routes>
         </main>
         <Footer />

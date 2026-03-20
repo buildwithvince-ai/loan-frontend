@@ -1,0 +1,890 @@
+import { useState, useRef, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+
+const TOTAL_STEPS = 3
+
+const CIVIL_STATUSES = ['Single', 'Married', 'Widowed', 'Separated']
+const EMPLOYMENT_STATUSES = [
+  { value: 'Employee', label: 'Employee' },
+  { value: 'Government Employee', label: 'Government Employee' },
+  { value: 'Private Sector Employee', label: 'Private Sector Employee' },
+  { value: 'Owner', label: 'Business Owner / Self-Employed' },
+  { value: 'Overseas Worker', label: 'Overseas Worker (OFW)' },
+  { value: 'Student', label: 'Student' },
+  { value: 'Pensioner', label: 'Pensioner' },
+  { value: 'Unemployed', label: 'Unemployed' },
+]
+const POSITIONS = [
+  { value: 'Elected Official', label: 'Elected Official' },
+  { value: 'Appointed Official', label: 'Appointed Official' },
+]
+const TERMS = [6, 12]
+
+const MEMBER_DOCS = [
+  { key: 'sblApplicationForm', label: 'SBL Application Form' },
+  { key: 'barangayClearance', label: 'Barangay Clearance (signed by Chairman + Secretary)' },
+  { key: 'validId', label: '1 Valid Government ID' },
+  { key: 'payslip', label: 'Latest 2 Months Payslip (with Chairman + Treasurer signature)' },
+]
+
+const LEADER_DOCS = [
+  ...MEMBER_DOCS,
+  { key: 'moaSalaryDeduction', label: 'MOA for Salary Deduction' },
+]
+
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
+const MAX_FILE_SIZE = 5 * 1024 * 1024
+
+function createMember() {
+  return {
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    dateOfBirth: '',
+    civilStatus: '',
+    mobile: '',
+    email: '',
+    employmentStatus: '',
+    monthlyIncome: '',
+    position: '',
+    houseStreet: '',
+    barangay: '',
+    city: '',
+    province: '',
+    zip: '',
+  }
+}
+
+// ── Helpers ──
+
+function getAge(dob) {
+  const today = new Date()
+  const birth = new Date(dob)
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+  return age
+}
+
+function validMobile(v) {
+  return /^09\d{9}$/.test(v)
+}
+
+function validEmail(v) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+}
+
+function formatPeso(n) {
+  return '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+}
+
+// ── Shared UI ──
+
+function Label({ children, required }) {
+  return (
+    <label className="block text-sm font-medium text-white mb-1.5">
+      {children}
+      {required && <span className="text-red-400 ml-0.5">*</span>}
+    </label>
+  )
+}
+
+function Input({ value, onChange, ...props }) {
+  return (
+    <input
+      value={value}
+      onChange={onChange}
+      className="w-full px-4 py-3 rounded-xl bg-surface-alt border border-border text-white text-sm placeholder:text-muted/50 focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
+      {...props}
+    />
+  )
+}
+
+function Select({ value, onChange, options, placeholder, ...props }) {
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      className="w-full px-4 py-3 rounded-xl bg-surface-alt border border-border text-white text-sm focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors appearance-none"
+      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}
+      {...props}
+    >
+      {placeholder && <option value="">{placeholder}</option>}
+      {options.map(o => typeof o === 'string'
+        ? <option key={o} value={o}>{o}</option>
+        : <option key={o.value} value={o.value}>{o.label}</option>
+      )}
+    </select>
+  )
+}
+
+function FieldError({ message }) {
+  if (!message) return null
+  return <p className="text-red-400 text-xs mt-1">{message}</p>
+}
+
+// ── Component ──
+
+export default function SblLoanForm() {
+  const [step, setStep] = useState(1)
+  const [groupName, setGroupName] = useState('')
+  const [agentName, setAgentName] = useState('')
+  const [totalLoanAmount, setTotalLoanAmount] = useState(5000)
+  const [loanTerm, setLoanTerm] = useState(6)
+  const [memberCount, setMemberCount] = useState(1)
+  const [members, setMembers] = useState(() => [createMember()])
+  const [memberDocs, setMemberDocs] = useState(() => [{}])
+  const [expandedMembers, setExpandedMembers] = useState({ 0: true })
+  const [errors, setErrors] = useState({})
+  const [confirmAccurate, setConfirmAccurate] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [result, setResult] = useState(null)
+  const topRef = useRef(null)
+  const fileInputRefs = useRef({})
+
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [step])
+
+  // Sync members array with memberCount
+  useEffect(() => {
+    setMembers(prev => {
+      if (memberCount > prev.length) {
+        return [...prev, ...Array.from({ length: memberCount - prev.length }, () => createMember())]
+      }
+      return prev.slice(0, memberCount)
+    })
+    setMemberDocs(prev => {
+      if (memberCount > prev.length) {
+        return [...prev, ...Array.from({ length: memberCount - prev.length }, () => ({}))]
+      }
+      return prev.slice(0, memberCount)
+    })
+    setExpandedMembers(prev => {
+      const next = { ...prev }
+      Object.keys(next).forEach(k => {
+        if (Number(k) >= memberCount) delete next[k]
+      })
+      return next
+    })
+  }, [memberCount])
+
+  const updateMember = (index, key, value) => {
+    setMembers(prev => prev.map((m, i) => i === index ? { ...m, [key]: value } : m))
+    setErrors(prev => ({ ...prev, [`member_${index}_${key}`]: undefined }))
+  }
+
+  const handleFile = (memberIndex, docKey, file) => {
+    if (!file) return
+    const errorKey = `member_${memberIndex}_${docKey}`
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      setErrors(prev => ({ ...prev, [errorKey]: 'Only JPG, PNG, or PDF files allowed' }))
+      return
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setErrors(prev => ({ ...prev, [errorKey]: 'File must be under 5MB' }))
+      return
+    }
+    setMemberDocs(prev => prev.map((d, i) => i === memberIndex ? { ...d, [docKey]: file } : d))
+    setErrors(prev => ({ ...prev, [errorKey]: undefined }))
+  }
+
+  const removeFile = (memberIndex, docKey) => {
+    setMemberDocs(prev => prev.map((d, i) => {
+      if (i !== memberIndex) return d
+      const next = { ...d }
+      delete next[docKey]
+      return next
+    }))
+  }
+
+  const toggleMember = (index) => {
+    setExpandedMembers(prev => ({ ...prev, [index]: !prev[index] }))
+  }
+
+  // ── Validation ──
+  const validate = () => {
+    const e = {}
+
+    if (step === 1) {
+      if (!groupName.trim()) e.groupName = 'Barangay / Group name is required'
+      if (memberCount < 1) e.memberCount = 'At least 1 member is required'
+    }
+
+    if (step === 2) {
+      members.forEach((m, i) => {
+        const p = `member_${i}_`
+        if (!m.firstName.trim()) e[`${p}firstName`] = 'Required'
+        if (!m.lastName.trim()) e[`${p}lastName`] = 'Required'
+        if (!m.dateOfBirth) {
+          e[`${p}dateOfBirth`] = 'Required'
+        } else {
+          const age = getAge(m.dateOfBirth)
+          if (age < 21) e[`${p}dateOfBirth`] = 'Must be at least 21 years old'
+          if (age > 65) e[`${p}dateOfBirth`] = 'Must be 65 years old or younger'
+        }
+        if (!m.civilStatus) e[`${p}civilStatus`] = 'Required'
+        if (!m.mobile.trim()) {
+          e[`${p}mobile`] = 'Required'
+        } else if (!validMobile(m.mobile)) {
+          e[`${p}mobile`] = 'Use format 09XXXXXXXXX'
+        }
+        if (m.email && !validEmail(m.email)) {
+          e[`${p}email`] = 'Invalid email'
+        }
+        if (!m.employmentStatus) e[`${p}employmentStatus`] = 'Required'
+        if (!m.monthlyIncome) {
+          e[`${p}monthlyIncome`] = 'Required'
+        } else if (Number(m.monthlyIncome) < 15000) {
+          e[`${p}monthlyIncome`] = 'Minimum income is ₱15,000/month'
+        }
+        if (!m.position) e[`${p}position`] = 'Required'
+        if (!m.houseStreet.trim()) e[`${p}houseStreet`] = 'Required'
+        if (!m.barangay.trim()) e[`${p}barangay`] = 'Required'
+        if (!m.city.trim()) e[`${p}city`] = 'Required'
+        if (!m.province.trim()) e[`${p}province`] = 'Required'
+        if (!m.zip.trim()) e[`${p}zip`] = 'Required'
+
+        const requiredDocs = i === 0 ? LEADER_DOCS : MEMBER_DOCS
+        requiredDocs.forEach(doc => {
+          if (!memberDocs[i]?.[doc.key]) {
+            e[`member_${i}_${doc.key}`] = 'This document is required'
+          }
+        })
+      })
+
+      if (Object.keys(e).length > 0) {
+        const membersWithErrors = new Set()
+        Object.keys(e).forEach(key => {
+          const match = key.match(/^member_(\d+)_/)
+          if (match) membersWithErrors.add(Number(match[1]))
+        })
+        setExpandedMembers(prev => {
+          const next = { ...prev }
+          membersWithErrors.forEach(i => { next[i] = true })
+          return next
+        })
+      }
+    }
+
+    if (step === 3) {
+      if (!confirmAccurate) e.confirmAccurate = 'You must confirm before submitting'
+    }
+
+    setErrors(e)
+    return Object.keys(e).length === 0
+  }
+
+  const next = () => {
+    if (validate()) setStep(s => Math.min(s + 1, TOTAL_STEPS))
+  }
+
+  const back = () => setStep(s => Math.max(s - 1, 1))
+
+  // ── Submit ──
+  const handleSubmit = async () => {
+    if (!validate()) return
+    setSubmitting(true)
+    try {
+      const fd = new FormData()
+      fd.append('loanType', 'sbl')
+      fd.append('groupName', groupName)
+      if (agentName.trim()) fd.append('agentName', agentName)
+      fd.append('totalLoanAmount', totalLoanAmount)
+      fd.append('loanTerm', loanTerm)
+      fd.append('members', JSON.stringify(members))
+
+      members.forEach((_, memberIndex) => {
+        const docs = memberDocs[memberIndex] || {}
+        let fileIndex = 0
+        const docList = memberIndex === 0 ? LEADER_DOCS : MEMBER_DOCS
+        docList.forEach(doc => {
+          if (docs[doc.key]) {
+            fd.append(`member_${memberIndex}_file_${fileIndex}`, docs[doc.key], docs[doc.key].name)
+            fileIndex++
+          }
+        })
+      })
+
+      const res = await fetch('https://loan-backend-production-cd45.up.railway.app/api/application/submit-group', {
+        method: 'POST',
+        body: fd,
+      })
+      const data = await res.json()
+      setResult(data)
+    } catch {
+      setResult({ status: 'error', message: 'Something went wrong. Please try again.' })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // ── Result screens ──
+  if (result) {
+    if (result.status === 'success') {
+      return (
+        <div className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
+          <div className="max-w-lg w-full text-center">
+            <div className="w-20 h-20 rounded-full bg-green/10 border border-green/30 flex items-center justify-center mx-auto mb-6">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-10 h-10 text-green">
+                <path d="M4.5 12.75l6 6 9-13.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <h2 className="text-3xl font-bold text-green mb-4">Application Received</h2>
+            <p className="text-white text-lg mb-2">
+              Reference ID: <span className="text-green font-bold">{result.referenceId}</span>
+            </p>
+            <p className="text-muted mb-2">
+              Total members processed: <span className="text-white font-semibold">{memberCount}</span>
+            </p>
+            <p className="text-muted mb-8">
+              Your SBL application has been received. Our team will review it within 2–3 business days.
+            </p>
+            <Link to="/" className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all">
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      )
+    }
+
+    if (result.status === 'declined') {
+      return (
+        <div className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
+          <div className="max-w-lg w-full text-center">
+            <div className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-6">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-10 h-10 text-red-400">
+                <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <h2 className="text-3xl font-bold text-red-400 mb-4">Application Declined</h2>
+            <ul className="text-left bg-surface border border-border rounded-xl p-6 mb-8 space-y-2">
+              {(result.reasons || []).map((r, i) => (
+                <li key={i} className="text-muted text-sm flex items-start gap-2">
+                  <span className="text-red-400 mt-0.5">•</span> {r}
+                </li>
+              ))}
+            </ul>
+            <Link to="/" className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all">
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
+        <div className="max-w-lg w-full text-center">
+          <div className="w-20 h-20 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center mx-auto mb-6">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-10 h-10 text-yellow-400">
+              <path d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold text-yellow-400 mb-4">Something Went Wrong</h2>
+          <p className="text-muted mb-8">{result.message || 'An unexpected error occurred.'}</p>
+          {result.failedMember !== undefined && (
+            <p className="text-red-400 text-sm mb-4">
+              Issue with Member {result.failedMember + 1}{result.failedMember === 0 ? ' (Leader)' : ''}
+            </p>
+          )}
+          <button onClick={() => { setResult(null) }} className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all">
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Progress ──
+  const progress = (step / TOTAL_STEPS) * 100
+  const stepLabels = ['Group Details', 'Members', 'Review & Submit']
+  const loanShare = memberCount > 0 ? Math.floor(totalLoanAmount / memberCount) : 0
+  const amountPercent = ((totalLoanAmount - 5000) / (100000 - 5000)) * 100
+
+  return (
+    <div ref={topRef} className="min-h-screen pt-28 pb-16 px-4 sm:px-6">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <Link to="/" className="text-muted hover:text-white text-sm transition-colors inline-flex items-center gap-1 mb-4">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" /></svg>
+            Back to Home
+          </Link>
+          <h1 className="text-2xl sm:text-3xl font-bold text-green">SBL (Salary-Based Loan) Application</h1>
+          <p className="text-muted text-sm mt-1">Step {step} of {TOTAL_STEPS} — {stepLabels[step - 1]}</p>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full h-1.5 bg-surface-alt rounded-full mb-10 overflow-hidden">
+          <div
+            className="h-full bg-green rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        {/* Form card */}
+        <div className="bg-surface/60 backdrop-blur-sm border border-border rounded-2xl p-6 sm:p-8">
+
+          {/* ══ STEP 1: Group Details ══ */}
+          {step === 1 && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold text-green mb-1">Group Details</h2>
+              <p className="text-muted text-sm mb-4">Set up your salary-based loan parameters.</p>
+
+              {/* Qualification note */}
+              <div className="bg-blue/5 border border-blue/20 rounded-xl p-4 flex gap-3">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-blue shrink-0 mt-0.5">
+                  <path d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <p className="text-blue text-sm leading-relaxed">
+                  SBL is available for elected or appointed Barangay Officials with at least 6 months remaining office term.
+                </p>
+              </div>
+
+              <div>
+                <Label required>Barangay / Group Name</Label>
+                <Input
+                  value={groupName}
+                  onChange={e => { setGroupName(e.target.value); setErrors(prev => ({ ...prev, groupName: undefined })) }}
+                  placeholder="e.g. Brgy. San Pablo Officials"
+                />
+                <FieldError message={errors.groupName} />
+              </div>
+
+              <div>
+                <Label>Accredit Agent Name</Label>
+                <Input
+                  value={agentName}
+                  onChange={e => setAgentName(e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+
+              {/* Amount slider + manual input */}
+              <div>
+                <div className="flex justify-between items-baseline mb-2">
+                  <Label required>Total Loan Amount</Label>
+                  <span className="text-green text-2xl font-bold">{formatPeso(totalLoanAmount)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={5000} max={100000} step={1000}
+                  value={totalLoanAmount}
+                  onChange={e => setTotalLoanAmount(Number(e.target.value))}
+                  className="w-full"
+                  style={{ background: `linear-gradient(to right, #5CB85C 0%, #5CB85C ${amountPercent}%, #1A2235 ${amountPercent}%, #1A2235 100%)` }}
+                />
+                <div className="flex justify-between mt-1 mb-3">
+                  <span className="text-muted text-xs">₱5,000</span>
+                  <span className="text-muted text-xs">₱100,000</span>
+                </div>
+                <Input
+                  type="number"
+                  value={totalLoanAmount}
+                  onChange={e => {
+                    const v = Number(e.target.value)
+                    if (v >= 5000 && v <= 100000) setTotalLoanAmount(v)
+                    else if (v < 5000) setTotalLoanAmount(5000)
+                    else if (v > 100000) setTotalLoanAmount(100000)
+                  }}
+                  min={5000} max={100000} step={1000}
+                  placeholder="Enter amount"
+                />
+              </div>
+
+              {/* Term */}
+              <div>
+                <Label required>Loan Term</Label>
+                <div className="flex gap-3 mt-1">
+                  {TERMS.map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setLoanTerm(t)}
+                      className={`flex-1 py-3 rounded-xl text-sm font-medium border transition-all ${
+                        loanTerm === t
+                          ? 'border-green bg-green/10 text-green'
+                          : 'border-border text-muted hover:border-muted/30 hover:text-white'
+                      }`}
+                    >
+                      {t} months
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Repayment */}
+              <div>
+                <Label>Repayment Schedule</Label>
+                <div className="px-4 py-3 rounded-xl bg-surface-alt/50 border border-border text-muted text-sm">
+                  Monthly
+                </div>
+              </div>
+
+              {/* Number of members */}
+              <div>
+                <Label required>Number of Members</Label>
+                <Input
+                  type="number"
+                  value={memberCount}
+                  onChange={e => {
+                    const v = Math.max(1, parseInt(e.target.value) || 1)
+                    setMemberCount(v)
+                    setErrors(prev => ({ ...prev, memberCount: undefined }))
+                  }}
+                  min={1}
+                  placeholder="Minimum 1"
+                />
+                <FieldError message={errors.memberCount} />
+                {memberCount > 1 && (
+                  <p className="text-muted text-xs mt-1">Each member's loan share: {formatPeso(loanShare)}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ══ STEP 2: Members ══ */}
+          {step === 2 && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-green mb-1">Member Information</h2>
+              <p className="text-muted text-sm mb-4">Fill in details for all {memberCount} member{memberCount > 1 ? 's' : ''}. {memberCount > 1 ? 'Member 1 is the group leader.' : ''}</p>
+
+              {members.map((member, i) => {
+                const isLeader = i === 0
+                const isExpanded = expandedMembers[i]
+                const prefix = `member_${i}_`
+                const docs = memberDocs[i] || {}
+                const requiredDocList = isLeader ? LEADER_DOCS : MEMBER_DOCS
+                const hasErrors = Object.keys(errors).some(k => k.startsWith(prefix))
+                const memberName = [member.firstName, member.lastName].filter(Boolean).join(' ')
+
+                return (
+                  <div key={i} className={`border rounded-2xl overflow-hidden transition-all ${hasErrors ? 'border-red-400/50' : 'border-border'}`}>
+                    {/* Collapsible header */}
+                    <button
+                      type="button"
+                      onClick={() => toggleMember(i)}
+                      className="w-full flex items-center justify-between p-4 sm:p-5 bg-surface-alt/30 hover:bg-surface-alt/50 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${isLeader ? 'bg-green/20 text-green' : 'bg-blue/20 text-blue'}`}>
+                          {i + 1}
+                        </div>
+                        <div>
+                          <span className="text-white text-sm font-semibold">
+                            Member {i + 1}{isLeader && memberCount > 1 ? ' (Leader)' : ''}
+                          </span>
+                          {memberName && (
+                            <span className="text-muted text-xs block">{memberName}</span>
+                          )}
+                        </div>
+                        {hasErrors && <span className="text-red-400 text-xs">Has errors</span>}
+                      </div>
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        className={`w-5 h-5 text-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      >
+                        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+
+                    {/* Expanded content */}
+                    {isExpanded && (
+                      <div className="p-4 sm:p-6 space-y-6 border-t border-border">
+
+                        {/* Personal Information */}
+                        <div className="space-y-4">
+                          <h3 className="text-blue text-xs font-semibold uppercase tracking-wider">Personal Information</h3>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                              <Label required>First Name</Label>
+                              <Input value={member.firstName} onChange={e => updateMember(i, 'firstName', e.target.value)} placeholder="Juan" />
+                              <FieldError message={errors[`${prefix}firstName`]} />
+                            </div>
+                            <div>
+                              <Label>Middle Name</Label>
+                              <Input value={member.middleName} onChange={e => updateMember(i, 'middleName', e.target.value)} placeholder="Santos" />
+                            </div>
+                            <div>
+                              <Label required>Last Name</Label>
+                              <Input value={member.lastName} onChange={e => updateMember(i, 'lastName', e.target.value)} placeholder="Dela Cruz" />
+                              <FieldError message={errors[`${prefix}lastName`]} />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <Label required>Date of Birth</Label>
+                              <Input type="date" value={member.dateOfBirth} onChange={e => updateMember(i, 'dateOfBirth', e.target.value)} />
+                              <FieldError message={errors[`${prefix}dateOfBirth`]} />
+                            </div>
+                            <div>
+                              <Label required>Civil Status</Label>
+                              <Select value={member.civilStatus} onChange={e => updateMember(i, 'civilStatus', e.target.value)} options={CIVIL_STATUSES} placeholder="Select status" />
+                              <FieldError message={errors[`${prefix}civilStatus`]} />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <Label required>Mobile Number</Label>
+                              <Input value={member.mobile} onChange={e => updateMember(i, 'mobile', e.target.value)} placeholder="09XXXXXXXXX" maxLength={11} />
+                              <FieldError message={errors[`${prefix}mobile`]} />
+                            </div>
+                            <div>
+                              <Label>Email Address</Label>
+                              <Input type="email" value={member.email} onChange={e => updateMember(i, 'email', e.target.value)} placeholder="juan@email.com" />
+                              <FieldError message={errors[`${prefix}email`]} />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <Label required>Employment Status</Label>
+                              <Select value={member.employmentStatus} onChange={e => updateMember(i, 'employmentStatus', e.target.value)} options={EMPLOYMENT_STATUSES} placeholder="Select status" />
+                              <FieldError message={errors[`${prefix}employmentStatus`]} />
+                            </div>
+                            <div>
+                              <Label required>Monthly Income (₱)</Label>
+                              <Input type="number" value={member.monthlyIncome} onChange={e => updateMember(i, 'monthlyIncome', e.target.value)} placeholder="15000" min={0} />
+                              <FieldError message={errors[`${prefix}monthlyIncome`]} />
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label required>Position / Job Title</Label>
+                            <Select value={member.position} onChange={e => updateMember(i, 'position', e.target.value)} options={POSITIONS} placeholder="Select position" />
+                            <FieldError message={errors[`${prefix}position`]} />
+                          </div>
+                        </div>
+
+                        {/* Address */}
+                        <div className="space-y-4">
+                          <h3 className="text-blue text-xs font-semibold uppercase tracking-wider">Address</h3>
+
+                          <div>
+                            <Label required>House No. / Street</Label>
+                            <Input value={member.houseStreet} onChange={e => updateMember(i, 'houseStreet', e.target.value)} placeholder="123 Rizal St." />
+                            <FieldError message={errors[`${prefix}houseStreet`]} />
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <Label required>Barangay</Label>
+                              <Input value={member.barangay} onChange={e => updateMember(i, 'barangay', e.target.value)} placeholder="Brgy. San Pablo" />
+                              <FieldError message={errors[`${prefix}barangay`]} />
+                            </div>
+                            <div>
+                              <Label required>City / Municipality</Label>
+                              <Input value={member.city} onChange={e => updateMember(i, 'city', e.target.value)} placeholder="Malolos" />
+                              <FieldError message={errors[`${prefix}city`]} />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <Label required>Province</Label>
+                              <Input value={member.province} onChange={e => updateMember(i, 'province', e.target.value)} placeholder="Bulacan" />
+                              <FieldError message={errors[`${prefix}province`]} />
+                            </div>
+                            <div>
+                              <Label required>ZIP Code</Label>
+                              <Input value={member.zip} onChange={e => updateMember(i, 'zip', e.target.value)} placeholder="3000" maxLength={4} />
+                              <FieldError message={errors[`${prefix}zip`]} />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Document Upload */}
+                        <div className="space-y-3">
+                          <h3 className="text-blue text-xs font-semibold uppercase tracking-wider">Document Upload</h3>
+                          <p className="text-muted text-xs">JPG, PNG, or PDF only. Max 5MB per file.</p>
+
+                          {requiredDocList.map(doc => {
+                            const file = docs[doc.key]
+                            const errorKey = `member_${i}_${doc.key}`
+                            const refKey = `${i}_${doc.key}`
+                            return (
+                              <div key={doc.key} className="bg-surface-alt/20 border border-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-white text-sm font-medium">
+                                    {doc.label}
+                                    <span className="text-red-400 ml-1">*</span>
+                                  </div>
+                                  {file ? (
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-green shrink-0"><path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" /></svg>
+                                      <span className="text-muted text-xs truncate">{file.name}</span>
+                                      <button onClick={() => removeFile(i, doc.key)} className="text-red-400 hover:text-red-300 text-xs shrink-0 ml-1">Remove</button>
+                                    </div>
+                                  ) : (
+                                    <FieldError message={errors[errorKey]} />
+                                  )}
+                                </div>
+                                <div className="shrink-0">
+                                  <input
+                                    ref={el => fileInputRefs.current[refKey] = el}
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.pdf"
+                                    onChange={e => { handleFile(i, doc.key, e.target.files[0]); e.target.value = '' }}
+                                    className="hidden"
+                                  />
+                                  <button
+                                    onClick={() => fileInputRefs.current[refKey]?.click()}
+                                    className="px-4 py-2 border border-blue/30 text-blue text-xs font-medium rounded-lg hover:bg-blue/10 transition-all"
+                                  >
+                                    {file ? 'Replace' : 'Choose File'}
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* ══ STEP 3: Review & Submit ══ */}
+          {step === 3 && (
+            <div className="space-y-5">
+              <h2 className="text-xl font-bold text-green mb-1">Review Your Application</h2>
+              <p className="text-muted text-sm mb-4">Please review all information before submitting.</p>
+
+              {/* Group summary */}
+              <div className="bg-surface-alt/20 border border-border rounded-xl p-5">
+                <h3 className="text-blue text-xs font-semibold uppercase tracking-wider mb-3">Group Details</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between gap-4 text-sm">
+                    <span className="text-muted shrink-0">Barangay / Group Name</span>
+                    <span className="text-white text-right">{groupName}</span>
+                  </div>
+                  {agentName.trim() && (
+                    <div className="flex justify-between gap-4 text-sm">
+                      <span className="text-muted shrink-0">Accredit Agent</span>
+                      <span className="text-white text-right">{agentName}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between gap-4 text-sm">
+                    <span className="text-muted shrink-0">Total Loan Amount</span>
+                    <span className="text-white text-right">{formatPeso(totalLoanAmount)}</span>
+                  </div>
+                  <div className="flex justify-between gap-4 text-sm">
+                    <span className="text-muted shrink-0">Loan Term</span>
+                    <span className="text-white text-right">{loanTerm} months</span>
+                  </div>
+                  <div className="flex justify-between gap-4 text-sm">
+                    <span className="text-muted shrink-0">Repayment</span>
+                    <span className="text-white text-right">Monthly</span>
+                  </div>
+                  <div className="flex justify-between gap-4 text-sm">
+                    <span className="text-muted shrink-0">Members</span>
+                    <span className="text-white text-right">{memberCount}</span>
+                  </div>
+                  {memberCount > 1 && (
+                    <div className="flex justify-between gap-4 text-sm">
+                      <span className="text-muted shrink-0">Loan Share per Member</span>
+                      <span className="text-green text-right font-semibold">{formatPeso(loanShare)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Members summary */}
+              {members.map((m, i) => {
+                const memberName = [m.firstName, m.middleName, m.lastName].filter(Boolean).join(' ')
+                const docCount = Object.keys(memberDocs[i] || {}).length
+                return (
+                  <div key={i} className="bg-surface-alt/20 border border-border rounded-xl p-5">
+                    <h3 className="text-blue text-xs font-semibold uppercase tracking-wider mb-3">
+                      Member {i + 1}{i === 0 && memberCount > 1 ? ' (Leader)' : ''}
+                    </h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between gap-4 text-sm">
+                        <span className="text-muted shrink-0">Name</span>
+                        <span className="text-white text-right">{memberName}</span>
+                      </div>
+                      <div className="flex justify-between gap-4 text-sm">
+                        <span className="text-muted shrink-0">Position</span>
+                        <span className="text-white text-right">{m.position}</span>
+                      </div>
+                      {memberCount > 1 && (
+                        <div className="flex justify-between gap-4 text-sm">
+                          <span className="text-muted shrink-0">Loan Share</span>
+                          <span className="text-green text-right font-semibold">{formatPeso(loanShare)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between gap-4 text-sm">
+                        <span className="text-muted shrink-0">Mobile</span>
+                        <span className="text-white text-right">{m.mobile}</span>
+                      </div>
+                      <div className="flex justify-between gap-4 text-sm">
+                        <span className="text-muted shrink-0">Employment</span>
+                        <span className="text-white text-right">{m.employmentStatus}</span>
+                      </div>
+                      <div className="flex justify-between gap-4 text-sm">
+                        <span className="text-muted shrink-0">Monthly Income</span>
+                        <span className="text-white text-right">{formatPeso(m.monthlyIncome)}</span>
+                      </div>
+                      <div className="flex justify-between gap-4 text-sm">
+                        <span className="text-muted shrink-0">Address</span>
+                        <span className="text-white text-right break-all">{m.houseStreet}, Brgy. {m.barangay}, {m.city}, {m.province} {m.zip}</span>
+                      </div>
+                      <div className="flex justify-between gap-4 text-sm">
+                        <span className="text-muted shrink-0">Documents</span>
+                        <span className="text-white text-right">{docCount} uploaded</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+
+              <label className="flex items-start gap-3 cursor-pointer group pt-2">
+                <input
+                  type="checkbox"
+                  checked={confirmAccurate}
+                  onChange={e => { setConfirmAccurate(e.target.checked); setErrors(prev => ({ ...prev, confirmAccurate: undefined })) }}
+                  className="w-5 h-5 rounded border-border bg-surface-alt text-green focus:ring-green/30 accent-green mt-0.5"
+                />
+                <span className="text-white text-sm leading-relaxed group-hover:text-green transition-colors">
+                  I confirm that all information provided is true and accurate to the best of my knowledge.
+                </span>
+              </label>
+              <FieldError message={errors.confirmAccurate} />
+            </div>
+          )}
+
+          {/* Navigation */}
+          <div className="flex justify-between items-center mt-8 pt-6 border-t border-border">
+            {step > 1 ? (
+              <button onClick={back} className="px-6 py-3 border border-border text-muted hover:text-white hover:border-muted/50 font-medium text-sm rounded-xl transition-all">
+                Back
+              </button>
+            ) : <div />}
+
+            {step < TOTAL_STEPS ? (
+              <button onClick={next} className="px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold text-sm rounded-xl transition-all hover:shadow-lg hover:shadow-green/20">
+                Continue
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold text-sm rounded-xl transition-all hover:shadow-lg hover:shadow-green/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? 'Submitting…' : 'Submit Application'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
