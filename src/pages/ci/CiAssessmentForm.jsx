@@ -156,13 +156,12 @@ export default function CiAssessmentForm({ app, onBack }) {
     .filter(Boolean).join(', ') || app.address || ''
   const addToast = useCiToast()
 
-  // Form state
-  const [clientName, setClientName] = useState(fullName)
-  const [completeAddress, setCompleteAddress] = useState(address)
-  const [contactNumber, setContactNumber] = useState(app.phone || app.mobile || '')
+  const contactNumber = app.phone || app.mobile || ''
+  const civilStatus = app.civil_status || app.civilStatus || ''
+  const loanPurpose = app.loan_purpose || app.purpose || ''
+
+  // Form state (CI-specific fields only)
   const [contactStatus, setContactStatus] = useState(null)
-  const [civilStatus, setCivilStatus] = useState(app.civil_status || app.civilStatus || '')
-  const [loanPurpose, setLoanPurpose] = useState(app.loan_purpose || app.purpose || '')
   const [relativeAtGr8, setRelativeAtGr8] = useState(null)
   const [relativeWho, setRelativeWho] = useState('')
   const [interviewer, setInterviewer] = useState('')
@@ -239,10 +238,10 @@ export default function CiAssessmentForm({ app, onBack }) {
     setSubmitting(true)
     try {
       const ciFormData = {
-        client_name: clientName,
+        client_name: fullName,
         age,
-        complete_address: completeAddress,
-        contact_number: contactNumber,
+        complete_address: address,
+        contact_number: app.phone || app.mobile || '',
         contact_status: contactStatus,
         loan_product: app.loan_type,
         civil_status: civilStatus,
@@ -401,26 +400,45 @@ export default function CiAssessmentForm({ app, onBack }) {
             </div>
           )}
 
-          {/* Header fields */}
+          {/* Applicant Info (read-only from application) */}
+          <div className="bg-surface border border-border rounded-xl p-5">
+            <h4 className="text-white font-semibold text-sm mb-3">Applicant Information</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <span className={labelCls}>Client Name</span>
+                <p className="text-white text-sm">{fullName || '—'}</p>
+              </div>
+              <div>
+                <span className={labelCls}>Age</span>
+                <p className="text-white text-sm">{age != null ? `${age} years old` : '—'}</p>
+              </div>
+              <div>
+                <span className={labelCls}>Contact Number</span>
+                <p className="text-white text-sm">{contactNumber || '—'}</p>
+              </div>
+              <div className="sm:col-span-2 lg:col-span-3">
+                <span className={labelCls}>Complete Address</span>
+                <p className="text-white text-sm">{address || '—'}</p>
+              </div>
+              <div>
+                <span className={labelCls}>Loan Product</span>
+                <p className="text-white text-sm uppercase">{app.loan_type || '—'}</p>
+              </div>
+              <div>
+                <span className={labelCls}>Civil Status</span>
+                <p className="text-white text-sm">{civilStatus || '—'}</p>
+              </div>
+              <div>
+                <span className={labelCls}>Loan Purpose</span>
+                <p className="text-white text-sm">{loanPurpose || '—'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* CI Investigation Fields */}
           <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
             <h4 className="text-white font-semibold text-sm mb-3">Investigation Details</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>Client Name</label>
-                <input type="text" value={clientName} onChange={(e) => setClientName(e.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Age {age != null && <span className="text-white ml-1">({age} years old)</span>}</label>
-                <input type="text" value={age ?? 'N/A'} readOnly className={`${inputCls} opacity-60`} />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelCls}>Complete Address</label>
-                <input type="text" value={completeAddress} onChange={(e) => setCompleteAddress(e.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Contact Number</label>
-                <input type="text" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} className={inputCls} />
-              </div>
               <div>
                 <label className={labelCls}>Contact Status *</label>
                 <div className="flex gap-3 mt-1">
@@ -435,16 +453,11 @@ export default function CiAssessmentForm({ app, onBack }) {
                 </div>
               </div>
               <div>
-                <label className={labelCls}>Loan Product</label>
-                <input type="text" value={(app.loan_type || '').toUpperCase()} readOnly className={`${inputCls} opacity-60`} />
-              </div>
-              <div>
-                <label className={labelCls}>Civil Status</label>
-                <input type="text" value={civilStatus} onChange={(e) => setCivilStatus(e.target.value)} className={inputCls} />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelCls}>Loan Purpose</label>
-                <input type="text" value={loanPurpose} onChange={(e) => setLoanPurpose(e.target.value)} className={inputCls} />
+                <label className={labelCls}>Interviewer *</label>
+                <select value={interviewer} onChange={(e) => setInterviewer(e.target.value)} className={inputCls}>
+                  <option value="">Select interviewer</option>
+                  {INTERVIEWERS.map((name) => <option key={name} value={name}>{name}</option>)}
+                </select>
               </div>
               <div className="sm:col-span-2">
                 <label className={labelCls}>Relative working at GR8 Lending?</label>
@@ -466,13 +479,6 @@ export default function CiAssessmentForm({ app, onBack }) {
                     <input type="text" value={relativeWho} onChange={(e) => setRelativeWho(e.target.value)} className={inputCls} placeholder="Please specify who" />
                   </div>
                 )}
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelCls}>Interviewer *</label>
-                <select value={interviewer} onChange={(e) => setInterviewer(e.target.value)} className={inputCls}>
-                  <option value="">Select interviewer</option>
-                  {INTERVIEWERS.map((name) => <option key={name} value={name}>{name}</option>)}
-                </select>
               </div>
             </div>
           </div>
