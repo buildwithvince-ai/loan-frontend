@@ -508,10 +508,22 @@ function Step1({ form, set, errors }) {
           className="w-full"
           style={{ background: `linear-gradient(to right, #5CB85C 0%, #5CB85C ${amountPercent}%, #1A2235 ${amountPercent}%, #1A2235 100%)` }}
         />
-        <div className="flex justify-between mt-1">
+        <div className="flex justify-between mt-1 mb-3">
           <span className="text-muted text-xs">₱10,000</span>
           <span className="text-muted text-xs">₱30,000</span>
         </div>
+        <Input
+          type="number"
+          value={form.loanAmount}
+          onChange={e => {
+            const v = Number(e.target.value)
+            if (v >= 10000 && v <= 30000) set('loanAmount', v)
+            else if (v < 10000) set('loanAmount', 10000)
+            else if (v > 30000) set('loanAmount', 30000)
+          }}
+          min={10000} max={30000} step={1000}
+          placeholder="Enter amount"
+        />
       </div>
 
       {/* Term */}

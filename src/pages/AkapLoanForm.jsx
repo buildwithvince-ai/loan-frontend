@@ -333,10 +333,22 @@ function Step1({ form, set, errors }) {
         <input type="range" min={5000} max={40000} step={1000} value={form.loanAmount}
           onChange={e => set('loanAmount', Number(e.target.value))} className="w-full"
           style={{ background: `linear-gradient(to right, #5CB85C 0%, #5CB85C ${amountPercent}%, #1A2235 ${amountPercent}%, #1A2235 100%)` }} />
-        <div className="flex justify-between mt-1">
+        <div className="flex justify-between mt-1 mb-3">
           <span className="text-muted text-xs">₱5,000</span>
           <span className="text-muted text-xs">₱40,000</span>
         </div>
+        <Input
+          type="number"
+          value={form.loanAmount}
+          onChange={e => {
+            const v = Number(e.target.value)
+            if (v >= 5000 && v <= 40000) set('loanAmount', v)
+            else if (v < 5000) set('loanAmount', 5000)
+            else if (v > 40000) set('loanAmount', 40000)
+          }}
+          min={5000} max={40000} step={1000}
+          placeholder="Enter amount"
+        />
       </div>
 
       <div>
