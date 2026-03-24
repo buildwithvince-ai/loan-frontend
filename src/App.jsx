@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import LandingPage from './pages/LandingPage'
@@ -8,8 +8,20 @@ import AkapLoanForm from './pages/AkapLoanForm'
 import GroupLoanForm from './pages/GroupLoanForm'
 import SblLoanForm from './pages/SblLoanForm'
 import SelectProduct from './pages/SelectProduct'
+import AdminDashboard from './pages/admin/AdminDashboard'
 
 function App() {
+  const location = useLocation()
+  const isAdmin = location.pathname.startsWith('/admin')
+
+  if (isAdmin) {
+    return (
+      <Routes>
+        <Route path="/admin" element={<AdminDashboard />} />
+      </Routes>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-canvas text-white">
       {/* Fixed watermark */}

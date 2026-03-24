@@ -108,5 +108,5 @@ Read and strictly follow all instructions in these files before writing any code
 https://gr8lendingcorporation.com
 
 ## Hosting
-Netlify (client account) — free tier
-Custom domain with Let's Encrypt SSL enabled
+Cloudflare Pages (client account)
+Custom domain with Cloudflare SSL
