@@ -9,15 +9,25 @@ import GroupLoanForm from './pages/GroupLoanForm'
 import SblLoanForm from './pages/SblLoanForm'
 import SelectProduct from './pages/SelectProduct'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import CiPortal from './pages/ci/CiPortal'
 
 function App() {
   const location = useLocation()
   const isAdmin = location.pathname.startsWith('/admin')
+  const isCi = location.pathname.startsWith('/ci')
 
   if (isAdmin) {
     return (
       <Routes>
         <Route path="/admin" element={<AdminDashboard />} />
+      </Routes>
+    )
+  }
+
+  if (isCi) {
+    return (
+      <Routes>
+        <Route path="/ci" element={<CiPortal />} />
       </Routes>
     )
   }
