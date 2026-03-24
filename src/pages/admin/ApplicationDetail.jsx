@@ -1,32 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { adminFetch, useToast } from './AdminDashboard'
-
-const TIER_CONFIG = {
-  approved: {
-    color: 'green',
-    bgClass: 'bg-green/10 border-green/30',
-    textClass: 'text-green',
-    badgeClass: 'bg-green/20 text-green',
-    label: 'Approved',
-    recommendation: 'Recommended: Approve — within matrix limit',
-  },
-  tier_b: {
-    color: 'amber',
-    bgClass: 'bg-amber-500/10 border-amber-500/30',
-    textClass: 'text-amber-400',
-    badgeClass: 'bg-amber-500/20 text-amber-400',
-    label: 'Tier B',
-    recommendation: 'Recommended: Approve with adjusted terms',
-  },
-  declined: {
-    color: 'red',
-    bgClass: 'bg-red-500/10 border-red-500/30',
-    textClass: 'text-red-400',
-    badgeClass: 'bg-red-500/20 text-red-400',
-    label: 'Declined',
-    recommendation: 'Recommended: Decline — below passing score',
-  },
-}
+import { normalizeFinScore, computeFinalScore, computeFinalFromCiTotal, getTier, getNextTierHint, TIER_CONFIG } from './scoring'
+import CiScoringForm, { CiFormReadOnly } from './CiScoringForm'
 
 function Section({ title, children, collapsible = false, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen)
@@ -92,6 +67,89 @@ function ConfirmModal({ title, message, confirmLabel, confirmClass, onConfirm, o
   )
 }
 
+// Reusable score breakdown visual
+// ciIsRaw50: if true, ciScoreValue is 0-50 (raw CI total from form); if false, it's 0-100
+function ScoreBreakdown({ finscoreRaw, finscoreNorm, ciScoreValue, ciIsRaw50 = false, finalScore, tier, showNextTierHint = false }) {
+  const tierConfig = TIER_CONFIG[tier] || TIER_CONFIG.declined
+  const finscoreUnavailable = !finscoreRaw || Number(finscoreRaw) <= 0
+  const hint = showNextTierHint ? getNextTierHint(finalScore) : null
+
+  // Contribution to final 100-point score
+  const finContrib = Math.round(finscoreNorm * 0.5 * 10) / 10
+  const ciContrib = ciIsRaw50
+    ? Math.round(ciScoreValue * 2 * 0.5 * 10) / 10  // 0-50 → normalize to 0-100 → 50%
+    : Math.round(ciScoreValue * 0.5 * 10) / 10       // already 0-100 → 50%
+  const ciDisplay = ciIsRaw50 ? `${ciScoreValue} / 50` : `${ciScoreValue} / 100`
+  const ciBarPct = ciIsRaw50 ? (ciScoreValue / 50) * 100 : ciScoreValue
+
+  return (
+    <div className="bg-surface-alt rounded-lg p-4 space-y-4">
+      {/* FinScore bar */}
+      <div>
+        <div className="flex items-center justify-between text-xs mb-1.5">
+          <span className="text-muted">FinScore (50%)</span>
+          {finscoreUnavailable ? (
+            <span className="text-amber-400">Unavailable</span>
+          ) : (
+            <span className="text-blue">Raw: {finscoreRaw} &rarr; Normalized: {finscoreNorm} / 100</span>
+          )}
+        </div>
+        <div className="h-2.5 bg-canvas rounded-full overflow-hidden">
+          <div
+            className="h-full bg-blue rounded-full transition-all duration-300"
+            style={{ width: `${finscoreNorm}%` }}
+          />
+        </div>
+        <div className="text-right text-xs text-blue mt-0.5">Contributes {finContrib} / 50</div>
+        {finscoreUnavailable && (
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <span className="inline-block w-4 h-4 rounded bg-amber-500/20 text-amber-400 text-[10px] font-bold leading-none text-center">!</span>
+            <span className="text-amber-400 text-xs">FinScore unavailable — CI carries full 50 points max</span>
+          </div>
+        )}
+      </div>
+
+      {/* CI Score bar */}
+      <div>
+        <div className="flex items-center justify-between text-xs mb-1.5">
+          <span className="text-muted">CI Score (50%)</span>
+          <span className="text-green">{ciDisplay}</span>
+        </div>
+        <div className="h-2.5 bg-canvas rounded-full overflow-hidden">
+          <div
+            className="h-full bg-green rounded-full transition-all duration-300"
+            style={{ width: `${ciBarPct}%` }}
+          />
+        </div>
+        <div className="text-right text-xs text-green mt-0.5">Contributes {ciContrib} / 50</div>
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-border/50" />
+
+      {/* Final score + tier */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-muted text-xs mb-1">Final Score</p>
+          <p className="text-3xl font-bold text-white">{finalScore} <span className="text-base text-muted font-normal">/ 100</span></p>
+        </div>
+        <div className="text-right">
+          <p className="text-muted text-xs mb-1">Tier</p>
+          <Badge
+            label={`${tierConfig.label} — ${tierConfig.description}`}
+            colorClass={tierConfig.badgeClass}
+          />
+        </div>
+      </div>
+
+      {/* Next tier hint */}
+      {hint && (
+        <p className="text-xs text-amber-400">{hint}</p>
+      )}
+    </div>
+  )
+}
+
 function formatCurrency(amount) {
   return '₱' + Number(amount || 0).toLocaleString()
 }
@@ -111,14 +169,11 @@ export default function ApplicationDetail({ id, onBack }) {
   const [app, setApp] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [ciScore, setCiScore] = useState('')
-  const [ciNotes, setCiNotes] = useState('')
-  const [reviewerName, setReviewerName] = useState('')
-  const [submittingCi, setSubmittingCi] = useState(false)
   const [adjustedAmount, setAdjustedAmount] = useState('')
   const [adjustedTerm, setAdjustedTerm] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
   const [confirmModal, setConfirmModal] = useState(null)
+  const [reviewerName, setReviewerName] = useState('')
   const addToast = useToast()
 
   const fetchApp = async () => {
@@ -140,34 +195,18 @@ export default function ApplicationDetail({ id, onBack }) {
     fetchApp()
   }, [id])
 
-  const handleSubmitCiScore = async () => {
-    if (!ciScore || isNaN(ciScore) || ciScore < 0 || ciScore > 100) {
-      addToast('CI Score must be between 0 and 100', 'error')
-      return
-    }
-    if (!reviewerName.trim()) {
-      addToast('Reviewer name is required', 'error')
-      return
-    }
-    setSubmittingCi(true)
-    try {
-      const res = await adminFetch(`/applications/${id}/ci-score`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          ci_score: Number(ciScore),
-          notes: ciNotes,
-          reviewed_by: reviewerName,
-        }),
-      })
-      if (!res.ok) throw new Error('Failed to submit CI score')
-      addToast('CI Score submitted successfully')
-      await fetchApp()
-    } catch (err) {
-      addToast(err.message, 'error')
-    } finally {
-      setSubmittingCi(false)
-    }
-  }
+  // Computed scoring values from app data
+  const finscoreRaw = app ? Number(app.finscore_raw || app.finscore || 0) : 0
+  const finscoreNorm = useMemo(() => normalizeFinScore(finscoreRaw), [finscoreRaw])
+
+  // Stored scoring (after CI submitted) — ci_score is 0-50 from CI form
+  const storedFinal = app?.ci_score != null ? computeFinalFromCiTotal(finscoreNorm, app.ci_score) : null
+  const storedTier = storedFinal != null ? getTier(storedFinal) : null
+
+  // Use backend tier/score if available, else computed
+  const effectiveTier = app?.tier || storedTier
+  const effectiveFinal = app?.final_score != null ? app.final_score : storedFinal
+  const tierConfig = TIER_CONFIG[effectiveTier] || TIER_CONFIG.declined
 
   const handleApprove = () => {
     setConfirmModal({
@@ -306,7 +345,6 @@ export default function ApplicationDetail({ id, onBack }) {
 
   if (!app) return null
 
-  const tierConfig = TIER_CONFIG[app.tier] || TIER_CONFIG.declined
   const isPending = app.status === 'pending'
   const hasCiScore = app.ci_score != null
   const showCiInput = isPending && !hasCiScore
@@ -360,7 +398,7 @@ export default function ApplicationDetail({ id, onBack }) {
             <Field label="Loan Type" value={
               <Badge
                 label={app.loan_type || '—'}
-                colorClass={`bg-blue/20 text-blue`}
+                colorClass="bg-blue/20 text-blue"
               />
             } />
             <Field label="Amount" value={formatCurrency(app.loan_amount || app.amount)} />
@@ -369,105 +407,55 @@ export default function ApplicationDetail({ id, onBack }) {
           </div>
         </Section>
 
-        {/* Section 2: Scoring */}
+        {/* Section 2: Scoring (read-only — after CI score exists) */}
         <Section title="Scoring">
           <div className="pt-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-5">
-              <Field label="FinScore Raw" value={app.finscore_raw || app.finscore || 'N/A'} />
-              <Field label="FinScore Normalized" value={app.finscore_normalized != null ? app.finscore_normalized : 'N/A'} />
-              <Field label="CI Score" value={app.ci_score != null ? app.ci_score : 'Not yet scored'} />
-              <Field label="Final Score" value={app.final_score != null ? app.final_score : 'Not yet scored'} />
-              <Field label="Tier" value={
-                <Badge
-                  label={app.tier ? app.tier.replace('_', ' ') : 'pending'}
-                  colorClass={tierConfig.badgeClass}
-                />
-              } />
-            </div>
-            {/* Score breakdown visual */}
-            {app.finscore_normalized != null && app.ci_score != null && (
-              <div className="bg-surface-alt rounded-lg p-4">
-                <p className="text-xs text-muted mb-3">Score Breakdown (50/50 split)</p>
-                <div className="flex gap-3 items-center">
-                  <div className="flex-1">
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-muted">FinScore (50%)</span>
-                      <span className="text-blue">{app.finscore_normalized}</span>
-                    </div>
-                    <div className="h-2 bg-canvas rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue rounded-full transition-all"
-                        style={{ width: `${app.finscore_normalized}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-muted">CI Score (50%)</span>
-                      <span className="text-green">{app.ci_score}</span>
-                    </div>
-                    <div className="h-2 bg-canvas rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-green rounded-full transition-all"
-                        style={{ width: `${app.ci_score}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="text-center min-w-[60px]">
-                    <p className="text-xs text-muted">Final</p>
-                    <p className="text-lg font-bold text-white">{app.final_score}</p>
-                  </div>
-                </div>
+            {hasCiScore ? (
+              <ScoreBreakdown
+                finscoreRaw={finscoreRaw}
+                finscoreNorm={finscoreNorm}
+                ciScoreValue={app.ci_score}
+                ciIsRaw50
+                finalScore={effectiveFinal ?? computeFinalFromCiTotal(finscoreNorm, app.ci_score)}
+                tier={effectiveTier ?? getTier(computeFinalFromCiTotal(finscoreNorm, app.ci_score))}
+              />
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <Field label="FinScore Raw" value={finscoreRaw || 'N/A'} />
+                <Field label="FinScore Normalized" value={finscoreRaw ? `${finscoreNorm} / 100` : 'N/A'} />
+                <Field label="CI Score" value="Not yet scored" />
+                <Field label="Final Score" value="Pending CI review" />
+                <Field label="Tier" value={
+                  <Badge label="pending" colorClass="bg-gray-500/20 text-gray-400" />
+                } />
               </div>
             )}
           </div>
         </Section>
 
-        {/* Section 3: CI Score Input */}
+        {/* Section 3: CI Investigation Form */}
         {showCiInput && (
-          <Section title="CI Score Input">
-            <div className="pt-4 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-muted text-xs block mb-1.5">CI Score (0-100)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={ciScore}
-                    onChange={(e) => setCiScore(e.target.value)}
-                    className="w-full bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-white text-sm focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none"
-                    placeholder="Enter CI score"
-                  />
-                </div>
-                <div>
-                  <label className="text-muted text-xs block mb-1.5">Reviewer Name</label>
-                  <input
-                    type="text"
-                    value={reviewerName}
-                    onChange={(e) => setReviewerName(e.target.value)}
-                    className="w-full bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-white text-sm focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none"
-                    placeholder="Your name"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-muted text-xs block mb-1.5">Notes</label>
-                <textarea
-                  value={ciNotes}
-                  onChange={(e) => setCiNotes(e.target.value)}
-                  rows={3}
-                  className="w-full bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-white text-sm focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none resize-none"
-                  placeholder="Optional notes..."
-                />
-              </div>
-              <button
-                onClick={handleSubmitCiScore}
-                disabled={submittingCi}
-                className="bg-green hover:bg-green-hover text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {submittingCi ? 'Submitting...' : 'Submit CI Score'}
-              </button>
+          <div className="bg-surface border border-border rounded-xl overflow-hidden">
+            <div className="px-5 py-4">
+              <h3 className="text-white font-semibold text-sm">Credit Investigation Form</h3>
+            </div>
+            <div className="px-5 pb-5 border-t border-border/50 pt-4">
+              <CiScoringForm
+                app={app}
+                appId={id}
+                finscoreRaw={finscoreRaw}
+                finscoreNorm={finscoreNorm}
+                onSubmitSuccess={fetchApp}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Section 3b: CI Form Read-Only (after submission) */}
+        {hasCiScore && (app.ci_form_data || app.ci_form) && (
+          <Section title="CI Investigation Details" collapsible defaultOpen={false}>
+            <div className="pt-4">
+              <CiFormReadOnly ciFormData={app.ci_form_data || app.ci_form} />
             </div>
           </Section>
         )}
@@ -484,7 +472,7 @@ export default function ApplicationDetail({ id, onBack }) {
               </div>
 
               {/* Tier-specific actions */}
-              {app.tier === 'approved' && (
+              {effectiveTier === 'approved' && (
                 <div className="flex flex-wrap gap-3">
                   <button
                     onClick={handleApprove}
@@ -503,7 +491,7 @@ export default function ApplicationDetail({ id, onBack }) {
                 </div>
               )}
 
-              {app.tier === 'tier_b' && (
+              {effectiveTier === 'tier_b' && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -546,7 +534,7 @@ export default function ApplicationDetail({ id, onBack }) {
                 </div>
               )}
 
-              {app.tier === 'declined' && (
+              {effectiveTier === 'declined' && (
                 <div className="flex flex-wrap gap-3 items-start">
                   <button
                     onClick={handleDecline}
@@ -623,14 +611,14 @@ export default function ApplicationDetail({ id, onBack }) {
                   </div>
                 </div>
               ) : null}
-              {app.finscore_raw || app.finscore ? (
+              {finscoreRaw > 0 && (
                 <div className="flex items-start gap-3">
                   <div className="w-2 h-2 rounded-full bg-blue mt-1.5 shrink-0" />
                   <div>
-                    <p className="text-white text-sm">FinScore calculated: {app.finscore_raw || app.finscore}</p>
+                    <p className="text-white text-sm">FinScore calculated: {finscoreRaw} (normalized: {finscoreNorm})</p>
                   </div>
                 </div>
-              ) : null}
+              )}
               {app.ci_score != null && (
                 <div className="flex items-start gap-3">
                   <div className="w-2 h-2 rounded-full bg-green mt-1.5 shrink-0" />
@@ -645,6 +633,19 @@ export default function ApplicationDetail({ id, onBack }) {
                     {(app.notes || app.ci_notes) && (
                       <p className="text-muted text-xs mt-1">Notes: {app.notes || app.ci_notes}</p>
                     )}
+                  </div>
+                </div>
+              )}
+              {app.ci_score != null && (
+                <div className="flex items-start gap-3">
+                  <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                    (effectiveTier === 'approved') ? 'bg-green' :
+                    (effectiveTier === 'tier_b') ? 'bg-amber-500' : 'bg-red-500'
+                  }`} />
+                  <div>
+                    <p className="text-white text-sm">
+                      Final Score: {effectiveFinal} → Tier: {TIER_CONFIG[effectiveTier]?.label || effectiveTier}
+                    </p>
                   </div>
                 </div>
               )}

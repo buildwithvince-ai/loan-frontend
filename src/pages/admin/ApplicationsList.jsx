@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { adminFetch } from './AdminDashboard'
+import { normalizeFinScore, computeFinalFromCiTotal, getTier, TIER_CONFIG } from './scoring'
 
 const LOAN_TYPE_COLORS = {
   personal: 'bg-blue/20 text-blue',
@@ -184,17 +185,37 @@ export default function ApplicationsList({ onReview }) {
                     />
                   </td>
                   <td className="px-4 py-3 text-white">{formatCurrency(app.loan_amount || app.amount)}</td>
-                  <td className="px-4 py-3 text-muted">
-                    {app.finscore_raw || app.finscore ? app.finscore_raw || app.finscore : 'N/A'}
-                  </td>
-                  <td className="px-4 py-3 text-muted">{app.ci_score != null ? app.ci_score : '—'}</td>
-                  <td className="px-4 py-3 text-muted">{app.final_score != null ? app.final_score : '—'}</td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      label={app.tier ? app.tier.replace('_', ' ') : 'pending'}
-                      colorClass={TIER_COLORS[app.tier] || TIER_COLORS.pending}
-                    />
-                  </td>
+                  {(() => {
+                    const raw = Number(app.finscore_raw || app.finscore || 0)
+                    const norm = normalizeFinScore(raw)
+                    const hasCi = app.ci_score != null
+                    const final = hasCi ? (app.final_score ?? computeFinalFromCiTotal(norm, app.ci_score)) : null
+                    const tier = final != null ? (app.tier || getTier(final)) : null
+                    const tierCfg = tier ? (TIER_CONFIG[tier] || TIER_CONFIG.declined) : null
+                    return (
+                      <>
+                        <td className="px-4 py-3 text-muted">
+                          {raw > 0 ? <span>{raw} <span className="text-xs text-muted/70">({norm})</span></span> : 'N/A'}
+                        </td>
+                        <td className="px-4 py-3 text-muted">{hasCi ? app.ci_score : '—'}</td>
+                        <td className="px-4 py-3">
+                          {final != null ? (
+                            <span className="text-white font-medium">{final}</span>
+                          ) : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          {tierCfg ? (
+                            <Badge
+                              label={tierCfg.label}
+                              colorClass={tierCfg.badgeClass}
+                            />
+                          ) : (
+                            <Badge label="pending" colorClass={TIER_COLORS.pending} />
+                          )}
+                        </td>
+                      </>
+                    )
+                  })()}
                   <td className="px-4 py-3">
                     <Badge
                       label={app.status || 'pending'}
@@ -245,34 +266,45 @@ export default function ApplicationsList({ onReview }) {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-              <div>
-                <span className="text-muted text-xs">Type</span>
-                <div className="mt-0.5">
-                  <Badge
-                    label={app.loan_type || '—'}
-                    colorClass={LOAN_TYPE_COLORS[app.loan_type] || 'bg-gray-500/20 text-gray-400'}
-                  />
+            {(() => {
+              const raw = Number(app.finscore_raw || app.finscore || 0)
+              const norm = normalizeFinScore(raw)
+              const hasCi = app.ci_score != null
+              const final = hasCi ? (app.final_score ?? computeFinalFromCiTotal(norm, app.ci_score)) : null
+              const tier = final != null ? (app.tier || getTier(final)) : null
+              const tierCfg = tier ? (TIER_CONFIG[tier] || TIER_CONFIG.declined) : null
+              return (
+                <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                  <div>
+                    <span className="text-muted text-xs">Type</span>
+                    <div className="mt-0.5">
+                      <Badge
+                        label={app.loan_type || '—'}
+                        colorClass={LOAN_TYPE_COLORS[app.loan_type] || 'bg-gray-500/20 text-gray-400'}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-muted text-xs">Amount</span>
+                    <p className="text-white">{formatCurrency(app.loan_amount || app.amount)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted text-xs">Final Score</span>
+                    <p className="text-white font-medium">{final != null ? `${final} / 100` : '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted text-xs">Tier</span>
+                    <div className="mt-0.5">
+                      {tierCfg ? (
+                        <Badge label={tierCfg.label} colorClass={tierCfg.badgeClass} />
+                      ) : (
+                        <Badge label="pending" colorClass={TIER_COLORS.pending} />
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <span className="text-muted text-xs">Amount</span>
-                <p className="text-white">{formatCurrency(app.loan_amount || app.amount)}</p>
-              </div>
-              <div>
-                <span className="text-muted text-xs">FinScore</span>
-                <p className="text-muted">{app.finscore_raw || app.finscore || 'N/A'}</p>
-              </div>
-              <div>
-                <span className="text-muted text-xs">Tier</span>
-                <div className="mt-0.5">
-                  <Badge
-                    label={app.tier ? app.tier.replace('_', ' ') : 'pending'}
-                    colorClass={TIER_COLORS[app.tier] || TIER_COLORS.pending}
-                  />
-                </div>
-              </div>
-            </div>
+              )
+            })()}
             <div className="flex items-center justify-between">
               <span className="text-muted text-xs">{formatDate(app.submitted_at || app.created_at)}</span>
               <button
