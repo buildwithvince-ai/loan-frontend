@@ -16,13 +16,6 @@ const STATUS_COLORS = {
   declined: 'bg-red-500/20 text-red-400',
 }
 
-const TIER_COLORS = {
-  approved: 'bg-green/20 text-green',
-  tier_b: 'bg-amber-500/20 text-amber-400',
-  declined: 'bg-red-500/20 text-red-400',
-  pending: 'bg-gray-500/20 text-gray-400',
-}
-
 function Badge({ label, colorClass }) {
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${colorClass}`}>
@@ -112,7 +105,7 @@ export default function ApplicationsList({ onReview }) {
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <input
           type="text"
-          placeholder="Search name, phone, or ref ID..."
+          placeholder="Search by name, phone, or ref ID..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-muted focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none"
@@ -158,84 +151,84 @@ export default function ApplicationsList({ onReview }) {
                 <th className="px-4 py-3 font-medium">Phone</th>
                 <th className="px-4 py-3 font-medium">Loan Type</th>
                 <th className="px-4 py-3 font-medium">Amount</th>
-                <th className="px-4 py-3 font-medium">FinScore</th>
-                <th className="px-4 py-3 font-medium">CI Score</th>
-                <th className="px-4 py-3 font-medium">Final</th>
+                <th className="px-4 py-3 font-medium">Submitted</th>
+                <th className="px-4 py-3 font-medium">CI Status</th>
+                <th className="px-4 py-3 font-medium">Final Score</th>
                 <th className="px-4 py-3 font-medium">Tier</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Submitted</th>
                 <th className="px-4 py-3 font-medium"></th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((app) => (
-                <tr
-                  key={app.id || app.reference_id}
-                  className="border-b border-border/50 hover:bg-surface-alt/50 transition-colors"
-                >
-                  <td className="px-4 py-3 text-blue font-mono text-xs">{app.reference_id || '—'}</td>
-                  <td className="px-4 py-3 text-white font-medium">
-                    {app.first_name} {app.last_name}
-                  </td>
-                  <td className="px-4 py-3 text-muted">{app.mobile || app.phone || '—'}</td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      label={app.loan_type || '—'}
-                      colorClass={LOAN_TYPE_COLORS[app.loan_type] || 'bg-gray-500/20 text-gray-400'}
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-white">{formatCurrency(app.loan_amount || app.amount)}</td>
-                  {(() => {
-                    const raw = Number(app.finscore_raw || app.finscore || 0)
-                    const norm = normalizeFinScore(raw)
-                    const hasCi = app.ci_score != null
-                    const final = hasCi ? (app.final_score ?? computeFinalFromCiTotal(norm, app.ci_score)) : null
-                    const tier = final != null ? (app.tier || getTier(final)) : null
-                    const tierCfg = tier ? (TIER_CONFIG[tier] || TIER_CONFIG.declined) : null
-                    return (
-                      <>
-                        <td className="px-4 py-3 text-muted">
-                          {raw > 0 ? <span>{raw} <span className="text-xs text-muted/70">({norm})</span></span> : 'N/A'}
-                        </td>
-                        <td className="px-4 py-3 text-muted">{hasCi ? app.ci_score : '—'}</td>
-                        <td className="px-4 py-3">
-                          {final != null ? (
-                            <span className="text-white font-medium">{final}</span>
-                          ) : '—'}
-                        </td>
-                        <td className="px-4 py-3">
-                          {tierCfg ? (
-                            <Badge
-                              label={tierCfg.label}
-                              colorClass={tierCfg.badgeClass}
-                            />
-                          ) : (
-                            <Badge label="pending" colorClass={TIER_COLORS.pending} />
-                          )}
-                        </td>
-                      </>
-                    )
-                  })()}
-                  <td className="px-4 py-3">
-                    <Badge
-                      label={app.status || 'pending'}
-                      colorClass={STATUS_COLORS[app.status] || STATUS_COLORS.pending}
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-muted text-xs">{formatDate(app.submitted_at || app.created_at)}</td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => onReview(app.id || app.reference_id)}
-                      className="px-3 py-1.5 bg-green/10 text-green rounded-lg text-xs font-medium hover:bg-green/20 transition-colors"
-                    >
-                      Review
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((app) => {
+                const hasCi = app.ci_score != null
+                const raw = Number(app.finscore_raw || app.finscore || 0)
+                const norm = normalizeFinScore(raw)
+                const final = hasCi ? (app.final_score ?? computeFinalFromCiTotal(norm, app.ci_score)) : null
+                const tier = final != null ? (app.tier || getTier(final)) : null
+                const tierCfg = tier ? (TIER_CONFIG[tier] || TIER_CONFIG.declined) : null
+
+                return (
+                  <tr
+                    key={app.id || app.reference_id}
+                    className="border-b border-border/50 hover:bg-surface-alt/50 transition-colors"
+                  >
+                    <td className="px-4 py-3 text-blue font-mono text-xs">{app.reference_id || '—'}</td>
+                    <td className="px-4 py-3 text-white font-medium">
+                      {app.first_name} {app.last_name}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => onReview(app.id || app.reference_id)}
+                        className="text-green hover:text-green-hover hover:underline text-sm transition-colors"
+                      >
+                        {app.mobile || app.phone || '—'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        label={app.loan_type || '—'}
+                        colorClass={LOAN_TYPE_COLORS[app.loan_type] || 'bg-gray-500/20 text-gray-400'}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-white">{formatCurrency(app.loan_amount || app.amount)}</td>
+                    <td className="px-4 py-3 text-muted text-xs">{formatDate(app.submitted_at || app.created_at)}</td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        label={hasCi ? 'CI Done' : 'Awaiting CI'}
+                        colorClass={hasCi ? 'bg-blue/20 text-blue' : 'bg-gray-500/20 text-gray-400'}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      {final != null ? (
+                        <span className="text-white font-medium">{final}</span>
+                      ) : <span className="text-muted">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      {tierCfg ? (
+                        <Badge label={tierCfg.label} colorClass={tierCfg.badgeClass} />
+                      ) : <span className="text-muted">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        label={app.status || 'pending'}
+                        colorClass={STATUS_COLORS[app.status] || STATUS_COLORS.pending}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => onReview(app.id || app.reference_id)}
+                        className="px-3 py-1.5 bg-green/10 text-green rounded-lg text-xs font-medium hover:bg-green/20 transition-colors"
+                      >
+                        Review
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-12 text-center text-muted">
+                  <td colSpan={11} className="px-4 py-12 text-center text-muted">
                     No applications found
                   </td>
                 </tr>
@@ -247,75 +240,82 @@ export default function ApplicationsList({ onReview }) {
 
       {/* Mobile Cards */}
       <div className="lg:hidden flex flex-col gap-3">
-        {filtered.map((app) => (
-          <div
-            key={app.id || app.reference_id}
-            className="bg-surface border border-border rounded-xl p-4"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <p className="text-white font-medium">
-                  {app.first_name} {app.last_name}
-                </p>
-                <p className="text-blue text-xs font-mono">{app.reference_id || '—'}</p>
+        {filtered.map((app) => {
+          const hasCi = app.ci_score != null
+          const raw = Number(app.finscore_raw || app.finscore || 0)
+          const norm = normalizeFinScore(raw)
+          const final = hasCi ? (app.final_score ?? computeFinalFromCiTotal(norm, app.ci_score)) : null
+          const tier = final != null ? (app.tier || getTier(final)) : null
+          const tierCfg = tier ? (TIER_CONFIG[tier] || TIER_CONFIG.declined) : null
+
+          return (
+            <div
+              key={app.id || app.reference_id}
+              className="bg-surface border border-border rounded-xl p-4"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-white font-medium">
+                    {app.first_name} {app.last_name}
+                  </p>
+                  <button
+                    onClick={() => onReview(app.id || app.reference_id)}
+                    className="text-green hover:text-green-hover text-xs hover:underline transition-colors"
+                  >
+                    {app.mobile || app.phone || '—'}
+                  </button>
+                  <p className="text-blue text-xs font-mono">{app.reference_id || '—'}</p>
+                </div>
+                <div className="flex flex-col gap-1 items-end">
+                  <Badge
+                    label={app.status || 'pending'}
+                    colorClass={STATUS_COLORS[app.status] || STATUS_COLORS.pending}
+                  />
+                  <Badge
+                    label={hasCi ? 'CI Done' : 'Awaiting CI'}
+                    colorClass={hasCi ? 'bg-blue/20 text-blue' : 'bg-gray-500/20 text-gray-400'}
+                  />
+                </div>
               </div>
-              <div className="flex gap-1.5">
-                <Badge
-                  label={app.status || 'pending'}
-                  colorClass={STATUS_COLORS[app.status] || STATUS_COLORS.pending}
-                />
-              </div>
-            </div>
-            {(() => {
-              const raw = Number(app.finscore_raw || app.finscore || 0)
-              const norm = normalizeFinScore(raw)
-              const hasCi = app.ci_score != null
-              const final = hasCi ? (app.final_score ?? computeFinalFromCiTotal(norm, app.ci_score)) : null
-              const tier = final != null ? (app.tier || getTier(final)) : null
-              const tierCfg = tier ? (TIER_CONFIG[tier] || TIER_CONFIG.declined) : null
-              return (
-                <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                  <div>
-                    <span className="text-muted text-xs">Type</span>
-                    <div className="mt-0.5">
-                      <Badge
-                        label={app.loan_type || '—'}
-                        colorClass={LOAN_TYPE_COLORS[app.loan_type] || 'bg-gray-500/20 text-gray-400'}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-muted text-xs">Amount</span>
-                    <p className="text-white">{formatCurrency(app.loan_amount || app.amount)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted text-xs">Final Score</span>
-                    <p className="text-white font-medium">{final != null ? `${final} / 100` : '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted text-xs">Tier</span>
-                    <div className="mt-0.5">
-                      {tierCfg ? (
-                        <Badge label={tierCfg.label} colorClass={tierCfg.badgeClass} />
-                      ) : (
-                        <Badge label="pending" colorClass={TIER_COLORS.pending} />
-                      )}
-                    </div>
+              <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                <div>
+                  <span className="text-muted text-xs">Type</span>
+                  <div className="mt-0.5">
+                    <Badge
+                      label={app.loan_type || '—'}
+                      colorClass={LOAN_TYPE_COLORS[app.loan_type] || 'bg-gray-500/20 text-gray-400'}
+                    />
                   </div>
                 </div>
-              )
-            })()}
-            <div className="flex items-center justify-between">
-              <span className="text-muted text-xs">{formatDate(app.submitted_at || app.created_at)}</span>
-              <button
-                onClick={() => onReview(app.id || app.reference_id)}
-                className="px-3 py-1.5 bg-green/10 text-green rounded-lg text-xs font-medium hover:bg-green/20 transition-colors"
-              >
-                Review
-              </button>
+                <div>
+                  <span className="text-muted text-xs">Amount</span>
+                  <p className="text-white">{formatCurrency(app.loan_amount || app.amount)}</p>
+                </div>
+                <div>
+                  <span className="text-muted text-xs">Final Score</span>
+                  <p className="text-white font-medium">{final != null ? `${final} / 100` : '—'}</p>
+                </div>
+                <div>
+                  <span className="text-muted text-xs">Tier</span>
+                  <div className="mt-0.5">
+                    {tierCfg ? (
+                      <Badge label={tierCfg.label} colorClass={tierCfg.badgeClass} />
+                    ) : <span className="text-muted text-sm">—</span>}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted text-xs">{formatDate(app.submitted_at || app.created_at)}</span>
+                <button
+                  onClick={() => onReview(app.id || app.reference_id)}
+                  className="px-3 py-1.5 bg-green/10 text-green rounded-lg text-xs font-medium hover:bg-green/20 transition-colors"
+                >
+                  Review
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         {filtered.length === 0 && (
           <p className="text-center text-muted py-12">No applications found</p>
         )}
