@@ -40,7 +40,7 @@ export default function CiApplicationsList({ onStartAssessment }) {
       const res = await ciFetch('/applications')
       if (!res.ok) throw new Error('Failed to fetch applications')
       const data = await res.json()
-      setApps(data.applications || data || [])
+      setApps(Array.isArray(data) ? data : data.applications || [])
       setError(null)
     } catch (err) {
       setError(err.message)
@@ -58,8 +58,8 @@ export default function CiApplicationsList({ onStartAssessment }) {
   const filtered = apps.filter((app) => {
     if (!search) return true
     const q = search.toLowerCase()
-    const name = `${app.first_name || ''} ${app.last_name || ''}`.toLowerCase()
-    const phone = (app.mobile || app.phone || '').toLowerCase()
+    const name = (app.full_name || `${app.first_name || ''} ${app.last_name || ''}`).toLowerCase()
+    const phone = (app.phone || app.mobile || '').toLowerCase()
     return name.includes(q) || phone.includes(q)
   })
 
@@ -112,8 +112,8 @@ export default function CiApplicationsList({ onStartAssessment }) {
               <div key={app.id || app.reference_id} className="bg-surface border border-border rounded-xl p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <p className="text-white font-medium text-sm">{app.first_name} {app.last_name}</p>
-                    <p className="text-muted text-xs">{app.mobile || app.phone || '—'}</p>
+                    <p className="text-white font-medium text-sm">{app.full_name || `${app.first_name || ''} ${app.last_name || ''}`.trim()}</p>
+                    <p className="text-muted text-xs">{app.phone || app.mobile || '—'}</p>
                   </div>
                   <Badge
                     label={app.loan_type || '—'}
@@ -152,8 +152,8 @@ export default function CiApplicationsList({ onStartAssessment }) {
               <div key={app.id || app.reference_id} className="bg-surface border border-border rounded-xl p-4 opacity-80">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <p className="text-white font-medium text-sm">{app.first_name} {app.last_name}</p>
-                    <p className="text-muted text-xs">{app.mobile || app.phone || '—'}</p>
+                    <p className="text-white font-medium text-sm">{app.full_name || `${app.first_name || ''} ${app.last_name || ''}`.trim()}</p>
+                    <p className="text-muted text-xs">{app.phone || app.mobile || '—'}</p>
                   </div>
                   <div className="flex gap-1.5">
                     <Badge

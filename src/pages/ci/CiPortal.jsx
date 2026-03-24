@@ -9,14 +9,12 @@ const ToastContext = createContext()
 export const useCiToast = () => useContext(ToastContext)
 
 export function ciFetch(path, options = {}) {
-  return fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'x-ci-secret': CI_SECRET,
-      ...options.headers,
-    },
-  })
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  }
+  if (CI_SECRET) headers['x-ci-secret'] = CI_SECRET
+  return fetch(`${API_BASE}${path}`, { ...options, headers })
 }
 
 function Toast({ toasts, removeToast }) {

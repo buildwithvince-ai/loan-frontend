@@ -150,7 +150,7 @@ function formatDate(dateStr) {
 export default function CiAssessmentForm({ app, onBack }) {
   const isSme = app.loan_type === 'sme'
   const isSbl = app.loan_type === 'sbl'
-  const fullName = `${app.first_name || ''} ${app.last_name || ''}`.trim()
+  const fullName = app.full_name || `${app.first_name || ''} ${app.last_name || ''}`.trim()
   const age = calcAge(app.date_of_birth || app.dob || app.birthdate || app.dateOfBirth || (app.form_data && (app.form_data.date_of_birth || app.form_data.dob || app.form_data.dateOfBirth)))
   const address = [app.present_address, app.presentBarangay || app.barangay, app.present_city, app.present_province]
     .filter(Boolean).join(', ') || app.address || ''
@@ -159,7 +159,7 @@ export default function CiAssessmentForm({ app, onBack }) {
   // Form state
   const [clientName, setClientName] = useState(fullName)
   const [completeAddress, setCompleteAddress] = useState(address)
-  const [contactNumber, setContactNumber] = useState(app.mobile || app.phone || '')
+  const [contactNumber, setContactNumber] = useState(app.phone || app.mobile || '')
   const [contactStatus, setContactStatus] = useState(null)
   const [civilStatus, setCivilStatus] = useState(app.civil_status || app.civilStatus || '')
   const [loanPurpose, setLoanPurpose] = useState(app.loan_purpose || app.purpose || '')
@@ -368,7 +368,7 @@ export default function CiAssessmentForm({ app, onBack }) {
           </div>
           <div>
             <span className="text-muted text-xs block">Phone</span>
-            <span className="text-white">{app.mobile || app.phone || '—'}</span>
+            <span className="text-white">{app.phone || app.mobile || '—'}</span>
           </div>
           <div>
             <span className="text-muted text-xs block">Loan Type</span>

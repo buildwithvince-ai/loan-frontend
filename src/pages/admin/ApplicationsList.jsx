@@ -53,7 +53,7 @@ export default function ApplicationsList({ onReview }) {
       const res = await adminFetch('/applications')
       if (!res.ok) throw new Error('Failed to fetch applications')
       const data = await res.json()
-      setApps(data.applications || data || [])
+      setApps(Array.isArray(data) ? data : data.applications || [])
       setError(null)
     } catch (err) {
       setError(err.message)
