@@ -153,6 +153,7 @@ export default function ApplicationsList({ onReview }) {
                 <th className="px-4 py-3 font-medium">Amount</th>
                 <th className="px-4 py-3 font-medium">Submitted</th>
                 <th className="px-4 py-3 font-medium">CI Status</th>
+                <th className="px-4 py-3 font-medium">Finscore</th>
                 <th className="px-4 py-3 font-medium">Final Score</th>
                 <th className="px-4 py-3 font-medium">Tier</th>
                 <th className="px-4 py-3 font-medium">Status</th>
@@ -200,6 +201,11 @@ export default function ApplicationsList({ onReview }) {
                       />
                     </td>
                     <td className="px-4 py-3">
+                      {raw ? (
+                        <span className="text-white font-medium">{raw}</span>
+                      ) : <span className="text-muted">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
                       {final != null ? (
                         <span className="text-white font-medium">{final}</span>
                       ) : <span className="text-muted">—</span>}
@@ -228,7 +234,7 @@ export default function ApplicationsList({ onReview }) {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-12 text-center text-muted">
+                  <td colSpan={12} className="px-4 py-12 text-center text-muted">
                     No applications found
                   </td>
                 </tr>
@@ -290,6 +296,10 @@ export default function ApplicationsList({ onReview }) {
                 <div>
                   <span className="text-muted text-xs">Amount</span>
                   <p className="text-white">{formatCurrency(app.loan_amount || app.amount)}</p>
+                </div>
+                <div>
+                  <span className="text-muted text-xs">Finscore</span>
+                  <p className="text-white font-medium">{raw || '—'}</p>
                 </div>
                 <div>
                   <span className="text-muted text-xs">Final Score</span>
