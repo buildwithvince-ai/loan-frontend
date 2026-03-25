@@ -150,7 +150,7 @@ function formatDate(dateStr) {
 export default function CiAssessmentForm({ app, onBack }) {
   const isSme = app.loan_type === 'sme'
   const isSbl = app.loan_type === 'sbl'
-  const fullName = app.full_name || `${app.first_name || ''} ${app.last_name || ''}`.trim()
+  const fullName = app.full_name || `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.trim()
   const age = calcAge(app.date_of_birth || app.dob || app.birthdate || app.dateOfBirth || (app.form_data && (app.form_data.date_of_birth || app.form_data.dob || app.form_data.dateOfBirth)))
   const address = [app.present_address, app.presentBarangay || app.barangay, app.present_city, app.present_province]
     .filter(Boolean).join(', ') || app.address || ''

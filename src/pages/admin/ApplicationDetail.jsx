@@ -149,7 +149,7 @@ function ApplicationSummary({ app }) {
         <div>
           <p className="text-muted text-xs font-medium uppercase tracking-wide mb-3">Personal Information</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            <FieldCard label="Full Name" value={`${app.first_name || ''} ${app.last_name || ''}`} />
+            <FieldCard label="Full Name" value={`${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`} />
             <FieldCard label="Age" value={age != null ? `${age} years old` : null} />
             <FieldCard label="Date of Birth" value={getField(app, 'date_of_birth', 'dob', 'birthdate', 'dateOfBirth')} />
             <FieldCard label="Civil Status" value={getField(app, 'civil_status', 'civilStatus')} />
@@ -331,7 +331,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
   const [actionLoading, setActionLoading] = useState(false)
   const [confirmModal, setConfirmModal] = useState(null)
   const addToast = useToast()
-  const fullName = `${app.first_name || ''} ${app.last_name || ''}`.trim()
+  const fullName = `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.trim()
   const isDecided = app.status !== 'pending'
 
   const executeAction = async (endpoint, body = {}) => {

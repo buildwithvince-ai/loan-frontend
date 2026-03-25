@@ -73,7 +73,7 @@ export default function ApplicationsList({ onReview }) {
     if (typeFilter !== 'all' && app.loan_type !== typeFilter) return false
     if (search) {
       const q = search.toLowerCase()
-      const name = `${app.first_name || ''} ${app.last_name || ''}`.toLowerCase()
+      const name = `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.toLowerCase()
       const phone = (app.mobile || app.phone || '').toLowerCase()
       if (!name.includes(q) && !phone.includes(q) && !(app.reference_id || '').toLowerCase().includes(q)) return false
     }
@@ -176,7 +176,7 @@ export default function ApplicationsList({ onReview }) {
                   >
                     <td className="px-4 py-3 text-blue font-mono text-xs">{app.reference_id || '—'}</td>
                     <td className="px-4 py-3 text-white font-medium">
-                      {app.first_name} {app.last_name}
+                      {app.firstName || app.first_name} {app.lastName || app.last_name}
                     </td>
                     <td className="px-4 py-3">
                       <button
@@ -262,7 +262,7 @@ export default function ApplicationsList({ onReview }) {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="text-white font-medium">
-                    {app.first_name} {app.last_name}
+                    {app.firstName || app.first_name} {app.lastName || app.last_name}
                   </p>
                   <button
                     onClick={() => onReview(app.id || app.reference_id)}
