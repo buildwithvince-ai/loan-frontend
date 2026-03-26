@@ -68,9 +68,12 @@ export default function Footer() {
           <p className="text-muted text-xs">
             &copy; {new Date().getFullYear()} GR8 Lending Corporation. All rights reserved.
           </p>
-          <p className="text-muted/50 text-xs">
-            Malolos, Bulacan, Philippines
-          </p>
+          <div className="flex items-center gap-4">
+            <Link to="/termsandconditions" className="text-muted hover:text-green text-xs transition-colors">Terms &amp; Conditions</Link>
+            <p className="text-muted/50 text-xs">
+              Malolos, Bulacan, Philippines
+            </p>
+          </div>
         </div>
       </div>
     </footer>

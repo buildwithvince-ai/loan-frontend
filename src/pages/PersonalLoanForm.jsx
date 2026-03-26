@@ -303,6 +303,7 @@ export default function PersonalLoanForm() {
 
     if (step === 9) {
       if (!form.confirmAccurate) e.confirmAccurate = 'You must confirm before submitting'
+      if (!form.agreeTerms) e.agreeTerms = 'You must agree to the Terms and Conditions'
     }
 
     setErrors(e)
@@ -324,7 +325,7 @@ export default function PersonalLoanForm() {
       fd.append('loanType', 'personal')
       const keyMap = { presentBarangay: 'barangay' }
       Object.entries(form).forEach(([k, v]) => {
-        if (k !== 'confirmAccurate' && k !== 'sameAsPresent' && k !== 'addSpouse') {
+        if (k !== 'confirmAccurate' && k !== 'agreeTerms' && k !== 'sameAsPresent' && k !== 'addSpouse') {
           fd.append(keyMap[k] || k, v)
         }
       })
@@ -974,6 +975,21 @@ function Step9({ form, set, docs, errors }) {
         </span>
       </label>
       <FieldError message={errors.confirmAccurate} />
+
+      <label className="flex items-start gap-3 cursor-pointer group pt-2">
+        <input
+          type="checkbox"
+          checked={form.agreeTerms || false}
+          onChange={e => set('agreeTerms', e.target.checked)}
+          className="w-5 h-5 rounded border-border bg-surface-alt text-green focus:ring-green/30 accent-green mt-0.5"
+        />
+        <span className="text-white text-sm leading-relaxed group-hover:text-green transition-colors">
+          I have read and agree to the{' '}
+          <a href="/termsandconditions" target="_blank" rel="noopener noreferrer" className="text-green underline hover:text-green-hover">Terms and Conditions</a>
+          {' '}and Data Privacy Policy of GR8 Lending Corporation.
+        </span>
+      </label>
+      <FieldError message={errors.agreeTerms} />
     </div>
   )
 }

@@ -8,6 +8,7 @@ import AkapLoanForm from './pages/AkapLoanForm'
 import GroupLoanForm from './pages/GroupLoanForm'
 import SblLoanForm from './pages/SblLoanForm'
 import SelectProduct from './pages/SelectProduct'
+import TermsAndConditions from './pages/TermsAndConditions'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import CiPortal from './pages/ci/CiPortal'
 
@@ -49,6 +50,7 @@ function App() {
             <Route path="/apply/akap" element={<AkapLoanForm />} />
             <Route path="/apply/group" element={<GroupLoanForm />} />
             <Route path="/apply/sbl" element={<SblLoanForm />} />
+            <Route path="/termsandconditions" element={<TermsAndConditions />} />
           </Routes>
         </main>
         <Footer />

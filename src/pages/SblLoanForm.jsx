@@ -137,6 +137,7 @@ export default function SblLoanForm() {
   const [expandedMembers, setExpandedMembers] = useState({ 0: true })
   const [errors, setErrors] = useState({})
   const [confirmAccurate, setConfirmAccurate] = useState(false)
+  const [agreeTerms, setAgreeTerms] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState(null)
   const topRef = useRef(null)
@@ -269,6 +270,7 @@ export default function SblLoanForm() {
 
     if (step === 3) {
       if (!confirmAccurate) e.confirmAccurate = 'You must confirm before submitting'
+      if (!agreeTerms) e.agreeTerms = 'You must agree to the Terms and Conditions'
     }
 
     setErrors(e)
@@ -858,6 +860,21 @@ export default function SblLoanForm() {
                 </span>
               </label>
               <FieldError message={errors.confirmAccurate} />
+
+              <label className="flex items-start gap-3 cursor-pointer group pt-2">
+                <input
+                  type="checkbox"
+                  checked={agreeTerms}
+                  onChange={e => { setAgreeTerms(e.target.checked); setErrors(prev => ({ ...prev, agreeTerms: undefined })) }}
+                  className="w-5 h-5 rounded border-border bg-surface-alt text-green focus:ring-green/30 accent-green mt-0.5"
+                />
+                <span className="text-white text-sm leading-relaxed group-hover:text-green transition-colors">
+                  I have read and agree to the{' '}
+                  <a href="/termsandconditions" target="_blank" rel="noopener noreferrer" className="text-green underline hover:text-green-hover">Terms and Conditions</a>
+                  {' '}and Data Privacy Policy of GR8 Lending Corporation.
+                </span>
+              </label>
+              <FieldError message={errors.agreeTerms} />
             </div>
           )}
 

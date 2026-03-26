@@ -39,6 +39,39 @@ function formatDate(dateStr) {
   })
 }
 
+function formatDateISO(dateStr) {
+  if (!dateStr) return ''
+  return new Date(dateStr).toISOString().replace('T', ' ').slice(0, 19)
+}
+
+function escapeCsvField(val) {
+  const str = String(val ?? '')
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return '"' + str.replace(/"/g, '""') + '"'
+  }
+  return str
+}
+
+function exportConsentCsv(apps) {
+  const headers = ['Full Name', 'Phone Number', 'Loan Type', 'Reference ID', 'Consent Timestamp', 'Consent Status']
+  const rows = apps.map(app => [
+    `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.trim(),
+    app.mobile || app.phone || '',
+    (app.loan_type || '').toUpperCase(),
+    app.reference_id || '',
+    formatDateISO(app.submitted_at || app.created_at),
+    'Agreed — Terms & Conditions and Data Privacy Policy',
+  ])
+  const csv = [headers, ...rows].map(row => row.map(escapeCsvField).join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `gr8-consent-report-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function ApplicationsList({ onReview }) {
   const [apps, setApps] = useState([])
   const [loading, setLoading] = useState(true)
@@ -330,6 +363,39 @@ export default function ApplicationsList({ onReview }) {
           <p className="text-center text-muted py-12">No applications found</p>
         )}
       </div>
+
+      {/* Export Consent Agreement — FinScore Compliance */}
+      {filtered.length > 0 && (
+        <div className="mt-10 pt-8 border-t border-border">
+          <div className="bg-surface border border-border rounded-xl p-5 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-green/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 text-green">
+                    <path d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold text-sm">Export Consent Agreement</h3>
+                  <p className="text-muted text-xs mt-1 leading-relaxed max-w-md">
+                    Export applicant names, phone numbers, and consent proof for FinScore compliance reporting.
+                    All applicants agreed to the Terms &amp; Conditions and Data Privacy Policy upon submission.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => exportConsentCsv(filtered)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-green/10 hover:bg-green/20 text-green border border-green/20 rounded-lg text-sm font-medium transition-colors shrink-0"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+                  <path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Export CSV ({filtered.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
