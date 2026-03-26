@@ -28,7 +28,7 @@ export default function TermsAndConditions() {
   }, [])
 
   return (
-    <div className="min-h-screen py-12 px-4 sm:px-6">
+    <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
