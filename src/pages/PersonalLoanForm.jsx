@@ -34,7 +34,7 @@ const OPTIONAL_DOCS = [
 const ALL_DOCS = [...REQUIRED_DOCS, ...OPTIONAL_DOCS]
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
-const MAX_FILE_SIZE = 5 * 1024 * 1024
+const MAX_FILE_SIZE = 10 * 1024 * 1024
 
 const initialForm = {
   // Step 1
@@ -202,7 +202,7 @@ export default function PersonalLoanForm() {
       return
     }
     if (file.size > MAX_FILE_SIZE) {
-      setErrors(prev => ({ ...prev, [key]: 'File must be under 5MB' }))
+      setErrors(prev => ({ ...prev, [key]: 'File must be under 10MB' }))
       return
     }
     setDocs(prev => ({ ...prev, [key]: file }))
@@ -815,7 +815,7 @@ function Step8({ docs, errors, handleFile, removeFile }) {
   return (
     <div className="space-y-5">
       <h2 className="text-xl font-bold text-green mb-1">Document Upload</h2>
-      <p className="text-muted text-sm mb-4">Upload clear photos or scanned copies. JPG, PNG, or PDF only. Max 5MB per file.</p>
+      <p className="text-muted text-sm mb-4">Upload clear photos or scanned copies. JPG, PNG, or PDF only. Max 10MB per file.</p>
 
       <div className="space-y-3">
         {ALL_DOCS.map(doc => {

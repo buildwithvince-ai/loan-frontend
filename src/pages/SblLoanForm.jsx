@@ -33,7 +33,7 @@ const LEADER_DOCS = [
 ]
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
-const MAX_FILE_SIZE = 5 * 1024 * 1024
+const MAX_FILE_SIZE = 10 * 1024 * 1024
 
 function createMember() {
   return {
@@ -183,7 +183,7 @@ export default function SblLoanForm() {
       return
     }
     if (file.size > MAX_FILE_SIZE) {
-      setErrors(prev => ({ ...prev, [errorKey]: 'File must be under 5MB' }))
+      setErrors(prev => ({ ...prev, [errorKey]: 'File must be under 10MB' }))
       return
     }
     setMemberDocs(prev => prev.map((d, i) => i === memberIndex ? { ...d, [docKey]: file } : d))
@@ -691,7 +691,7 @@ export default function SblLoanForm() {
                         {/* Document Upload */}
                         <div className="space-y-3">
                           <h3 className="text-blue text-xs font-semibold uppercase tracking-wider">Document Upload</h3>
-                          <p className="text-muted text-xs">JPG, PNG, or PDF only. Max 5MB per file.</p>
+                          <p className="text-muted text-xs">JPG, PNG, or PDF only. Max 10MB per file.</p>
 
                           {requiredDocList.map(doc => {
                             const file = docs[doc.key]
