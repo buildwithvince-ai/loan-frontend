@@ -320,36 +320,29 @@ export default function AkapLoanForm() {
 // ══════════════════════════════════════
 
 function Step1({ form, set, errors }) {
-  const amountPercent = ((form.loanAmount - 5000) / (40000 - 5000)) * 100
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-green mb-1">Loan Details</h2>
       <p className="text-muted text-sm mb-4">How much funding do you need?</p>
 
       <div>
-        <div className="flex justify-between items-baseline mb-2">
-          <Label required>Loan Amount</Label>
-          <span className="text-green text-2xl font-bold">{formatPeso(form.loanAmount)}</span>
+        <Label required>Loan Amount</Label>
+        <p className="text-muted text-xs mb-2">₱5,000 – ₱40,000</p>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">₱</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={form.loanAmount.toLocaleString('en-PH')}
+            onChange={e => {
+              const num = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10)
+              if (!isNaN(num)) {
+                set('loanAmount', Math.min(Math.max(num, 5000), 40000))
+              }
+            }}
+            className="w-full pl-8 pr-3 py-3 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
+          />
         </div>
-        <input type="range" min={5000} max={40000} step={1000} value={form.loanAmount}
-          onChange={e => set('loanAmount', Number(e.target.value))} className="w-full"
-          style={{ background: `linear-gradient(to right, #5CB85C 0%, #5CB85C ${amountPercent}%, #1A2235 ${amountPercent}%, #1A2235 100%)` }} />
-        <div className="flex justify-between mt-1 mb-3">
-          <span className="text-muted text-xs">₱5,000</span>
-          <span className="text-muted text-xs">₱40,000</span>
-        </div>
-        <Input
-          type="number"
-          value={form.loanAmount}
-          onChange={e => {
-            const v = Number(e.target.value)
-            if (v >= 5000 && v <= 40000) set('loanAmount', v)
-            else if (v < 5000) set('loanAmount', 5000)
-            else if (v > 40000) set('loanAmount', 40000)
-          }}
-          min={5000} max={40000} step={1000}
-          placeholder="Enter amount"
-        />
       </div>
 
       <div>

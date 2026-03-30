@@ -400,7 +400,6 @@ export default function GroupLoanForm() {
   const progress = (step / TOTAL_STEPS) * 100
   const stepLabels = ['Group Details', 'Members', 'Review & Submit']
   const loanShare = memberCount > 0 ? Math.floor(totalLoanAmount / memberCount) : 0
-  const amountPercent = ((totalLoanAmount - 10000) / (50000 - 10000)) * 100
 
   return (
     <div ref={topRef} className="min-h-screen pt-28 pb-16 px-4 sm:px-6">
@@ -442,36 +441,25 @@ export default function GroupLoanForm() {
                 <FieldError message={errors.groupName} />
               </div>
 
-              {/* Amount slider + manual input */}
+              {/* Amount input */}
               <div>
-                <div className="flex justify-between items-baseline mb-2">
-                  <Label required>Total Loan Amount</Label>
-                  <span className="text-green text-2xl font-bold">{formatPeso(totalLoanAmount)}</span>
+                <Label required>Total Loan Amount</Label>
+                <p className="text-muted text-xs mb-2">₱10,000 – ₱50,000</p>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">₱</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={totalLoanAmount.toLocaleString('en-PH')}
+                    onChange={e => {
+                      const num = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10)
+                      if (!isNaN(num)) {
+                        setTotalLoanAmount(Math.min(Math.max(num, 10000), 50000))
+                      }
+                    }}
+                    className="w-full pl-8 pr-3 py-3 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
+                  />
                 </div>
-                <input
-                  type="range"
-                  min={10000} max={50000} step={1000}
-                  value={totalLoanAmount}
-                  onChange={e => setTotalLoanAmount(Number(e.target.value))}
-                  className="w-full"
-                  style={{ background: `linear-gradient(to right, #5CB85C 0%, #5CB85C ${amountPercent}%, #1A2235 ${amountPercent}%, #1A2235 100%)` }}
-                />
-                <div className="flex justify-between mt-1 mb-3">
-                  <span className="text-muted text-xs">₱10,000</span>
-                  <span className="text-muted text-xs">₱50,000</span>
-                </div>
-                <Input
-                  type="number"
-                  value={totalLoanAmount}
-                  onChange={e => {
-                    const v = Number(e.target.value)
-                    if (v >= 10000 && v <= 50000) setTotalLoanAmount(v)
-                    else if (v < 10000) setTotalLoanAmount(10000)
-                    else if (v > 50000) setTotalLoanAmount(50000)
-                  }}
-                  min={10000} max={50000} step={1000}
-                  placeholder="Enter amount"
-                />
               </div>
 
               {/* Term */}
