@@ -273,7 +273,7 @@ export default function SmeLoanForm() {
     try {
       const fd = new FormData()
       fd.append('loanType', 'sme')
-      const keyMap = { presentBarangay: 'barangay' }
+      const keyMap = { presentBarangay: 'barangay', monthlyGrossRevenue: 'monthlyIncome' }
       Object.entries(form).forEach(([k, v]) => {
         if (k !== 'confirmAccurate' && k !== 'agreeTerms' && k !== 'sameAsPresent' && k !== 'addSpouse') fd.append(keyMap[k] || k, v)
       })
