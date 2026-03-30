@@ -389,6 +389,8 @@ export default function SmeLoanForm() {
 // STEPS
 // ══════════════════════════════════════
 
+const SME_AMOUNTS = Array.from({ length: 26 }, (_, i) => 50000 + i * 10000)
+
 function Step1({ form, set, errors }) {
   return (
     <div className="space-y-6">
@@ -397,21 +399,29 @@ function Step1({ form, set, errors }) {
 
       <div>
         <Label required>Loan Amount</Label>
-        <p className="text-muted text-xs mb-2">₱50,000 – ₱300,000</p>
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">₱</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={form.loanAmount.toLocaleString('en-PH')}
-            onChange={e => {
-              const num = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10)
-              if (!isNaN(num)) {
-                set('loanAmount', Math.min(Math.max(num, 50000), 300000))
-              }
-            }}
-            className="w-full pl-8 pr-3 py-3 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
-          />
+        <p className="text-muted text-xs mb-3">Select your desired amount — ₱50,000 to ₱300,000</p>
+
+        {/* Selected amount display */}
+        <div className="flex items-center justify-center mb-4 py-3 px-4 rounded-xl bg-green/5 border border-green/20">
+          <span className="text-green font-bold text-2xl tracking-tight">{formatPeso(form.loanAmount)}</span>
+        </div>
+
+        {/* Amount grid */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {SME_AMOUNTS.map(amt => (
+            <button
+              key={amt}
+              type="button"
+              onClick={() => set('loanAmount', amt)}
+              className={`py-2.5 px-2 rounded-lg text-sm font-semibold border transition-all duration-150 ${
+                form.loanAmount === amt
+                  ? 'border-green bg-green/15 text-green shadow-[0_0_12px_rgba(92,184,92,0.15)]'
+                  : 'border-border bg-surface-alt text-muted hover:border-green/30 hover:text-white hover:bg-surface-alt/80'
+              }`}
+            >
+              {formatPeso(amt)}
+            </button>
+          ))}
         </div>
       </div>
 
