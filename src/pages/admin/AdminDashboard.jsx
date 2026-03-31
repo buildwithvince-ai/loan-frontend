@@ -1,24 +1,30 @@
-import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import { useState, useCallback, createContext, useContext } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import ApplicationsList from './ApplicationsList'
 import ApplicationDetail from './ApplicationDetail'
+import KanbanBoard from '../../components/pipeline/KanbanBoard'
 
-const API_BASE = 'https://loan-backend-production-cd45.up.railway.app/api/admin'
-const ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET || ''
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
+const ADMIN_API = `${API_BASE}/api/admin`
 
 // Toast context
 const ToastContext = createContext()
 export const useToast = () => useContext(ToastContext)
 
-// Admin API helper
+// Admin API helper — uses JWT token for auth
+let _getToken = () => null
+
 export function adminFetch(path, options = {}) {
-  return fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'x-admin-secret': ADMIN_SECRET,
-      ...options.headers,
-    },
-  })
+  const token = _getToken()
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  return fetch(`${ADMIN_API}${path}`, { ...options, headers })
 }
 
 // Toast component
@@ -46,59 +52,17 @@ function Toast({ toasts, removeToast }) {
   )
 }
 
-// Login screen
-function AdminLogin({ onLogin }) {
-  const [code, setCode] = useState('')
-  const [error, setError] = useState('')
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (code === ADMIN_SECRET) {
-      localStorage.setItem('admin_authenticated', 'true')
-      onLogin()
-    } else {
-      setError('Invalid access code')
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-canvas flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-surface border border-border rounded-2xl p-8">
-          <div className="text-center mb-8">
-            <img src="/gr8logo.png" alt="GR8 Lending" className="w-16 h-16 mx-auto mb-4 opacity-80" />
-            <h1 className="text-2xl font-bold text-white">Admin Access</h1>
-            <p className="text-muted text-sm mt-1">Staff-only area</p>
-          </div>
-          <form onSubmit={handleSubmit}>
-            <label className="block text-sm text-muted mb-2">Enter admin access code</label>
-            <input
-              type="password"
-              value={code}
-              onChange={(e) => { setCode(e.target.value); setError('') }}
-              className="w-full bg-surface-alt border border-border rounded-lg px-4 py-3 text-white focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none"
-              placeholder="Access code"
-              autoFocus
-            />
-            {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
-            <button
-              type="submit"
-              className="w-full mt-4 bg-green hover:bg-green-hover text-white font-semibold py-3 rounded-lg transition-colors"
-            >
-              Enter
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function AdminDashboard() {
-  const [authenticated, setAuthenticated] = useState(
-    () => localStorage.getItem('admin_authenticated') === 'true'
-  )
+  const { logout, getToken, role, fullName } = useAuth()
+  const navigate = useNavigate()
+
+  // Wire up the module-level _getToken so adminFetch can access JWT
+  _getToken = getToken
+
   const [view, setView] = useState('list') // 'list' | 'detail'
+  const [dashView, setDashView] = useState(
+    () => localStorage.getItem('gr8_admin_view') || 'list'
+  ) // 'list' | 'pipeline'
   const [selectedAppId, setSelectedAppId] = useState(null)
   const [toasts, setToasts] = useState([])
 
@@ -117,18 +81,24 @@ export default function AdminDashboard() {
     setView('detail')
   }
 
+  const openDetailFromCard = (app) => {
+    const id = app.id || app._id || app.reference_id
+    openDetail(id)
+  }
+
   const backToList = () => {
     setView('list')
     setSelectedAppId(null)
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_authenticated')
-    setAuthenticated(false)
+  const switchDashView = (v) => {
+    setDashView(v)
+    localStorage.setItem('gr8_admin_view', v)
   }
 
-  if (!authenticated) {
-    return <AdminLogin onLogin={() => setAuthenticated(true)} />
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -145,30 +115,71 @@ export default function AdminDashboard() {
                 <button
                   onClick={backToList}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    view === 'list'
+                    view !== 'detail'
                       ? 'bg-surface-alt text-green'
                       : 'text-muted hover:text-white'
                   }`}
                 >
                   Applications
                 </button>
+                {role === 'super_admin' && (
+                  <button
+                    onClick={() => navigate('/admin/users')}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium text-muted hover:text-white transition-colors"
+                  >
+                    Users
+                  </button>
+                )}
+
+                {/* View toggle — only show when not in detail */}
+                {view !== 'detail' && (
+                  <div className="flex items-center gap-0.5 ml-2 p-0.5 bg-canvas rounded-lg border border-border">
+                    <button
+                      onClick={() => switchDashView('list')}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                        dashView === 'list'
+                          ? 'bg-surface-alt text-green'
+                          : 'text-muted hover:text-white'
+                      }`}
+                    >
+                      List View
+                    </button>
+                    <button
+                      onClick={() => switchDashView('pipeline')}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                        dashView === 'pipeline'
+                          ? 'bg-surface-alt text-green'
+                          : 'text-muted hover:text-white'
+                      }`}
+                    >
+                      Pipeline View
+                    </button>
+                  </div>
+                )}
               </nav>
             </div>
-            <button
-              onClick={handleLogout}
-              className="text-sm text-muted hover:text-red-400 transition-colors"
-            >
-              Logout
-            </button>
+            <div className="flex items-center gap-4">
+              {fullName && (
+                <span className="text-sm text-muted hidden sm:inline">{fullName}</span>
+              )}
+              <button
+                onClick={handleLogout}
+                className="text-sm text-muted hover:text-red-400 transition-colors"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </header>
 
         {/* Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-          {view === 'list' ? (
-            <ApplicationsList onReview={openDetail} />
-          ) : (
+        <main className={`mx-auto px-4 sm:px-6 py-6 ${dashView === 'pipeline' && view !== 'detail' ? 'max-w-none' : 'max-w-7xl'}`}>
+          {view === 'detail' ? (
             <ApplicationDetail id={selectedAppId} onBack={backToList} />
+          ) : dashView === 'pipeline' ? (
+            <KanbanBoard onCardClick={openDetailFromCard} />
+          ) : (
+            <ApplicationsList onReview={openDetail} />
           )}
         </main>
       </div>

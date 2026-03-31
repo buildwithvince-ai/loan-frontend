@@ -1,20 +1,28 @@
 import { useState, useCallback, createContext, useContext } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import CiApplicationsList from './CiApplicationsList'
 import CiAssessmentForm from './CiAssessmentForm'
 
-const API_BASE = 'https://loan-backend-production-cd45.up.railway.app/api/ci'
-const CI_SECRET = import.meta.env.VITE_CI_SECRET || ''
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
+const CI_API = `${API_BASE}/api/ci`
 
 const ToastContext = createContext()
 export const useCiToast = () => useContext(ToastContext)
 
+// CI API helper — uses JWT token for auth
+let _getToken = () => null
+
 export function ciFetch(path, options = {}) {
+  const token = _getToken()
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
   }
-  if (CI_SECRET) headers['x-ci-secret'] = CI_SECRET
-  return fetch(`${API_BASE}${path}`, { ...options, headers })
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  return fetch(`${CI_API}${path}`, { ...options, headers })
 }
 
 function Toast({ toasts, removeToast }) {
@@ -37,54 +45,13 @@ function Toast({ toasts, removeToast }) {
   )
 }
 
-function CiLogin({ onLogin }) {
-  const [code, setCode] = useState('')
-  const [error, setError] = useState('')
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (code === CI_SECRET) {
-      localStorage.setItem('ci_authenticated', 'true')
-      onLogin()
-    } else {
-      setError('Invalid access code')
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-canvas flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-surface border border-border rounded-2xl p-8">
-          <div className="text-center mb-8">
-            <img src="/gr8logo.png" alt="GR8 Lending" className="w-16 h-16 mx-auto mb-4 opacity-80" />
-            <h1 className="text-xl font-bold text-white">GR8 Lending</h1>
-            <p className="text-green text-sm font-medium mt-1">Credit Investigation Portal</p>
-          </div>
-          <form onSubmit={handleSubmit}>
-            <label className="block text-sm text-muted mb-2">Enter CI access code</label>
-            <input
-              type="password"
-              value={code}
-              onChange={(e) => { setCode(e.target.value); setError('') }}
-              className="w-full bg-surface-alt border border-border rounded-lg px-4 py-3 text-white focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none"
-              placeholder="Access code"
-              autoFocus
-            />
-            {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
-            <button type="submit" className="w-full mt-4 bg-green hover:bg-green-hover text-white font-semibold py-3 rounded-lg transition-colors">
-              Enter
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function CiPortal() {
-  const [authenticated, setAuthenticated] = useState(
-    () => localStorage.getItem('ci_authenticated') === 'true'
-  )
+  const { logout, getToken, fullName } = useAuth()
+  const navigate = useNavigate()
+
+  // Wire up module-level _getToken so ciFetch can access JWT
+  _getToken = getToken
+
   const [view, setView] = useState('list')
   const [selectedApp, setSelectedApp] = useState(null)
   const [toasts, setToasts] = useState([])
@@ -109,13 +76,9 @@ export default function CiPortal() {
     setSelectedApp(null)
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('ci_authenticated')
-    setAuthenticated(false)
-  }
-
-  if (!authenticated) {
-    return <CiLogin onLogin={() => setAuthenticated(true)} />
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -131,9 +94,14 @@ export default function CiPortal() {
                 <span className="text-green text-xs font-medium ml-2">CI Portal</span>
               </div>
             </div>
-            <button onClick={handleLogout} className="text-sm text-muted hover:text-red-400 transition-colors">
-              Logout
-            </button>
+            <div className="flex items-center gap-4">
+              {fullName && (
+                <span className="text-sm text-muted hidden sm:inline">{fullName}</span>
+              )}
+              <button onClick={handleLogout} className="text-sm text-muted hover:text-red-400 transition-colors">
+                Logout
+              </button>
+            </div>
           </div>
         </header>
 
