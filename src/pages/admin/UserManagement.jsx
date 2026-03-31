@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import InviteUserModal from '../../components/users/InviteUserModal'
 import EditRoleModal from '../../components/users/EditRoleModal'
@@ -112,8 +111,7 @@ function Toast({ message, type, onDismiss }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function UserManagement() {
-  const { logout, getToken, role, fullName } = useAuth()
-  const navigate = useNavigate()
+  const { getToken } = useAuth()
 
   const [users, setUsers]               = useState([])
   const [loading, setLoading]           = useState(true)
@@ -183,11 +181,6 @@ export default function UserManagement() {
     }
   }
 
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login', { replace: true })
-  }
-
   function formatDate(dateStr) {
     if (!dateStr) return '—'
     return new Date(dateStr).toLocaleDateString('en-PH', {
@@ -198,7 +191,7 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <>
       {/* Toast */}
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
 
@@ -227,44 +220,8 @@ export default function UserManagement() {
         />
       )}
 
-      {/* Top nav */}
-      <header className="bg-surface border-b border-border sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img src="/gr8logo.png" alt="GR8" className="w-8 h-8 opacity-80" />
-            <span className="text-white font-bold text-lg hidden sm:inline">GR8 Admin</span>
-            <nav className="flex items-center gap-1 ml-4">
-              <button
-                onClick={() => navigate('/admin')}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium text-muted hover:text-white transition-colors"
-              >
-                Applications
-              </button>
-              {role === 'super_admin' && (
-                <button
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-alt text-green"
-                >
-                  Users
-                </button>
-              )}
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            {fullName && (
-              <span className="text-sm text-muted hidden sm:inline">{fullName}</span>
-            )}
-            <button
-              onClick={handleLogout}
-              className="text-sm text-muted hover:text-red-400 transition-colors"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
-
       {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <div className="px-4 sm:px-6 py-6 max-w-7xl">
         {/* Page title + action */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -409,7 +366,7 @@ export default function UserManagement() {
             </div>
           </>
         )}
-      </main>
-    </div>
+      </div>
+    </>
   )
 }

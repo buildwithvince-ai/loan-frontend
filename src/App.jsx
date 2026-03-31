@@ -2,6 +2,7 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
+import AdminLayout from './components/AdminLayout'
 import LandingPage from './pages/LandingPage'
 import PersonalLoanForm from './pages/PersonalLoanForm'
 import SmeLoanForm from './pages/SmeLoanForm'
@@ -14,6 +15,7 @@ import Login from './pages/Login'
 import Unauthorized from './pages/Unauthorized'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import UserManagement from './pages/admin/UserManagement'
+import MyAccount from './pages/admin/MyAccount'
 import CiPortal from './pages/ci/CiPortal'
 
 function PublicLayout({ children }) {
@@ -32,25 +34,21 @@ function PublicLayout({ children }) {
   )
 }
 
-function App() {
-  const location = useLocation()
-  const isPublic = !location.pathname.startsWith('/admin') &&
-    !location.pathname.startsWith('/ci') &&
-    location.pathname !== '/login' &&
-    location.pathname !== '/unauthorized'
+const ADMIN_ROLES = ['admin', 'super_admin', 'sales_officer', 'verifier', 'loan_processing_officer']
 
+function App() {
   return (
     <Routes>
       {/* Auth pages — no navbar/footer */}
       <Route path="/login" element={<Login />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* Admin routes — protected, no navbar/footer */}
+      {/* Admin routes — sidebar layout */}
       <Route
         path="/admin"
         element={
-          <ProtectedRoute allowedRoles={['admin', 'super_admin', 'sales_officer', 'verifier', 'loan_processing_officer']}>
-            <AdminDashboard />
+          <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+            <AdminLayout><AdminDashboard /></AdminLayout>
           </ProtectedRoute>
         }
       />
@@ -58,7 +56,15 @@ function App() {
         path="/admin/users"
         element={
           <ProtectedRoute allowedRoles={['super_admin']}>
-            <UserManagement />
+            <AdminLayout><UserManagement /></AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/account"
+        element={
+          <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+            <AdminLayout><MyAccount /></AdminLayout>
           </ProtectedRoute>
         }
       />

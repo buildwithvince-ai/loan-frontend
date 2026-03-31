@@ -1,5 +1,4 @@
 import { useState, useCallback, createContext, useContext } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import ApplicationsList from './ApplicationsList'
 import ApplicationDetail from './ApplicationDetail'
@@ -53,8 +52,7 @@ function Toast({ toasts, removeToast }) {
 }
 
 export default function AdminDashboard() {
-  const { logout, getToken, role, fullName } = useAuth()
-  const navigate = useNavigate()
+  const { getToken } = useAuth()
 
   // Wire up the module-level _getToken so adminFetch can access JWT
   _getToken = getToken
@@ -96,92 +94,60 @@ export default function AdminDashboard() {
     localStorage.setItem('gr8_admin_view', v)
   }
 
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login', { replace: true })
-  }
-
   return (
     <ToastContext.Provider value={addToast}>
       <Toast toasts={toasts} removeToast={removeToast} />
-      <div className="min-h-screen bg-canvas">
-        {/* Top nav */}
-        <header className="bg-surface border-b border-border sticky top-0 z-40">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img src="/gr8logo.png" alt="GR8" className="w-8 h-8 opacity-80" />
-              <span className="text-white font-bold text-lg hidden sm:inline">GR8 Admin</span>
-              <nav className="flex items-center gap-1 ml-4">
-                <button
-                  onClick={backToList}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    view !== 'detail'
-                      ? 'bg-surface-alt text-green'
-                      : 'text-muted hover:text-white'
-                  }`}
-                >
-                  Applications
-                </button>
-                {role === 'super_admin' && (
-                  <button
-                    onClick={() => navigate('/admin/users')}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium text-muted hover:text-white transition-colors"
-                  >
-                    Users
-                  </button>
-                )}
-
-                {/* View toggle — only show when not in detail */}
-                {view !== 'detail' && (
-                  <div className="flex items-center gap-0.5 ml-2 p-0.5 bg-canvas rounded-lg border border-border">
-                    <button
-                      onClick={() => switchDashView('list')}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                        dashView === 'list'
-                          ? 'bg-surface-alt text-green'
-                          : 'text-muted hover:text-white'
-                      }`}
-                    >
-                      List View
-                    </button>
-                    <button
-                      onClick={() => switchDashView('pipeline')}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                        dashView === 'pipeline'
-                          ? 'bg-surface-alt text-green'
-                          : 'text-muted hover:text-white'
-                      }`}
-                    >
-                      Pipeline View
-                    </button>
-                  </div>
-                )}
-              </nav>
-            </div>
-            <div className="flex items-center gap-4">
-              {fullName && (
-                <span className="text-sm text-muted hidden sm:inline">{fullName}</span>
-              )}
+      <div className="px-4 sm:px-6 py-6">
+        {/* Top filter bar */}
+        {view !== 'detail' && (
+          <div className="flex items-center justify-between mb-5">
+            <h1 className="text-white font-bold text-2xl">Applications</h1>
+            <div className="flex items-center gap-0.5 p-0.5 bg-surface rounded-lg border border-border">
               <button
-                onClick={handleLogout}
-                className="text-sm text-muted hover:text-red-400 transition-colors"
+                onClick={() => switchDashView('list')}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  dashView === 'list'
+                    ? 'bg-surface-alt text-green'
+                    : 'text-muted hover:text-white'
+                }`}
               >
-                Logout
+                List View
+              </button>
+              <button
+                onClick={() => switchDashView('pipeline')}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  dashView === 'pipeline'
+                    ? 'bg-surface-alt text-green'
+                    : 'text-muted hover:text-white'
+                }`}
+              >
+                Pipeline View
               </button>
             </div>
           </div>
-        </header>
+        )}
+
+        {/* Back button when in detail */}
+        {view === 'detail' && (
+          <button
+            onClick={backToList}
+            className="mb-4 flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+            Back to Applications
+          </button>
+        )}
 
         {/* Content */}
-        <main className={`mx-auto px-4 sm:px-6 py-6 ${dashView === 'pipeline' && view !== 'detail' ? 'max-w-none' : 'max-w-7xl'}`}>
-          {view === 'detail' ? (
-            <ApplicationDetail id={selectedAppId} onBack={backToList} />
-          ) : dashView === 'pipeline' ? (
-            <KanbanBoard onCardClick={openDetailFromCard} />
-          ) : (
-            <ApplicationsList onReview={openDetail} />
-          )}
-        </main>
+        {view === 'detail' ? (
+          <ApplicationDetail id={selectedAppId} onBack={backToList} />
+        ) : dashView === 'pipeline' ? (
+          <KanbanBoard onCardClick={openDetailFromCard} />
+        ) : (
+          <ApplicationsList onReview={openDetail} />
+        )}
       </div>
     </ToastContext.Provider>
   )
