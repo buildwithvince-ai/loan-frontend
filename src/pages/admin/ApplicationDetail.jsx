@@ -630,6 +630,50 @@ export default function ApplicationDetail({ id, onBack }) {
           </Section>
         )}
 
+        {/* SO Confirmation section — only in approver stage */}
+        {app.pipeline_stage === 'approver' && (
+          <Section title="Sales Officer Confirmation" collapsible defaultOpen>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+              {app.so_confirmation_sent_at && (
+                <FieldCard
+                  label="Confirmation Sent"
+                  value={formatDate(app.so_confirmation_sent_at)}
+                />
+              )}
+              {app.so_decision && (
+                <>
+                  <FieldCard
+                    label="SO Decision"
+                    value={app.so_decision === 'confirmed' ? 'Confirmed' : 'Declined'}
+                  />
+                  {app.so_decision_at && (
+                    <FieldCard
+                      label="Decision Date"
+                      value={formatDate(app.so_decision_at)}
+                    />
+                  )}
+                </>
+              )}
+              {!app.so_confirmation_sent_at && (
+                <div className="col-span-full">
+                  <p className="text-muted text-sm">No confirmation request sent yet.</p>
+                </div>
+              )}
+              {app.so_confirmation_sent_at && !app.so_decision && (
+                <div className="col-span-full">
+                  <span className="text-yellow-400 text-sm animate-pulse">Awaiting sales officer response…</span>
+                </div>
+              )}
+              {app.returned_count > 0 && (
+                <FieldCard
+                  label="Times Returned"
+                  value={String(app.returned_count)}
+                />
+              )}
+            </div>
+          </Section>
+        )}
+
         {/* SECTION 4 — Decision */}
         {hasCiScore ? (
           <DecisionSection

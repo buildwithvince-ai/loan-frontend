@@ -13,6 +13,7 @@ import { PIPELINE_STAGES } from '../../constants/pipeline'
 import KanbanColumn from './KanbanColumn'
 import KanbanCard from './KanbanCard'
 import TransitionModal from './TransitionModal'
+import ReturnModal from './ReturnModal'
 
 const LOCKED_STAGES = ['loan_processing_officer', 'declined']
 
@@ -41,6 +42,10 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
   // Drag state
   const [activeApp, setActiveApp] = useState(null)
   const [pendingTransition, setPendingTransition] = useState(null) // { app, fromStage, toStage }
+
+  // Verifier / approver action state
+  const [returnApp, setReturnApp] = useState(null) // app for ReturnModal
+  const [soConfirmLoading, setSoConfirmLoading] = useState(null) // app id being confirmed
 
   const intervalRef = useRef(null)
 
@@ -158,6 +163,55 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
     setPendingTransition(null)
   }
 
+  function handleVerifierAction(app, action) {
+    if (action === 'approve') {
+      setPendingTransition({ app, fromStage: 'verifier', toStage: 'ci_officer' })
+    } else if (action === 'return') {
+      setReturnApp(app)
+    } else if (action === 'decline') {
+      setPendingTransition({ app, fromStage: 'verifier', toStage: 'declined' })
+    }
+  }
+
+  async function handleRequestSOConfirmation(app) {
+    const appId = app.id || app._id
+    setSoConfirmLoading(appId)
+    try {
+      const res = await adminFetch(`/pipeline/${appId}/so-confirmation`, {
+        method: 'POST',
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.message || 'Failed to send confirmation')
+      }
+      setApps(prev => prev.map(a => {
+        if (String(a.id || a._id) === String(appId)) {
+          return { ...a, so_confirmation_sent_at: new Date().toISOString() }
+        }
+        return a
+      }))
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setSoConfirmLoading(null)
+    }
+  }
+
+  function handleReturnConfirm() {
+    if (!returnApp) return
+    setApps(prev => prev.map(a => {
+      if (String(a.id || a._id) === String(returnApp.id || returnApp._id)) {
+        return {
+          ...a,
+          pipeline_stage: 'sales_officer',
+          returned_count: (a.returned_count || 0) + 1,
+        }
+      }
+      return a
+    }))
+    setReturnApp(null)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -197,6 +251,9 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
                 stage={stage}
                 cards={grouped[stage] || []}
                 onCardClick={onCardClick}
+                onVerifierAction={handleVerifierAction}
+                onRequestSOConfirmation={handleRequestSOConfirmation}
+                userRole={role}
               />
             ))}
           </div>
@@ -224,6 +281,15 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
           application={pendingTransition.app}
           onConfirm={handleTransitionConfirm}
           onCancel={handleTransitionCancel}
+        />
+      )}
+
+      {/* Return modal */}
+      {returnApp && (
+        <ReturnModal
+          application={returnApp}
+          onConfirm={handleReturnConfirm}
+          onCancel={() => setReturnApp(null)}
         />
       )}
     </>

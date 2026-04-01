@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import useSalesOfficers from '../hooks/useSalesOfficers'
 
 const TOTAL_STEPS = 9
 
@@ -38,6 +39,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024
 
 const initialForm = {
   // Step 1
+  salesOfficerId: '',
   loanAmount: 10000,
   paymentTerm: 3,
   purpose: '',
@@ -164,6 +166,7 @@ function FieldError({ message }) {
 export default function PersonalLoanForm() {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(initialForm)
+  const { officers, loading: soLoading, error: soError, retry: soRetry } = useSalesOfficers()
   const [docs, setDocs] = useState({})
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
@@ -222,6 +225,7 @@ export default function PersonalLoanForm() {
     const e = {}
 
     if (step === 1) {
+      if (!form.salesOfficerId) e.salesOfficerId = 'Please select your Sales Officer'
       if (!form.purpose) e.purpose = 'Purpose is required'
     }
 
@@ -323,7 +327,7 @@ export default function PersonalLoanForm() {
     try {
       const fd = new FormData()
       fd.append('loanType', 'personal')
-      const keyMap = { presentBarangay: 'barangay' }
+      const keyMap = { presentBarangay: 'barangay', salesOfficerId: 'sales_officer_id' }
       Object.entries(form).forEach(([k, v]) => {
         if (k !== 'confirmAccurate' && k !== 'agreeTerms' && k !== 'sameAsPresent' && k !== 'addSpouse') {
           fd.append(keyMap[k] || k, v)
@@ -446,7 +450,7 @@ export default function PersonalLoanForm() {
 
         {/* Form card */}
         <div className="bg-surface/60 backdrop-blur-sm border border-border rounded-2xl p-6 sm:p-8">
-          {step === 1 && <Step1 form={form} set={set} errors={errors} />}
+          {step === 1 && <Step1 form={form} set={set} errors={errors} officers={officers} soLoading={soLoading} soError={soError} soRetry={soRetry} />}
           {step === 2 && <Step2 form={form} set={set} errors={errors} />}
           {step === 3 && <Step3 form={form} set={set} errors={errors} prefix="present" title="Present Address" />}
           {step === 4 && <Step4 form={form} set={set} errors={errors} />}
@@ -488,11 +492,47 @@ export default function PersonalLoanForm() {
 // STEPS
 // ══════════════════════════════════════
 
-function Step1({ form, set, errors }) {
+function Step1({ form, set, errors, officers, soLoading, soError, soRetry }) {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-green mb-1">Loan Details</h2>
       <p className="text-muted text-sm mb-4">How much do you need and for how long?</p>
+
+      {/* Sales Officer Selection */}
+      <div className="mb-6">
+        <label className="block text-sm text-muted mb-2">
+          Your Sales Officer <span className="text-red-400">*</span>
+        </label>
+        {soError ? (
+          <div className="flex items-center gap-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <p className="text-red-400 text-sm flex-1">Unable to load officers, please refresh</p>
+            <button
+              type="button"
+              onClick={soRetry}
+              className="text-green text-sm hover:text-green-hover transition-colors whitespace-nowrap"
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <select
+            value={form.salesOfficerId}
+            onChange={e => set('salesOfficerId', e.target.value)}
+            disabled={soLoading}
+            className="w-full bg-surface-alt border border-border rounded-lg px-4 py-3 text-white focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none disabled:opacity-50 appearance-none"
+          >
+            <option value="">
+              {soLoading ? 'Loading sales officers…' : 'Select your Sales Officer'}
+            </option>
+            {officers.map(o => (
+              <option key={o.id} value={o.id}>{o.full_name}</option>
+            ))}
+          </select>
+        )}
+        {errors.salesOfficerId && (
+          <p className="text-red-400 text-xs mt-1">{errors.salesOfficerId}</p>
+        )}
+      </div>
 
       {/* Amount input */}
       <div>

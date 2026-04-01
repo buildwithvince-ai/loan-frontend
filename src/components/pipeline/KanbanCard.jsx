@@ -105,6 +105,40 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
           </div>
         )}
 
+        {/* Return count badge */}
+        {app.returned_count > 0 && (
+          <div className="mb-2">
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400">
+              Returned ({app.returned_count}x)
+            </span>
+          </div>
+        )}
+
+        {/* SO Decision badges */}
+        {app.so_decision === 'confirmed' && (
+          <div className="mb-2">
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green/20 text-green">
+              SO Confirmed
+            </span>
+          </div>
+        )}
+        {app.so_decision === 'declined' && (
+          <div className="mb-2">
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
+              SO Declined
+            </span>
+          </div>
+        )}
+
+        {/* Awaiting SO confirmation — yellow pulse */}
+        {app.so_confirmation_sent_at && !app.so_decision && (
+          <div className="mb-2">
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 animate-pulse">
+              Awaiting SO
+            </span>
+          </div>
+        )}
+
         {/* Assigned sales officer */}
         {app.assigned_sales_officer_name && (
           <p className="text-muted text-xs truncate">

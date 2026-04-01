@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import useSalesOfficers from '../hooks/useSalesOfficers'
 
 const TOTAL_STEPS = 3
 
@@ -123,6 +124,8 @@ function FieldError({ message }) {
 
 export default function GroupLoanForm() {
   const [step, setStep] = useState(1)
+  const [salesOfficerId, setSalesOfficerId] = useState('')
+  const { officers, loading: soLoading, error: soError, retry: soRetry } = useSalesOfficers()
   const [groupName, setGroupName] = useState('')
   const [totalLoanAmount, setTotalLoanAmount] = useState(10000)
   const [loanTerm, setLoanTerm] = useState(3)
@@ -204,6 +207,7 @@ export default function GroupLoanForm() {
     const e = {}
 
     if (step === 1) {
+      if (!salesOfficerId) e.salesOfficerId = 'Please select your Sales Officer'
       if (!groupName.trim()) e.groupName = 'Group name is required'
       if (memberCount < 5) e.memberCount = 'Minimum 5 members required'
     }
@@ -287,6 +291,7 @@ export default function GroupLoanForm() {
     try {
       const fd = new FormData()
       fd.append('loanType', 'group')
+      fd.append('sales_officer_id', salesOfficerId)
       fd.append('groupName', groupName)
       fd.append('totalLoanAmount', totalLoanAmount)
       fd.append('loanTerm', loanTerm)
@@ -430,6 +435,42 @@ export default function GroupLoanForm() {
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-green mb-1">Group Details</h2>
               <p className="text-muted text-sm mb-4">Set up your group loan parameters.</p>
+
+              {/* Sales Officer Selection */}
+              <div className="mb-6">
+                <label className="block text-sm text-muted mb-2">
+                  Your Sales Officer <span className="text-red-400">*</span>
+                </label>
+                {soError ? (
+                  <div className="flex items-center gap-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <p className="text-red-400 text-sm flex-1">Unable to load officers, please refresh</p>
+                    <button
+                      type="button"
+                      onClick={soRetry}
+                      className="text-green text-sm hover:text-green-hover transition-colors whitespace-nowrap"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : (
+                  <select
+                    value={salesOfficerId}
+                    onChange={e => { setSalesOfficerId(e.target.value); setErrors(prev => ({ ...prev, salesOfficerId: undefined })) }}
+                    disabled={soLoading}
+                    className="w-full bg-surface-alt border border-border rounded-lg px-4 py-3 text-white focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none disabled:opacity-50 appearance-none"
+                  >
+                    <option value="">
+                      {soLoading ? 'Loading sales officers…' : 'Select your Sales Officer'}
+                    </option>
+                    {officers.map(o => (
+                      <option key={o.id} value={o.id}>{o.full_name}</option>
+                    ))}
+                  </select>
+                )}
+                {errors.salesOfficerId && (
+                  <p className="text-red-400 text-xs mt-1">{errors.salesOfficerId}</p>
+                )}
+              </div>
 
               <div>
                 <Label required>Group Name</Label>

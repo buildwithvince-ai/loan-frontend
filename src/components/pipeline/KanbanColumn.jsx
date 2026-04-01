@@ -12,7 +12,7 @@ function LockIcon() {
   )
 }
 
-export default function KanbanColumn({ stage, cards, onCardClick }) {
+export default function KanbanColumn({ stage, cards, onCardClick, onVerifierAction, onRequestSOConfirmation, userRole }) {
   const isLocked = LOCKED_STAGES.includes(stage)
   const isDeclined = stage === 'declined'
 
@@ -68,12 +68,65 @@ export default function KanbanColumn({ stage, cards, onCardClick }) {
         className="flex-1 overflow-y-auto p-3 min-h-[120px] max-h-[calc(100vh-220px)]"
       >
         {cards.map((app) => (
-          <KanbanCard
-            key={app.id || app._id || app.reference_id}
-            app={app}
-            onCardClick={onCardClick}
-            isLocked={isLocked}
-          />
+          <div key={app.id || app._id || app.reference_id}>
+            <KanbanCard
+              app={app}
+              onCardClick={onCardClick}
+              isLocked={isLocked}
+            />
+
+            {/* Verifier actions */}
+            {stage === 'verifier' && ['verifier', 'admin', 'super_admin'].includes(userRole) && (
+              <div className="flex items-center gap-1.5 px-1 pb-2 -mt-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onVerifierAction(app, 'approve') }}
+                  className="flex-1 text-xs px-2 py-1.5 rounded-md bg-green/10 text-green border border-green/20 hover:bg-green/20 transition-colors font-medium"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onVerifierAction(app, 'return') }}
+                  className="flex-1 text-xs px-2 py-1.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors font-medium"
+                >
+                  Return
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onVerifierAction(app, 'decline') }}
+                  className="flex-1 text-xs px-2 py-1.5 rounded-md bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors font-medium"
+                >
+                  Decline
+                </button>
+              </div>
+            )}
+
+            {/* Approver actions */}
+            {stage === 'approver' && ['admin', 'super_admin'].includes(userRole) && (
+              <div className="px-1 pb-2 -mt-1">
+                {!app.so_decision && !app.so_confirmation_sent_at && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onRequestSOConfirmation(app) }}
+                    className="w-full text-xs px-2 py-1.5 rounded-md bg-blue/10 text-blue border border-blue/20 hover:bg-blue/20 transition-colors font-medium"
+                  >
+                    Request SO Confirmation
+                  </button>
+                )}
+                {app.so_confirmation_sent_at && !app.so_decision && (
+                  <div className="w-full text-xs px-2 py-1.5 rounded-md bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-center font-medium opacity-70">
+                    Awaiting SO Response
+                  </div>
+                )}
+                {app.so_decision && (
+                  <div className={`w-full text-xs px-2 py-1.5 rounded-md text-center font-medium ${
+                    app.so_decision === 'confirmed'
+                      ? 'bg-green/10 text-green border border-green/20'
+                      : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                  }`}>
+                    {app.so_decision === 'confirmed' ? 'Client Confirmed' : 'Client Declined'}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         ))}
         {cards.length === 0 && (
           <div
