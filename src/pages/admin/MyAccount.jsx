@@ -6,6 +6,7 @@ const ROLE_LABEL = {
   sales_officer: 'Sales Officer',
   verifier: 'Verifier',
   ci_officer: 'CI Officer',
+  approver: 'Approver',
   loan_processing_officer: 'Loan Processing Officer',
 }
 
@@ -15,6 +16,7 @@ const ROLE_BADGE = {
   sales_officer: 'bg-teal-500/20 text-teal-400',
   verifier: 'bg-amber-500/20 text-amber-400',
   ci_officer: 'bg-green/20 text-green',
+  approver: 'bg-indigo-500/20 text-indigo-400',
   loan_processing_officer: 'bg-pink-500/20 text-pink-400',
 }
 
@@ -28,7 +30,7 @@ function InfoRow({ label, value }) {
 }
 
 export default function MyAccount() {
-  const { user, role, fullName } = useAuth()
+  const { user, roles, fullName } = useAuth()
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-3xl">
@@ -47,9 +49,13 @@ export default function MyAccount() {
           </div>
           <div>
             <p className="text-white font-semibold">{fullName || '—'}</p>
-            <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${ROLE_BADGE[role] || 'bg-surface-alt text-muted'}`}>
-              {ROLE_LABEL[role] || role}
-            </span>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {roles.map((r) => (
+                <span key={r} className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${ROLE_BADGE[r] || 'bg-surface-alt text-muted'}`}>
+                  {ROLE_LABEL[r] || r}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -58,7 +64,7 @@ export default function MyAccount() {
           <InfoRow label="Full Name" value={fullName} />
           <InfoRow label="Email" value={user?.email} />
           <InfoRow label="User ID" value={user?.id} />
-          <InfoRow label="Role" value={ROLE_LABEL[role] || role} />
+          <InfoRow label="Role(s)" value={roles.map((r) => ROLE_LABEL[r] || r).join(', ')} />
           {user?.created_at && (
             <InfoRow
               label="Account Created"

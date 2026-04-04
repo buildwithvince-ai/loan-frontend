@@ -34,7 +34,7 @@ function PublicLayout({ children }) {
   )
 }
 
-const ADMIN_ROLES = ['admin', 'super_admin', 'sales_officer', 'verifier', 'loan_processing_officer']
+const ADMIN_ROLES = ['admin', 'super_admin', 'sales_officer', 'verifier', 'approver', 'loan_processing_officer']
 
 function App() {
   return (

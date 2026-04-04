@@ -12,7 +12,7 @@ function LockIcon() {
   )
 }
 
-export default function KanbanColumn({ stage, cards, onCardClick, onVerifierAction, onRequestSOConfirmation, userRole }) {
+export default function KanbanColumn({ stage, cards, onCardClick, onVerifierAction, onRequestSOConfirmation, userRoles = [] }) {
   const isLocked = LOCKED_STAGES.includes(stage)
   const isDeclined = stage === 'declined'
 
@@ -76,7 +76,7 @@ export default function KanbanColumn({ stage, cards, onCardClick, onVerifierActi
             />
 
             {/* Verifier actions */}
-            {stage === 'verifier' && ['verifier', 'admin', 'super_admin'].includes(userRole) && (
+            {stage === 'verifier' && userRoles.some((r) => ['verifier', 'admin', 'super_admin'].includes(r)) && (
               <div className="flex items-center gap-1.5 px-1 pb-2 -mt-1">
                 <button
                   onClick={(e) => { e.stopPropagation(); onVerifierAction(app, 'approve') }}
@@ -100,7 +100,7 @@ export default function KanbanColumn({ stage, cards, onCardClick, onVerifierActi
             )}
 
             {/* Approver actions */}
-            {stage === 'approver' && ['admin', 'super_admin'].includes(userRole) && (
+            {stage === 'approver' && userRoles.some((r) => ['admin', 'super_admin', 'approver'].includes(r)) && (
               <div className="px-1 pb-2 -mt-1">
                 {!app.so_decision && !app.so_confirmation_sent_at && (
                   <button

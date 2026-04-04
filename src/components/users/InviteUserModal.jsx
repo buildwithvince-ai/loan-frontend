@@ -7,6 +7,7 @@ const ROLE_OPTIONS = [
   { value: 'sales_officer', label: 'Sales Officer' },
   { value: 'verifier', label: 'Verifier' },
   { value: 'ci_officer', label: 'CI Officer' },
+  { value: 'approver', label: 'Approver' },
   { value: 'loan_processing_officer', label: 'Loan Processing Officer' },
 ]
 
@@ -14,9 +15,9 @@ export default function InviteUserModal({ getToken, onSuccess, onClose }) {
   const [form, setForm] = useState({
     full_name: '',
     email: '',
-    role: 'sales_officer',
     password: '',
   })
+  const [roles, setRoles] = useState(['sales_officer'])
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -25,11 +26,19 @@ export default function InviteUserModal({ getToken, onSuccess, onClose }) {
     setError(null)
   }
 
+  const toggleRole = (value) => {
+    setError(null)
+    setRoles((prev) =>
+      prev.includes(value) ? prev.filter((r) => r !== value) : [...prev, value]
+    )
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.full_name.trim()) return setError('Full name is required.')
     if (!form.email.trim()) return setError('Email is required.')
     if (!form.password.trim()) return setError('Password is required.')
+    if (roles.length === 0) return setError('Select at least one role.')
 
     setSubmitting(true)
     setError(null)
@@ -42,7 +51,7 @@ export default function InviteUserModal({ getToken, onSuccess, onClose }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, roles }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -91,17 +100,25 @@ export default function InviteUserModal({ getToken, onSuccess, onClose }) {
           </div>
 
           <div>
-            <label className="block text-sm text-muted mb-1.5">Role</label>
-            <select
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              className="w-full bg-surface-alt border border-border rounded-lg px-4 py-3 text-white focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none"
-            >
+            <label className="block text-sm text-muted mb-1.5">Roles</label>
+            <div className="bg-surface-alt border border-border rounded-lg p-3 flex flex-col gap-2">
               {ROLE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <label
+                  key={opt.value}
+                  className="flex items-center gap-3 cursor-pointer group"
+                >
+                  <input
+                    type="checkbox"
+                    checked={roles.includes(opt.value)}
+                    onChange={() => toggleRole(opt.value)}
+                    className="w-4 h-4 rounded border-border bg-surface text-green focus:ring-green/30 focus:ring-offset-0 cursor-pointer accent-[#5CB85C]"
+                  />
+                  <span className="text-sm text-white group-hover:text-green transition-colors">
+                    {opt.label}
+                  </span>
+                </label>
               ))}
-            </select>
+            </div>
           </div>
 
           <div>
@@ -128,7 +145,7 @@ export default function InviteUserModal({ getToken, onSuccess, onClose }) {
               disabled={submitting}
               className="flex-1 bg-green hover:bg-green/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg py-3 transition-colors"
             >
-              {submitting ? 'Creating…' : 'Create User'}
+              {submitting ? 'Creating...' : 'Create User'}
             </button>
             <button
               type="button"

@@ -12,6 +12,7 @@ const ROLE_BADGE = {
   sales_officer:           'bg-teal-500/20 text-teal-400',
   verifier:                'bg-amber-500/20 text-amber-400',
   ci_officer:              'bg-green/20 text-green',
+  approver:                'bg-indigo-500/20 text-indigo-400',
   loan_processing_officer: 'bg-pink-500/20 text-pink-400',
 }
 
@@ -21,15 +22,21 @@ const ROLE_LABEL = {
   sales_officer:           'Sales Officer',
   verifier:                'Verifier',
   ci_officer:              'CI Officer',
+  approver:                'Approver',
   loan_processing_officer: 'Loan Processing Officer',
 }
 
 // ─── Tiny reusables ───────────────────────────────────────────────────────────
-function RoleBadge({ role }) {
+function RoleBadges({ roles }) {
+  const list = Array.isArray(roles) ? roles : roles ? [roles] : []
   return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${ROLE_BADGE[role] || 'bg-surface-alt text-muted'}`}>
-      {ROLE_LABEL[role] || role}
-    </span>
+    <div className="flex flex-wrap gap-1">
+      {list.map((r) => (
+        <span key={r} className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${ROLE_BADGE[r] || 'bg-surface-alt text-muted'}`}>
+          {ROLE_LABEL[r] || r}
+        </span>
+      ))}
+    </div>
   )
 }
 
@@ -143,7 +150,12 @@ export default function UserManagement() {
         throw new Error(data.message || data.error || `HTTP ${res.status}`)
       }
       const data = await res.json()
-      setUsers(Array.isArray(data) ? data : data.users || [])
+      const raw = Array.isArray(data) ? data : data.users || []
+      // Normalize: ensure every user has a roles array
+      setUsers(raw.map((u) => ({
+        ...u,
+        roles: Array.isArray(u.roles) && u.roles.length ? u.roles : u.role ? [u.role] : [],
+      })))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -207,7 +219,7 @@ export default function UserManagement() {
         <EditRoleModal
           user={editTarget}
           getToken={getToken}
-          onSuccess={() => { showToast('Role updated.'); fetchUsers() }}
+          onSuccess={() => { showToast('User updated.'); fetchUsers() }}
           onClose={() => setEditTarget(null)}
         />
       )}
@@ -265,7 +277,7 @@ export default function UserManagement() {
                     <tr className="border-b border-border text-left text-muted uppercase text-xs bg-surface-alt">
                       <th className="px-4 py-3 font-medium">Full Name</th>
                       <th className="px-4 py-3 font-medium">Email</th>
-                      <th className="px-4 py-3 font-medium">Role</th>
+                      <th className="px-4 py-3 font-medium">Roles</th>
                       <th className="px-4 py-3 font-medium">Status</th>
                       <th className="px-4 py-3 font-medium">Created</th>
                       <th className="px-4 py-3 font-medium">Actions</th>
@@ -286,20 +298,20 @@ export default function UserManagement() {
                       >
                         <td className="px-4 py-3 text-white font-medium whitespace-nowrap">{u.full_name}</td>
                         <td className="px-4 py-3 text-muted whitespace-nowrap">{u.email}</td>
-                        <td className="px-4 py-3"><RoleBadge role={u.role} /></td>
+                        <td className="px-4 py-3"><RoleBadges roles={u.roles} /></td>
                         <td className="px-4 py-3"><StatusBadge active={u.is_active} /></td>
                         <td className="px-4 py-3 text-muted whitespace-nowrap">{formatDate(u.created_at)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            {u.role !== 'super_admin' && (
+                            {!u.roles.includes('super_admin') && (
                               <button
                                 onClick={() => setEditTarget(u)}
                                 className="text-xs px-3 py-1.5 rounded-lg border border-border text-muted hover:text-white hover:border-muted transition-colors whitespace-nowrap"
                               >
-                                Edit Role
+                                Edit
                               </button>
                             )}
-                            {u.role !== 'super_admin' && (
+                            {!u.roles.includes('super_admin') && (
                               <button
                                 onClick={() => setToggleTarget(u)}
                                 className={`text-xs px-3 py-1.5 rounded-lg border transition-colors whitespace-nowrap ${
@@ -338,16 +350,16 @@ export default function UserManagement() {
                     <StatusBadge active={u.is_active} />
                   </div>
                   <div className="flex items-center gap-2 mb-3">
-                    <RoleBadge role={u.role} />
+                    <RoleBadges roles={u.roles} />
                     <span className="text-muted text-xs">{formatDate(u.created_at)}</span>
                   </div>
-                  {u.role !== 'super_admin' && (
+                  {!u.roles.includes('super_admin') && (
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setEditTarget(u)}
                         className="flex-1 text-xs px-3 py-2 rounded-lg border border-border text-muted hover:text-white hover:border-muted transition-colors"
                       >
-                        Edit Role
+                        Edit
                       </button>
                       <button
                         onClick={() => setToggleTarget(u)}

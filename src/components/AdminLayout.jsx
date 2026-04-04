@@ -8,11 +8,12 @@ const ROLE_LABEL = {
   sales_officer: 'Sales Officer',
   verifier: 'Verifier',
   ci_officer: 'CI Officer',
+  approver: 'Approver',
   loan_processing_officer: 'Loan Processing',
 }
 
 export default function AdminLayout({ children }) {
-  const { logout, role, fullName, user } = useAuth()
+  const { logout, roles, hasRole, fullName, user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -33,7 +34,7 @@ export default function AdminLayout({ children }) {
       ),
       match: (p) => p === '/admin',
     },
-    ...(role === 'super_admin' ? [{
+    ...(hasRole('super_admin') ? [{
       label: 'Users',
       path: '/admin/users',
       icon: (
@@ -104,7 +105,7 @@ export default function AdminLayout({ children }) {
         <div className="px-3 py-4 border-t border-border shrink-0">
           <div className="px-3 mb-3">
             <p className="text-white text-sm font-medium truncate">{fullName || 'Staff'}</p>
-            <p className="text-muted text-xs truncate">{ROLE_LABEL[role] || role}</p>
+            <p className="text-muted text-xs truncate">{roles.map((r) => ROLE_LABEL[r] || r).join(', ')}</p>
           </div>
           <button
             onClick={handleLogout}

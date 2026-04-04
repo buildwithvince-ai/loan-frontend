@@ -34,7 +34,7 @@ function groupByStage(apps) {
 }
 
 export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onCardClick }) {
-  const { role, user } = useAuth()
+  const { roles, hasRole, user } = useAuth()
   const [apps, setApps] = useState([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(null)
@@ -72,8 +72,9 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
 
   // Apply client-side filters
   const filteredApps = apps.filter((app) => {
-    // Sales officer sees only their own applications
-    if (role === 'sales_officer' && user?.id) {
+    // Sales-officer-only users see only their own applications
+    const elevatedRoles = ['super_admin', 'admin', 'approver', 'verifier', 'ci_officer', 'loan_processing_officer']
+    if (hasRole('sales_officer') && !roles.some((r) => elevatedRoles.includes(r)) && user?.id) {
       if (app.assigned_sales_officer !== user.id) return false
     }
 
@@ -253,7 +254,7 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
                 onCardClick={onCardClick}
                 onVerifierAction={handleVerifierAction}
                 onRequestSOConfirmation={handleRequestSOConfirmation}
-                userRole={role}
+                userRoles={roles}
               />
             ))}
           </div>

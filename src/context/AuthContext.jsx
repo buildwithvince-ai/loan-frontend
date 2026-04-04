@@ -4,9 +4,21 @@ const AuthContext = createContext(null)
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
 
+// Priority order for redirect after login — first match wins
+const ROLE_PRIORITY = [
+  'super_admin', 'admin', 'approver', 'verifier',
+  'ci_officer', 'loan_processing_officer', 'sales_officer',
+]
+
+function normalizeRoles(userData) {
+  if (Array.isArray(userData.roles) && userData.roles.length) return userData.roles
+  if (userData.role) return [userData.role]
+  return []
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [role, setRole] = useState(null)
+  const [roles, setRoles] = useState([])
   const [fullName, setFullName] = useState(null)
   const [token, setToken] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -28,11 +40,12 @@ export function AuthProvider({ children }) {
     if (!res.ok) {
       throw new Error(data.message || data.error || 'Login failed')
     }
+    const userRoles = normalizeRoles(data.user)
     setToken(data.token)
     setUser(data.user)
-    setRole(data.user.role)
+    setRoles(userRoles)
     setFullName(data.user.full_name)
-    return data.user
+    return { ...data.user, roles: userRoles }
   }, [])
 
   const logout = useCallback(async () => {
@@ -51,15 +64,21 @@ export function AuthProvider({ children }) {
     }
     setToken(null)
     setUser(null)
-    setRole(null)
+    setRoles([])
     setFullName(null)
   }, [token])
 
   const getToken = useCallback(() => token, [token])
 
+  // Convenience: primary role = highest priority role the user holds
+  const primaryRole = ROLE_PRIORITY.find((r) => roles.includes(r)) || roles[0] || null
+
   const value = {
     user,
-    role,
+    roles,
+    primaryRole,
+    hasRole: (r) => roles.includes(r),
+    hasAnyRole: (list) => list.some((r) => roles.includes(r)),
     fullName,
     isLoading,
     isAuthenticated: !!token && !!user,

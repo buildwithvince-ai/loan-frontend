@@ -8,7 +8,15 @@ const ROLE_REDIRECTS = {
   sales_officer: '/admin',
   verifier: '/admin',
   ci_officer: '/ci',
+  approver: '/admin',
   loan_processing_officer: '/admin',
+}
+
+function getRedirect(roles) {
+  for (const r of roles) {
+    if (ROLE_REDIRECTS[r]) return ROLE_REDIRECTS[r]
+  }
+  return '/admin'
 }
 
 export default function Login() {
@@ -16,12 +24,12 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const { login, isAuthenticated, role } = useAuth()
+  const { login, isAuthenticated, roles } = useAuth()
   const navigate = useNavigate()
 
   // If already authenticated, redirect
-  if (isAuthenticated && role) {
-    navigate(ROLE_REDIRECTS[role] || '/admin', { replace: true })
+  if (isAuthenticated && roles.length) {
+    navigate(getRedirect(roles), { replace: true })
     return null
   }
 
@@ -31,7 +39,7 @@ export default function Login() {
     setSubmitting(true)
     try {
       const user = await login(email, password)
-      const dest = ROLE_REDIRECTS[user.role] || '/admin'
+      const dest = getRedirect(user.roles || [])
       navigate(dest, { replace: true })
     } catch (err) {
       setError(err.message || 'Login failed')
