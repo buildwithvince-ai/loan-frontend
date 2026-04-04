@@ -11,12 +11,17 @@ const ROLE_OPTIONS = [
 ]
 
 export default function EditRoleModal({ user, getToken, onSuccess, onClose }) {
+  const [fullName, setFullName] = useState(user.full_name || '')
   const [role, setRole] = useState(user.role || 'sales_officer')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!fullName.trim()) {
+      setError('Full name is required.')
+      return
+    }
     setSubmitting(true)
     setError(null)
 
@@ -28,7 +33,7 @@ export default function EditRoleModal({ user, getToken, onSuccess, onClose }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ role }),
+        body: JSON.stringify({ full_name: fullName.trim(), role }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -49,10 +54,21 @@ export default function EditRoleModal({ user, getToken, onSuccess, onClose }) {
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="w-full max-w-sm bg-surface border border-border rounded-xl p-6 shadow-2xl">
-        <h2 className="text-white font-bold text-lg mb-1">Edit Role</h2>
-        <p className="text-muted text-sm mb-5 truncate">{user.full_name}</p>
+        <h2 className="text-white font-bold text-lg mb-1">Edit User</h2>
+        <p className="text-muted text-sm mb-5 truncate">{user.email}</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div>
+            <label className="block text-sm text-muted mb-1.5">Full Name</label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => { setFullName(e.target.value); setError(null) }}
+              className="w-full bg-surface-alt border border-border rounded-lg px-4 py-3 text-white focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none"
+              placeholder="Enter full name"
+            />
+          </div>
+
           <div>
             <label className="block text-sm text-muted mb-1.5">Role</label>
             <select
@@ -78,7 +94,7 @@ export default function EditRoleModal({ user, getToken, onSuccess, onClose }) {
               disabled={submitting}
               className="flex-1 bg-green hover:bg-green/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg py-3 transition-colors"
             >
-              {submitting ? 'Saving…' : 'Update Role'}
+              {submitting ? 'Saving…' : 'Save Changes'}
             </button>
             <button
               type="button"
