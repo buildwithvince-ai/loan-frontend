@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { adminFetch, useToast } from './AdminDashboard'
+import { adminFetch, pipelineFetch, useToast } from './AdminDashboard'
 import { normalizeFinScore, computeFinalFromCiTotal, getTier, getNextTierHint, TIER_CONFIG } from './scoring'
 import CiScoringForm, { CiFormReadOnly } from './CiScoringForm'
 
@@ -100,7 +100,7 @@ function getField(app, ...keys) {
 
 // --- Section 1: Application Summary ---
 
-function ApplicationSummary({ app }) {
+function ApplicationSummary({ app, onViewDocuments }) {
   const fd = app.form_data || {}
   const data = { ...fd, ...app } // app fields override form_data
   const age = calcAge(data.date_of_birth || data.dob || data.birthdate || data.dateOfBirth)
@@ -243,38 +243,146 @@ function ApplicationSummary({ app }) {
           </div>
         )}
 
-        {/* File Attachments */}
-        {(() => {
-          // Normalize file metadata from various shapes
-          let files = []
-          if (Array.isArray(fileMetadata) && fileMetadata.length > 0) {
-            files = fileMetadata
-          } else if (typeof fileMetadata === 'object' && !Array.isArray(fileMetadata)) {
-            files = Object.entries(fileMetadata).map(([field, info]) => ({
-              field,
-              filename: typeof info === 'string' ? info : info?.filename || info?.originalname || info?.name || field,
-            }))
-          }
-          if (files.length === 0) return null
-          return (
-            <div>
-              <p className="text-muted text-xs font-medium uppercase tracking-wide mb-3">File Attachments</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {files.map((f, i) => (
-                  <div key={i} className="bg-surface-alt rounded-lg px-3 py-2 flex items-center gap-2">
-                    <span className="text-muted text-lg">📄</span>
-                    <div>
-                      <span className="text-muted text-xs block">{f.field || f.fieldName || f.field_name || `File ${i + 1}`}</span>
-                      <span className="text-white text-sm">{f.filename || f.originalname || f.name || 'Uploaded'}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )
-        })()}
+        {/* View Documents Button */}
+        <div>
+          <button
+            onClick={() => onViewDocuments?.()}
+            className="flex items-center gap-2 text-sm text-blue hover:text-blue/80 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+              <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            View Documents
+          </button>
+        </div>
       </div>
     </Section>
+  )
+}
+
+// --- File Viewer Modal ---
+
+function FileViewerModal({ appId, onClose }) {
+  const [files, setFiles] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const fetchFiles = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await pipelineFetch(`/${appId}/files`)
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.message || data.error || 'Failed to load files')
+        if (cancelled) return
+        const list = Array.isArray(data) ? data : data.files || []
+        setFiles(list)
+      } catch (err) {
+        if (!cancelled) setError(err.message)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    fetchFiles()
+    return () => { cancelled = true }
+  }, [appId])
+
+  const isImage = (url, name) => {
+    const str = (name || url || '').toLowerCase()
+    return /\.(jpg|jpeg|png|gif|webp)/.test(str) || /image\//.test(str)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-surface border border-border rounded-xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl shadow-black/60" onClick={(e) => e.stopPropagation()}>
+        <div className="px-6 pt-6 pb-4 border-b border-border flex items-center justify-between shrink-0">
+          <h2 className="text-white font-bold text-lg">Documents</h2>
+          <button onClick={onClose} className="text-muted hover:text-white transition-colors">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+              <path d="M6 18 18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="px-6 py-4 overflow-y-auto flex-1">
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-6 h-6 border-2 border-green border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+
+          {error && (
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          )}
+
+          {!loading && !error && files.length === 0 && (
+            <p className="text-muted text-sm text-center py-8">No documents found for this application.</p>
+          )}
+
+          {!loading && !error && files.length > 0 && (
+            <div className="space-y-4">
+              {files.map((f, i) => {
+                const label = f.field || f.fieldName || f.field_name || f.label || `File ${i + 1}`
+                const name = f.filename || f.originalname || f.name || ''
+                const url = f.url || f.signed_url || f.signedUrl || ''
+
+                return (
+                  <div key={i} className="bg-surface-alt border border-border rounded-lg overflow-hidden">
+                    <div className="px-4 py-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-muted text-xs">{label}</p>
+                        <p className="text-white text-sm">{name || 'Document'}</p>
+                      </div>
+                      {url && (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue hover:text-blue/80 transition-colors shrink-0 ml-3"
+                        >
+                          Open in new tab ↗
+                        </a>
+                      )}
+                    </div>
+                    {url && isImage(url, name) && (
+                      <div className="px-4 pb-4">
+                        <img
+                          src={url}
+                          alt={name || label}
+                          className="max-w-full max-h-96 rounded-lg border border-border object-contain mx-auto"
+                        />
+                      </div>
+                    )}
+                    {url && !isImage(url, name) && (
+                      <div className="px-4 pb-4">
+                        <iframe
+                          src={url}
+                          title={name || label}
+                          className="w-full h-96 rounded-lg border border-border bg-white"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 pb-6 pt-2 border-t border-border shrink-0">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-muted hover:text-white transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -538,6 +646,7 @@ export default function ApplicationDetail({ id, onBack }) {
   const [app, setApp] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [showFileViewer, setShowFileViewer] = useState(false)
   const addToast = useToast()
 
   const fetchApp = async () => {
@@ -598,7 +707,7 @@ export default function ApplicationDetail({ id, onBack }) {
 
       <div className="flex flex-col gap-5">
         {/* SECTION 1 — Application Summary */}
-        <ApplicationSummary app={app} />
+        <ApplicationSummary app={app} onViewDocuments={() => setShowFileViewer(true)} />
 
         {/* SECTION 2 — FinScore Result */}
         <FinScoreSection finscoreRaw={finscoreRaw} finscoreNorm={finscoreNorm} />
@@ -704,6 +813,11 @@ export default function ApplicationDetail({ id, onBack }) {
           effectiveTier={effectiveTier}
         />
       </div>
+
+      {/* File Viewer Modal — fetches fresh signed URLs each time */}
+      {showFileViewer && (
+        <FileViewerModal appId={id} onClose={() => setShowFileViewer(false)} />
+      )}
     </div>
   )
 }
