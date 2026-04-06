@@ -246,8 +246,8 @@ export default function SblLoanForm() {
         if (!m.employmentStatus) e[`${p}employmentStatus`] = 'Required'
         if (!m.monthlyIncome) {
           e[`${p}monthlyIncome`] = 'Required'
-        } else if (Number(m.monthlyIncome) < 15000) {
-          e[`${p}monthlyIncome`] = 'Minimum income is ₱15,000/month'
+        } else if (Number(m.monthlyIncome) < 1000) {
+          e[`${p}monthlyIncome`] = 'Minimum income is ₱1,000/month'
         }
         if (!m.position) e[`${p}position`] = 'Required'
         if (!m.loanAmount || Number(m.loanAmount) < 5000) {
