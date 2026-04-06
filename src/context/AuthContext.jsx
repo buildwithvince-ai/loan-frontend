@@ -23,11 +23,29 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // On mount, try to restore session from a stored refresh token if available
+  // On mount, restore session from sessionStorage if available
   useEffect(() => {
-    // No persistent session — JWT is memory-only
-    // If user refreshes the page, they must login again
-    setIsLoading(false)
+    const stored = sessionStorage.getItem('gr8_token')
+    if (!stored) { setIsLoading(false); return }
+
+    fetch(`${API_BASE}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${stored}` },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('expired')
+        return res.json()
+      })
+      .then(data => {
+        const u = data.user || data
+        setToken(stored)
+        setUser(u)
+        setRoles(normalizeRoles(u))
+        setFullName(u.full_name)
+      })
+      .catch(() => {
+        sessionStorage.removeItem('gr8_token')
+      })
+      .finally(() => setIsLoading(false))
   }, [])
 
   const login = useCallback(async (email, password) => {
@@ -41,6 +59,7 @@ export function AuthProvider({ children }) {
       throw new Error(data.message || data.error || 'Login failed')
     }
     const userRoles = normalizeRoles(data.user)
+    sessionStorage.setItem('gr8_token', data.token)
     setToken(data.token)
     setUser(data.user)
     setRoles(userRoles)
@@ -62,6 +81,7 @@ export function AuthProvider({ children }) {
     } catch {
       // Logout even if API call fails
     }
+    sessionStorage.removeItem('gr8_token')
     setToken(null)
     setUser(null)
     setRoles([])
