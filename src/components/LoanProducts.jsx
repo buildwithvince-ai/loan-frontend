@@ -44,8 +44,8 @@ const products = [
     ),
   },
   {
-    title: 'SBL Loan',
-    description: 'Flexible small business lending with monthly repayment — ideal for growing enterprises with steady income.',
+    title: 'SBL (Sangguniang Barangay Loan)',
+    description: 'For elected or appointed Barangay Officials — salary-deduction repayment with low monthly rates.',
     range: '₱5,000 – ₱100,000',
     terms: '3, 6, or 12 months',
     repayment: 'Monthly',

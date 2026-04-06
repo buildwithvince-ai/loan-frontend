@@ -417,7 +417,7 @@ export default function SblLoanForm() {
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" /></svg>
             Back to Home
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold text-green">SBL (Salary-Based Loan) Application</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-green">SBL (Sangguniang Barangay Loan) Application</h1>
           <p className="text-muted text-sm mt-1">Step {step} of {TOTAL_STEPS} — {stepLabels[step - 1]}</p>
         </div>
 
@@ -436,7 +436,7 @@ export default function SblLoanForm() {
           {step === 1 && (
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-green mb-1">Group Details</h2>
-              <p className="text-muted text-sm mb-4">Set up your salary-based loan parameters.</p>
+              <p className="text-muted text-sm mb-4">Set up your Sangguniang Barangay loan parameters.</p>
 
               {/* Sales Officer Selection */}
               <div className="mb-6">

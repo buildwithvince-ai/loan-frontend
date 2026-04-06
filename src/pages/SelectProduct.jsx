@@ -50,7 +50,7 @@ const products = [
     ),
   },
   {
-    title: 'SBL (Salary-Based Loan)',
+    title: 'SBL (Sangguniang Barangay Loan)',
     description: 'For Barangay Officials — salary-deduction repayment with low monthly rates.',
     range: '₱5,000 – ₱100,000',
     terms: '3, 6, or 12 months',
