@@ -212,7 +212,7 @@ export default function AkapLoanForm() {
     try {
       const fd = new FormData()
       fd.append('loanType', 'akap')
-      const keyMap = { presentBarangay: 'barangay' }
+      const keyMap = { presentBarangay: 'barangay', monthlyGrossRevenue: 'monthlyIncome' }
       Object.entries(form).forEach(([k, v]) => {
         if (k !== 'confirmAccurate' && k !== 'agreeTerms' && k !== 'sameAsPresent' && k !== 'addCoBorrower') fd.append(keyMap[k] || k, v)
       })
