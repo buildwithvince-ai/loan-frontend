@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { adminFetch, pipelineFetch, useToast } from './AdminDashboard'
 import { normalizeFinScore, computeFinalFromCiTotal, getTier, getNextTierHint, TIER_CONFIG } from './scoring'
 import CiScoringForm, { CiFormReadOnly } from './CiScoringForm'
+import { useAuth } from '../../context/AuthContext'
 
 // --- Shared UI components ---
 
@@ -649,6 +650,8 @@ export default function ApplicationDetail({ id, onBack }) {
   const [error, setError] = useState(null)
   const [showFileViewer, setShowFileViewer] = useState(false)
   const addToast = useToast()
+  const { hasRole } = useAuth()
+  const isCiRole = hasRole('ci_officer')
 
   const fetchApp = async () => {
     try {
@@ -715,11 +718,8 @@ export default function ApplicationDetail({ id, onBack }) {
 
         {/* SECTION 3 — CI Assessment Form */}
         {showCiForm && (
-          <div className="bg-surface border border-border rounded-xl overflow-hidden">
-            <div className="px-5 py-4">
-              <h3 className="text-white font-semibold text-sm">Section 3 — CI Assessment Form</h3>
-            </div>
-            <div className="px-5 pb-5 border-t border-border/50 pt-4">
+          <Section title="Section 3 — CI Assessment Form" collapsible defaultOpen={isCiRole}>
+            <div className="pt-4">
               <CiScoringForm
                 app={app}
                 appId={id}
@@ -728,7 +728,7 @@ export default function ApplicationDetail({ id, onBack }) {
                 onSubmitSuccess={fetchApp}
               />
             </div>
-          </div>
+          </Section>
         )}
 
         {/* CI Form Read-Only (after submission) */}
