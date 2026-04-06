@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { STAGE_LABELS } from '../../constants/pipeline'
-import { adminFetch } from '../../pages/admin/AdminDashboard'
+import { pipelineFetch } from '../../pages/admin/AdminDashboard'
 
 export default function ReturnModal({ application, onConfirm, onCancel }) {
   const [reason, setReason] = useState('')
@@ -18,7 +18,7 @@ export default function ReturnModal({ application, onConfirm, onCancel }) {
     setLoading(true)
     setError(null)
     try {
-      const res = await adminFetch(`/pipeline/${appId}/transition`, {
+      const res = await pipelineFetch(`/${appId}/transition`, {
         method: 'PATCH',
         body: JSON.stringify({
           to_stage: 'sales_officer',

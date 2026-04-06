@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { STAGE_LABELS } from '../../constants/pipeline'
-import { adminFetch } from '../../pages/admin/AdminDashboard'
+import { pipelineFetch } from '../../pages/admin/AdminDashboard'
 
 function ArrowIcon() {
   return (
@@ -64,7 +64,7 @@ export default function TransitionModal({ fromStage, toStage, application, onCon
       const meta = {}
       if (declineReason.trim()) meta.decline_reason = declineReason.trim()
 
-      const res = await adminFetch(`/pipeline/${appId}/transition`, {
+      const res = await pipelineFetch(`/${appId}/transition`, {
         method: 'PATCH',
         body: JSON.stringify({ to_stage: toStage, meta }),
       })

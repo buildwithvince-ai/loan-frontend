@@ -7,7 +7,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { adminFetch } from '../../pages/admin/AdminDashboard'
+import { adminFetch, pipelineFetch } from '../../pages/admin/AdminDashboard'
 import { useAuth } from '../../context/AuthContext'
 import { PIPELINE_STAGES } from '../../constants/pipeline'
 import KanbanColumn from './KanbanColumn'
@@ -178,7 +178,7 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
     const appId = app.id || app._id
     setSoConfirmLoading(appId)
     try {
-      const res = await adminFetch(`/pipeline/${appId}/so-confirmation`, {
+      const res = await pipelineFetch(`/${appId}/so-confirmation`, {
         method: 'POST',
       })
       if (!res.ok) {

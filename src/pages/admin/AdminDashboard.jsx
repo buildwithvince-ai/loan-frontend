@@ -26,6 +26,18 @@ export function adminFetch(path, options = {}) {
   return fetch(`${ADMIN_API}${path}`, { ...options, headers })
 }
 
+export function pipelineFetch(path, options = {}) {
+  const token = _getToken()
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  return fetch(`${API_BASE}/api/pipeline${path}`, { ...options, headers })
+}
+
 // Toast component
 function Toast({ toasts, removeToast }) {
   return (
