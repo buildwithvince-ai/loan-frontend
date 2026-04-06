@@ -6,19 +6,22 @@ import { useAuth } from '../../context/AuthContext'
 
 // --- Shared UI components ---
 
-function Section({ title, children, collapsible = false, defaultOpen = true }) {
+function Section({ title, children, collapsible = false, defaultOpen = true, rightContent }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="bg-surface border border-border rounded-xl overflow-hidden">
-      <button
+      <div
         onClick={() => collapsible && setOpen(!open)}
         className={`w-full px-5 py-4 flex items-center justify-between text-left ${
-          collapsible ? 'cursor-pointer hover:bg-surface-alt/50' : 'cursor-default'
+          collapsible ? 'cursor-pointer hover:bg-surface-alt/50' : ''
         }`}
       >
         <h3 className="text-white font-semibold text-sm">{title}</h3>
-        {collapsible && <span className="text-muted text-xs">{open ? '▲' : '▼'}</span>}
-      </button>
+        <div className="flex items-center gap-3">
+          {rightContent}
+          {collapsible && <span className="text-muted text-xs">{open ? '▲' : '▼'}</span>}
+        </div>
+      </div>
       {open && <div className="px-5 pb-5 border-t border-border/50">{children}</div>}
     </div>
   )
@@ -143,8 +146,21 @@ function ApplicationSummary({ app, onViewDocuments }) {
   // Spouse / co-borrower
   const spouseName = getField(app, 'spouseName', 'spouse_name', 'spouseFirstName', 'coBorrowerName', 'co_borrower_name')
 
+  const soName = app.assigned_sales_officer_name
+
   return (
-    <Section title="Section 1 — Application Summary">
+    <Section
+      title="Section 1 — Application Summary"
+      rightContent={soName ? (
+        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-teal-500/20 text-teal-400">
+          SO: {soName}
+        </span>
+      ) : (
+        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400">
+          No SO Assigned
+        </span>
+      )}
+    >
       <div className="pt-4 space-y-5">
         {/* Personal Information */}
         <div>
@@ -218,7 +234,6 @@ function ApplicationSummary({ app, onViewDocuments }) {
             <FieldCard label="Amount" value={formatCurrency(app.loan_amount || app.amount)} />
             <FieldCard label="Term" value={getField(app, 'term', 'loan_term') ? `${getField(app, 'term', 'loan_term')} months` : null} />
             <FieldCard label="Purpose" value={getField(app, 'loan_purpose', 'loanPurpose', 'purpose')} />
-            <FieldCard label="Sales Officer" value={app.assigned_sales_officer_name} />
           </div>
         </div>
 
