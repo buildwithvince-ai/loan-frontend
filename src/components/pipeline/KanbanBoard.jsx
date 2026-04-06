@@ -23,7 +23,7 @@ function groupByStage(apps) {
     groups[stage] = []
   }
   for (const app of apps) {
-    const stage = app.pipeline_stage || 'sales_officer'
+    const stage = app.stage || 'sales_officer'
     if (groups[stage]) {
       groups[stage].push(app)
     } else {
@@ -145,20 +145,22 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
   function handleTransitionConfirm(updatedApp) {
     if (!pendingTransition) return
     const { app, toStage } = pendingTransition
+    // Immediately update local state so card moves
     setApps((prev) =>
       prev.map((a) => {
         const id = a.id || a._id || a.reference_id
         const targetId = app.id || app._id || app.reference_id
         if (String(id) === String(targetId)) {
-          // Merge the full server response if available, otherwise fall back to local update
-          return updatedApp?.pipeline_stage
+          return updatedApp?.stage
             ? { ...a, ...updatedApp }
-            : { ...a, pipeline_stage: toStage }
+            : { ...a, stage: toStage }
         }
         return a
       })
     )
     setPendingTransition(null)
+    // Re-fetch from server to ensure consistency with backend
+    fetchApps()
   }
 
   function handleTransitionCancel() {
@@ -204,13 +206,14 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
     if (!returnApp) return
     setApps(prev => prev.map(a => {
       if (String(a.id || a._id) === String(returnApp.id || returnApp._id)) {
-        return updatedApp?.pipeline_stage
+        return updatedApp?.stage
           ? { ...a, ...updatedApp }
-          : { ...a, pipeline_stage: 'sales_officer', returned_count: (a.returned_count || 0) + 1 }
+          : { ...a, stage: 'sales_officer', returned_count: (a.returned_count || 0) + 1 }
       }
       return a
     }))
     setReturnApp(null)
+    fetchApps()
   }
 
   if (loading) {

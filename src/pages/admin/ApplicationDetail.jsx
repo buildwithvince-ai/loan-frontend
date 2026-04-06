@@ -740,7 +740,7 @@ export default function ApplicationDetail({ id, onBack }) {
         )}
 
         {/* SO Confirmation section — only in approver stage */}
-        {app.pipeline_stage === 'approver' && (
+        {app.stage === 'approver' && (
           <Section title="Sales Officer Confirmation" collapsible defaultOpen>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
               {app.so_confirmation_sent_at && (
