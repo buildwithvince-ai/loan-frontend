@@ -78,6 +78,7 @@ export default function ApplicationsList({ onReview }) {
   const [error, setError] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [soFilter, setSoFilter] = useState('all')
   const [search, setSearch] = useState('')
   const intervalRef = useRef(null)
 
@@ -101,14 +102,22 @@ export default function ApplicationsList({ onReview }) {
     return () => clearInterval(intervalRef.current)
   }, [])
 
+  // Unique SO names for filter dropdown
+  const soNames = [...new Set(apps.map(a => a.assigned_sales_officer_name).filter(Boolean))].sort()
+
   const filtered = apps.filter((app) => {
     if (statusFilter !== 'all' && app.status !== statusFilter) return false
     if (typeFilter !== 'all' && app.loan_type !== typeFilter) return false
+    if (soFilter !== 'all') {
+      if (soFilter === 'none' && app.assigned_sales_officer_name) return false
+      if (soFilter !== 'none' && app.assigned_sales_officer_name !== soFilter) return false
+    }
     if (search) {
       const q = search.toLowerCase()
       const name = `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.toLowerCase()
       const phone = (app.mobile || app.phone || '').toLowerCase()
-      if (!name.includes(q) && !phone.includes(q) && !(app.reference_id || '').toLowerCase().includes(q)) return false
+      const so = (app.assigned_sales_officer_name || '').toLowerCase()
+      if (!name.includes(q) && !phone.includes(q) && !(app.reference_id || '').toLowerCase().includes(q) && !so.includes(q)) return false
     }
     return true
   })
@@ -165,6 +174,17 @@ export default function ApplicationsList({ onReview }) {
           <option value="group">Group</option>
           <option value="sbl">SBL</option>
         </select>
+        <select
+          value={soFilter}
+          onChange={(e) => setSoFilter(e.target.value)}
+          className="bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-sm text-white outline-none focus:border-green/50"
+        >
+          <option value="all">All Sales Officers</option>
+          <option value="none">No SO Assigned</option>
+          {soNames.map(name => (
+            <option key={name} value={name}>{name}</option>
+          ))}
+        </select>
       </div>
 
       {/* Count */}
@@ -190,6 +210,7 @@ export default function ApplicationsList({ onReview }) {
                 <th className="px-4 py-3 font-medium">Final Score</th>
                 <th className="px-4 py-3 font-medium">Tier</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Sales Officer</th>
                 <th className="px-4 py-3 font-medium"></th>
               </tr>
             </thead>
@@ -254,6 +275,9 @@ export default function ApplicationsList({ onReview }) {
                         colorClass={STATUS_COLORS[app.status] || STATUS_COLORS.pending}
                       />
                     </td>
+                    <td className="px-4 py-3 text-sm text-white">
+                      {app.assigned_sales_officer_name || <span className="text-muted">—</span>}
+                    </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => onReview(app.id || app.reference_id)}
@@ -267,7 +291,7 @@ export default function ApplicationsList({ onReview }) {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-12 text-center text-muted">
+                  <td colSpan={13} className="px-4 py-12 text-center text-muted">
                     No applications found
                   </td>
                 </tr>
@@ -345,6 +369,10 @@ export default function ApplicationsList({ onReview }) {
                       <Badge label={tierCfg.label} colorClass={tierCfg.badgeClass} />
                     ) : <span className="text-muted text-sm">—</span>}
                   </div>
+                </div>
+                <div>
+                  <span className="text-muted text-xs">Sales Officer</span>
+                  <p className="text-white text-sm">{app.assigned_sales_officer_name || '—'}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between">

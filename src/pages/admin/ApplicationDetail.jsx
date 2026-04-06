@@ -217,6 +217,7 @@ function ApplicationSummary({ app, onViewDocuments }) {
             <FieldCard label="Amount" value={formatCurrency(app.loan_amount || app.amount)} />
             <FieldCard label="Term" value={getField(app, 'term', 'loan_term') ? `${getField(app, 'term', 'loan_term')} months` : null} />
             <FieldCard label="Purpose" value={getField(app, 'loan_purpose', 'loanPurpose', 'purpose')} />
+            <FieldCard label="Sales Officer" value={app.assigned_sales_officer_name} />
           </div>
         </div>
 
