@@ -671,10 +671,27 @@ export default function ApplicationDetail({ id, onBack }) {
   const fetchApp = async () => {
     try {
       setLoading(true)
-      const res = await adminFetch(`/applications/${id}`)
-      if (!res.ok) throw new Error('Failed to fetch application')
-      const data = await res.json()
-      setApp(data.application || data)
+      const [adminRes, pipelineRes] = await Promise.all([
+        adminFetch(`/applications/${id}`),
+        pipelineFetch(`/${id}`).catch(() => null),
+      ])
+      if (!adminRes.ok) throw new Error('Failed to fetch application')
+      const adminData = await adminRes.json()
+      const appData = adminData.application || adminData
+
+      // Merge SO fields from pipeline endpoint if admin endpoint doesn't have them
+      if (pipelineRes?.ok) {
+        const pipelineData = await pipelineRes.json().catch(() => ({}))
+        const pd = pipelineData.application || pipelineData
+        if (!appData.assigned_sales_officer_name && pd.assigned_sales_officer_name) {
+          appData.assigned_sales_officer_name = pd.assigned_sales_officer_name
+        }
+        if (!appData.assigned_sales_officer && pd.assigned_sales_officer) {
+          appData.assigned_sales_officer = pd.assigned_sales_officer
+        }
+      }
+
+      setApp(appData)
       setError(null)
     } catch (err) {
       setError(err.message)
