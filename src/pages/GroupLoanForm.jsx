@@ -44,6 +44,7 @@ function createMember() {
     email: '',
     employmentStatus: '',
     monthlyIncome: '',
+    loanAmount: 10000,
     houseStreet: '',
     barangay: '',
     city: '',
@@ -126,8 +127,6 @@ export default function GroupLoanForm() {
   const [step, setStep] = useState(1)
   const [salesOfficerId, setSalesOfficerId] = useState('')
   const { officers, loading: soLoading, error: soError, retry: soRetry } = useSalesOfficers()
-  const [groupName, setGroupName] = useState('')
-  const [totalLoanAmount, setTotalLoanAmount] = useState(10000)
   const [loanTerm, setLoanTerm] = useState(3)
   const [memberCount, setMemberCount] = useState(5)
   const [members, setMembers] = useState(() => Array.from({ length: 5 }, () => createMember()))
@@ -208,7 +207,6 @@ export default function GroupLoanForm() {
 
     if (step === 1) {
       if (!salesOfficerId) e.salesOfficerId = 'Please select your Sales Officer'
-      if (!groupName.trim()) e.groupName = 'Group name is required'
       if (memberCount < 5) e.memberCount = 'Minimum 5 members required'
     }
 
@@ -238,6 +236,11 @@ export default function GroupLoanForm() {
           e[`${p}monthlyIncome`] = 'Required'
         } else if (Number(m.monthlyIncome) < 15000) {
           e[`${p}monthlyIncome`] = 'Minimum income is ₱15,000/month'
+        }
+        if (!m.loanAmount || Number(m.loanAmount) < 10000) {
+          e[`${p}loanAmount`] = 'Minimum ₱10,000'
+        } else if (Number(m.loanAmount) > 50000) {
+          e[`${p}loanAmount`] = 'Maximum ₱50,000'
         }
         if (!m.houseStreet.trim()) e[`${p}houseStreet`] = 'Required'
         if (!m.barangay.trim()) e[`${p}barangay`] = 'Required'
@@ -289,11 +292,15 @@ export default function GroupLoanForm() {
     if (!validate()) return
     setSubmitting(true)
     try {
+      const leaderLast = members[0]?.lastName?.trim() || 'Group'
+      const autoGroupName = `${leaderLast} Group`
+      const totalAmount = members.reduce((sum, m) => sum + Number(m.loanAmount || 0), 0)
+
       const fd = new FormData()
       fd.append('loanType', 'group')
       fd.append('salesOfficerId', salesOfficerId)
-      fd.append('groupName', groupName)
-      fd.append('totalLoanAmount', totalLoanAmount)
+      fd.append('groupName', autoGroupName)
+      fd.append('totalLoanAmount', totalAmount)
       fd.append('loanTerm', loanTerm)
       fd.append('members', JSON.stringify(members))
 
@@ -404,7 +411,8 @@ export default function GroupLoanForm() {
   // ── Progress ──
   const progress = (step / TOTAL_STEPS) * 100
   const stepLabels = ['Group Details', 'Members', 'Review & Submit']
-  const loanShare = memberCount > 0 ? Math.floor(totalLoanAmount / memberCount) : 0
+  const totalLoanAmount = members.reduce((sum, m) => sum + Number(m.loanAmount || 0), 0)
+  const autoGroupName = (members[0]?.lastName?.trim() || 'Group') + ' Group'
 
   return (
     <div ref={topRef} className="min-h-screen pt-28 pb-16 px-4 sm:px-6">
@@ -472,38 +480,8 @@ export default function GroupLoanForm() {
                 )}
               </div>
 
-              <div>
-                <Label required>Group Name</Label>
-                <Input
-                  value={groupName}
-                  onChange={e => { setGroupName(e.target.value); setErrors(prev => ({ ...prev, groupName: undefined })) }}
-                  placeholder="e.g. Samahan ng Magsasaka"
-                />
-                <FieldError message={errors.groupName} />
-              </div>
-
-              {/* Amount input */}
-              <div>
-                <Label required>Total Loan Amount</Label>
-                <p className="text-muted text-xs mb-2">₱10,000 – ₱50,000</p>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">₱</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={totalLoanAmount.toLocaleString('en-PH')}
-                    onChange={e => {
-                      const raw = e.target.value.replace(/[^0-9]/g, '')
-                      const num = parseInt(raw, 10)
-                      if (raw === '') { setTotalLoanAmount(0); return }
-                      if (!isNaN(num)) setTotalLoanAmount(num)
-                    }}
-                    onBlur={() => {
-                      setTotalLoanAmount(Math.min(Math.max(totalLoanAmount, 10000), 50000))
-                    }}
-                    className="w-full pl-8 pr-3 py-3 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
-                  />
-                </div>
+              <div className="bg-surface-alt/30 border border-border rounded-xl p-4">
+                <p className="text-muted text-xs">Group name will be auto-generated from Member 1's last name (e.g. "Dela Cruz Group"). Each member sets their own desired loan amount.</p>
               </div>
 
               {/* Term */}
@@ -550,7 +528,6 @@ export default function GroupLoanForm() {
                   placeholder="Minimum 5"
                 />
                 <FieldError message={errors.memberCount} />
-                <p className="text-muted text-xs mt-1">Each member's loan share: {formatPeso(loanShare)}</p>
               </div>
             </div>
           )}
@@ -664,6 +641,31 @@ export default function GroupLoanForm() {
                               <FieldError message={errors[`${prefix}monthlyIncome`]} />
                             </div>
                           </div>
+
+                          {/* Individual loan amount */}
+                          <div>
+                            <Label required>Desired Loan Amount (₱)</Label>
+                            <p className="text-muted text-xs mb-2">₱10,000 – ₱50,000</p>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">₱</span>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={Number(member.loanAmount).toLocaleString('en-PH')}
+                                onChange={e => {
+                                  const raw = e.target.value.replace(/[^0-9]/g, '')
+                                  const num = parseInt(raw, 10)
+                                  if (raw === '') { updateMember(i, 'loanAmount', 0); return }
+                                  if (!isNaN(num)) updateMember(i, 'loanAmount', num)
+                                }}
+                                onBlur={() => {
+                                  updateMember(i, 'loanAmount', Math.min(Math.max(Number(member.loanAmount), 10000), 50000))
+                                }}
+                                className="w-full pl-8 pr-3 py-3 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
+                              />
+                            </div>
+                            <FieldError message={errors[`${prefix}loanAmount`]} />
+                          </div>
                         </div>
 
                         {/* Address */}
@@ -769,7 +771,7 @@ export default function GroupLoanForm() {
                 <div className="space-y-2">
                   <div className="flex justify-between gap-4 text-sm">
                     <span className="text-muted shrink-0">Group Name</span>
-                    <span className="text-white text-right">{groupName}</span>
+                    <span className="text-white text-right">{autoGroupName}</span>
                   </div>
                   <div className="flex justify-between gap-4 text-sm">
                     <span className="text-muted shrink-0">Total Loan Amount</span>
@@ -786,10 +788,6 @@ export default function GroupLoanForm() {
                   <div className="flex justify-between gap-4 text-sm">
                     <span className="text-muted shrink-0">Members</span>
                     <span className="text-white text-right">{memberCount}</span>
-                  </div>
-                  <div className="flex justify-between gap-4 text-sm">
-                    <span className="text-muted shrink-0">Loan Share per Member</span>
-                    <span className="text-green text-right font-semibold">{formatPeso(loanShare)}</span>
                   </div>
                 </div>
               </div>
@@ -809,8 +807,8 @@ export default function GroupLoanForm() {
                         <span className="text-white text-right">{memberName}</span>
                       </div>
                       <div className="flex justify-between gap-4 text-sm">
-                        <span className="text-muted shrink-0">Loan Share</span>
-                        <span className="text-green text-right font-semibold">{formatPeso(loanShare)}</span>
+                        <span className="text-muted shrink-0">Loan Amount</span>
+                        <span className="text-green text-right font-semibold">{formatPeso(m.loanAmount)}</span>
                       </div>
                       <div className="flex justify-between gap-4 text-sm">
                         <span className="text-muted shrink-0">Mobile</span>

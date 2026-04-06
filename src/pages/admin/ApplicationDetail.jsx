@@ -149,7 +149,7 @@ function ApplicationSummary({ app, onViewDocuments }) {
         <div>
           <p className="text-muted text-xs font-medium uppercase tracking-wide mb-3">Personal Information</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            <FieldCard label="Full Name" value={`${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`} />
+            <FieldCard label="Full Name" value={[getField(app, 'firstName', 'first_name'), getField(app, 'lastName', 'last_name')].filter(Boolean).join(' ') || null} />
             <FieldCard label="Age" value={age != null ? `${age} years old` : null} />
             <FieldCard label="Date of Birth" value={getField(app, 'date_of_birth', 'dob', 'birthdate', 'dateOfBirth')} />
             <FieldCard label="Civil Status" value={getField(app, 'civil_status', 'civilStatus')} />

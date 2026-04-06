@@ -29,12 +29,15 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
     zIndex: isDragging ? 50 : undefined,
   }
 
+  const fd = app.form_data || {}
   const fullName = [
-    app.firstName || app.first_name || '',
-    app.lastName || app.last_name || '',
+    app.firstName || app.first_name || fd.firstName || fd.first_name || '',
+    app.lastName || app.last_name || fd.lastName || fd.last_name || '',
   ]
     .filter(Boolean)
     .join(' ') || app.full_name || '—'
+
+  const groupLabel = app.group_name || app.groupName || fd.groupName || null
 
   const loanType = app.loan_type || ''
   const loanTypeColor = LOAN_TYPE_COLORS[loanType] || 'bg-gray-500/20 text-gray-400'
@@ -82,9 +85,12 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
       {/* Clickable body */}
       <div onClick={() => onCardClick(app)}>
         {/* Full name */}
-        <p className="text-white text-sm font-medium leading-snug mb-2 line-clamp-1">
+        <p className="text-white text-sm font-medium leading-snug mb-1 line-clamp-1">
           {fullName}
         </p>
+        {groupLabel && (
+          <p className="text-muted text-xs mb-2 line-clamp-1">{groupLabel}</p>
+        )}
 
         {/* Loan type + amount row */}
         <div className="flex items-center gap-2 mb-2">

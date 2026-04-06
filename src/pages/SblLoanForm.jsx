@@ -48,6 +48,7 @@ function createMember() {
     employmentStatus: '',
     monthlyIncome: '',
     position: '',
+    loanAmount: 5000,
     houseStreet: '',
     barangay: '',
     city: '',
@@ -130,9 +131,7 @@ export default function SblLoanForm() {
   const [step, setStep] = useState(1)
   const [salesOfficerId, setSalesOfficerId] = useState('')
   const { officers, loading: soLoading, error: soError, retry: soRetry } = useSalesOfficers()
-  const [groupName, setGroupName] = useState('')
   const [agentName, setAgentName] = useState('')
-  const [totalLoanAmount, setTotalLoanAmount] = useState(5000)
   const [loanTerm, setLoanTerm] = useState(6)
   const [memberCount, setMemberCount] = useState(1)
   const [members, setMembers] = useState(() => [createMember()])
@@ -145,6 +144,14 @@ export default function SblLoanForm() {
   const [result, setResult] = useState(null)
   const topRef = useRef(null)
   const fileInputRefs = useRef({})
+
+  // Auto-generate group name from leader's last name
+  const groupName = members[0]?.lastName?.trim()
+    ? `${members[0].lastName} Group`
+    : ''
+
+  // Compute total from individual member amounts
+  const totalLoanAmount = members.reduce((sum, m) => sum + Number(m.loanAmount || 0), 0)
 
   useEffect(() => {
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -212,7 +219,6 @@ export default function SblLoanForm() {
 
     if (step === 1) {
       if (!salesOfficerId) e.salesOfficerId = 'Please select your Sales Officer'
-      if (!groupName.trim()) e.groupName = 'Barangay / Group name is required'
       if (memberCount < 1) e.memberCount = 'At least 1 member is required'
     }
 
@@ -244,6 +250,11 @@ export default function SblLoanForm() {
           e[`${p}monthlyIncome`] = 'Minimum income is ₱15,000/month'
         }
         if (!m.position) e[`${p}position`] = 'Required'
+        if (!m.loanAmount || Number(m.loanAmount) < 5000) {
+          e[`${p}loanAmount`] = 'Minimum loan amount is ₱5,000'
+        } else if (Number(m.loanAmount) > 100000) {
+          e[`${p}loanAmount`] = 'Maximum loan amount is ₱100,000'
+        }
         if (!m.houseStreet.trim()) e[`${p}houseStreet`] = 'Required'
         if (!m.barangay.trim()) e[`${p}barangay`] = 'Required'
         if (!m.city.trim()) e[`${p}city`] = 'Required'
@@ -406,7 +417,6 @@ export default function SblLoanForm() {
   // ── Progress ──
   const progress = (step / TOTAL_STEPS) * 100
   const stepLabels = ['Group Details', 'Members', 'Review & Submit']
-  const loanShare = memberCount > 0 ? Math.floor(totalLoanAmount / memberCount) : 0
 
   return (
     <div ref={topRef} className="min-h-screen pt-28 pb-16 px-4 sm:px-6">
@@ -484,14 +494,12 @@ export default function SblLoanForm() {
                 </p>
               </div>
 
-              <div>
-                <Label required>Barangay / Group Name</Label>
-                <Input
-                  value={groupName}
-                  onChange={e => { setGroupName(e.target.value); setErrors(prev => ({ ...prev, groupName: undefined })) }}
-                  placeholder="e.g. Brgy. San Pablo Officials"
-                />
-                <FieldError message={errors.groupName} />
+              {/* Auto-generated group name info */}
+              <div className="bg-surface-alt/30 border border-border rounded-xl p-4">
+                <p className="text-muted text-xs uppercase tracking-wider mb-1">Group Name (auto-generated)</p>
+                <p className="text-white text-sm font-medium">
+                  {groupName || <span className="text-muted italic">Enter leader's last name in Step 2</span>}
+                </p>
               </div>
 
               <div>
@@ -501,30 +509,6 @@ export default function SblLoanForm() {
                   onChange={e => setAgentName(e.target.value)}
                   placeholder="Optional"
                 />
-              </div>
-
-              {/* Amount input */}
-              <div>
-                <Label required>Total Loan Amount</Label>
-                <p className="text-muted text-xs mb-2">₱5,000 – ₱100,000</p>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">₱</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={totalLoanAmount.toLocaleString('en-PH')}
-                    onChange={e => {
-                      const raw = e.target.value.replace(/[^0-9]/g, '')
-                      const num = parseInt(raw, 10)
-                      if (raw === '') { setTotalLoanAmount(0); return }
-                      if (!isNaN(num)) setTotalLoanAmount(num)
-                    }}
-                    onBlur={() => {
-                      setTotalLoanAmount(Math.min(Math.max(totalLoanAmount, 5000), 100000))
-                    }}
-                    className="w-full pl-8 pr-3 py-3 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
-                  />
-                </div>
               </div>
 
               {/* Term */}
@@ -571,9 +555,6 @@ export default function SblLoanForm() {
                   placeholder="Minimum 1"
                 />
                 <FieldError message={errors.memberCount} />
-                {memberCount > 1 && (
-                  <p className="text-muted text-xs mt-1">Each member's loan share: {formatPeso(loanShare)}</p>
-                )}
               </div>
             </div>
           )}
@@ -693,6 +674,31 @@ export default function SblLoanForm() {
                             <Select value={member.position} onChange={e => updateMember(i, 'position', e.target.value)} options={POSITIONS} placeholder="Select position" />
                             <FieldError message={errors[`${prefix}position`]} />
                           </div>
+
+                          {/* Per-member loan amount */}
+                          <div>
+                            <Label required>Desired Loan Amount</Label>
+                            <p className="text-muted text-xs mb-2">₱5,000 – ₱100,000</p>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">₱</span>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={Number(member.loanAmount || 0).toLocaleString('en-PH')}
+                                onChange={e => {
+                                  const raw = e.target.value.replace(/[^0-9]/g, '')
+                                  const num = parseInt(raw, 10)
+                                  updateMember(i, 'loanAmount', raw === '' ? 0 : (isNaN(num) ? 0 : num))
+                                }}
+                                onBlur={() => {
+                                  const clamped = Math.min(Math.max(Number(member.loanAmount || 0), 5000), 100000)
+                                  updateMember(i, 'loanAmount', clamped)
+                                }}
+                                className="w-full pl-8 pr-3 py-3 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
+                              />
+                            </div>
+                            <FieldError message={errors[`${prefix}loanAmount`]} />
+                          </div>
                         </div>
 
                         {/* Address */}
@@ -797,7 +803,7 @@ export default function SblLoanForm() {
                 <h3 className="text-blue text-xs font-semibold uppercase tracking-wider mb-3">Group Details</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between gap-4 text-sm">
-                    <span className="text-muted shrink-0">Barangay / Group Name</span>
+                    <span className="text-muted shrink-0">Group Name</span>
                     <span className="text-white text-right">{groupName}</span>
                   </div>
                   {agentName.trim() && (
@@ -808,7 +814,7 @@ export default function SblLoanForm() {
                   )}
                   <div className="flex justify-between gap-4 text-sm">
                     <span className="text-muted shrink-0">Total Loan Amount</span>
-                    <span className="text-white text-right">{formatPeso(totalLoanAmount)}</span>
+                    <span className="text-green text-right font-semibold">{formatPeso(totalLoanAmount)}</span>
                   </div>
                   <div className="flex justify-between gap-4 text-sm">
                     <span className="text-muted shrink-0">Loan Term</span>
@@ -822,12 +828,6 @@ export default function SblLoanForm() {
                     <span className="text-muted shrink-0">Members</span>
                     <span className="text-white text-right">{memberCount}</span>
                   </div>
-                  {memberCount > 1 && (
-                    <div className="flex justify-between gap-4 text-sm">
-                      <span className="text-muted shrink-0">Loan Share per Member</span>
-                      <span className="text-green text-right font-semibold">{formatPeso(loanShare)}</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -849,12 +849,10 @@ export default function SblLoanForm() {
                         <span className="text-muted shrink-0">Position</span>
                         <span className="text-white text-right">{m.position}</span>
                       </div>
-                      {memberCount > 1 && (
-                        <div className="flex justify-between gap-4 text-sm">
-                          <span className="text-muted shrink-0">Loan Share</span>
-                          <span className="text-green text-right font-semibold">{formatPeso(loanShare)}</span>
-                        </div>
-                      )}
+                      <div className="flex justify-between gap-4 text-sm">
+                        <span className="text-muted shrink-0">Loan Amount</span>
+                        <span className="text-green text-right font-semibold">{formatPeso(m.loanAmount)}</span>
+                      </div>
                       <div className="flex justify-between gap-4 text-sm">
                         <span className="text-muted shrink-0">Mobile</span>
                         <span className="text-white text-right">{m.mobile}</span>
