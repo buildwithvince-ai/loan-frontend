@@ -571,7 +571,7 @@ export default function SblLoanForm() {
                 const prefix = `member_${i}_`
                 const docs = memberDocs[i] || {}
                 const requiredDocList = isLeader ? LEADER_DOCS : MEMBER_DOCS
-                const hasErrors = Object.keys(errors).some(k => k.startsWith(prefix))
+                const hasErrors = Object.keys(errors).some(k => k.startsWith(prefix) && errors[k])
                 const memberName = [member.firstName, member.lastName].filter(Boolean).join(' ')
 
                 return (
