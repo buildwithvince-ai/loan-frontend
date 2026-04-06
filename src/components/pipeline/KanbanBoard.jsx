@@ -142,8 +142,7 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
     setPendingTransition({ app, fromStage, toStage })
   }
 
-  function handleTransitionConfirm() {
-    // Update local state optimistically after API confirmed in modal
+  function handleTransitionConfirm(updatedApp) {
     if (!pendingTransition) return
     const { app, toStage } = pendingTransition
     setApps((prev) =>
@@ -151,7 +150,10 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
         const id = a.id || a._id || a.reference_id
         const targetId = app.id || app._id || app.reference_id
         if (String(id) === String(targetId)) {
-          return { ...a, pipeline_stage: toStage }
+          // Merge the full server response if available, otherwise fall back to local update
+          return updatedApp?.pipeline_stage
+            ? { ...a, ...updatedApp }
+            : { ...a, pipeline_stage: toStage }
         }
         return a
       })
@@ -198,15 +200,13 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
     }
   }
 
-  function handleReturnConfirm() {
+  function handleReturnConfirm(updatedApp) {
     if (!returnApp) return
     setApps(prev => prev.map(a => {
       if (String(a.id || a._id) === String(returnApp.id || returnApp._id)) {
-        return {
-          ...a,
-          pipeline_stage: 'sales_officer',
-          returned_count: (a.returned_count || 0) + 1,
-        }
+        return updatedApp?.pipeline_stage
+          ? { ...a, ...updatedApp }
+          : { ...a, pipeline_stage: 'sales_officer', returned_count: (a.returned_count || 0) + 1 }
       }
       return a
     }))

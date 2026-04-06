@@ -69,12 +69,13 @@ export default function TransitionModal({ fromStage, toStage, application, onCon
         body: JSON.stringify({ to_stage: toStage, meta }),
       })
 
+      const data = await res.json().catch(() => ({}))
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
         throw new Error(data.message || data.error || `Request failed (${res.status})`)
       }
 
-      onConfirm()
+      onConfirm(data)
     } catch (err) {
       setError(err.message)
     } finally {

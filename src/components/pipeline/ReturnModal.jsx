@@ -25,11 +25,12 @@ export default function ReturnModal({ application, onConfirm, onCancel }) {
           meta: { return_reason: reason.trim() },
         }),
       })
+      const data = await res.json().catch(() => ({}))
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
         throw new Error(data.message || data.error || `Request failed (${res.status})`)
       }
-      onConfirm()
+      onConfirm(data)
     } catch (err) {
       setError(err.message)
     } finally {
