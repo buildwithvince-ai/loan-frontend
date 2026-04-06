@@ -514,10 +514,13 @@ export default function SblLoanForm() {
                     inputMode="numeric"
                     value={totalLoanAmount.toLocaleString('en-PH')}
                     onChange={e => {
-                      const num = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10)
-                      if (!isNaN(num)) {
-                        setTotalLoanAmount(Math.min(Math.max(num, 5000), 100000))
-                      }
+                      const raw = e.target.value.replace(/[^0-9]/g, '')
+                      const num = parseInt(raw, 10)
+                      if (raw === '') { setTotalLoanAmount(0); return }
+                      if (!isNaN(num)) setTotalLoanAmount(num)
+                    }}
+                    onBlur={() => {
+                      setTotalLoanAmount(Math.min(Math.max(totalLoanAmount, 5000), 100000))
                     }}
                     className="w-full pl-8 pr-3 py-3 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
                   />

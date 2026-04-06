@@ -184,7 +184,6 @@ export default function SmeLoanForm() {
     if (step === 1) {
       if (!form.salesOfficerId) e.salesOfficerId = 'Please select your Sales Officer'
       if (form.loanAmount < 50000 || form.loanAmount > 300000) e.loanAmount = 'Amount must be between ₱50,000 and ₱300,000'
-      else if (form.loanAmount % 10000 !== 0) e.loanAmount = 'Amount must be in ₱10,000 increments'
       if (!form.purpose) e.purpose = 'Purpose is required'
     }
 
@@ -439,7 +438,7 @@ function Step1({ form, set, errors, officers, soLoading, soError, soRetry }) {
 
       <div>
         <Label required>Loan Amount</Label>
-        <p className="text-muted text-xs mb-2">₱50,000 – ₱300,000 (in ₱10,000 increments)</p>
+        <p className="text-muted text-xs mb-2">₱50,000 – ₱300,000</p>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">₱</span>
           <input
@@ -453,9 +452,7 @@ function Step1({ form, set, errors, officers, soLoading, soError, soRetry }) {
               if (!isNaN(num)) set('loanAmount', num)
             }}
             onBlur={() => {
-              const clamped = Math.min(Math.max(form.loanAmount, 50000), 300000)
-              const rounded = Math.round(clamped / 10000) * 10000
-              set('loanAmount', rounded)
+              set('loanAmount', Math.min(Math.max(form.loanAmount, 50000), 300000))
             }}
             className="w-full pl-8 pr-3 py-3 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
           />
