@@ -121,14 +121,14 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
         )}
 
         {/* SO Decision badges */}
-        {app.so_decision === 'confirmed' && (
+        {app.so_decision === 'confirm' && (
           <div className="mb-2">
             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green/20 text-green">
               SO Confirmed
             </span>
           </div>
         )}
-        {app.so_decision === 'declined' && (
+        {app.so_decision === 'decline' && (
           <div className="mb-2">
             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
               SO Declined

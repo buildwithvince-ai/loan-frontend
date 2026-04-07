@@ -117,11 +117,11 @@ export default function KanbanColumn({ stage, cards, onCardClick, onVerifierActi
                 )}
                 {app.so_decision && (
                   <div className={`w-full text-xs px-2 py-1.5 rounded-md text-center font-medium ${
-                    app.so_decision === 'confirmed'
+                    app.so_decision === 'confirm'
                       ? 'bg-green/10 text-green border border-green/20'
                       : 'bg-red-500/10 text-red-400 border border-red-500/20'
                   }`}>
-                    {app.so_decision === 'confirmed' ? 'Client Confirmed' : 'Client Declined'}
+                    {app.so_decision === 'confirm' ? 'Client Confirmed' : 'Client Declined'}
                   </div>
                 )}
               </div>

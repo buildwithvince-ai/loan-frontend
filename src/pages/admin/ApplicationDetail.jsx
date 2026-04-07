@@ -113,8 +113,10 @@ function SoAssigner({ app, appId, onAssigned }) {
   const [showPicker, setShowPicker] = useState(false)
   const addToast = useToast()
 
-  const soName = app.assigned_sales_officer_name
   const soId = app.assigned_sales_officer
+  const soName = app.assigned_sales_officer_name
+    || (soId && officers.find(o => o.id === soId)?.full_name)
+    || null
 
   const handleAssign = async (officerId) => {
     setAssigning(true)
@@ -175,16 +177,19 @@ function SoAssigner({ app, appId, onAssigned }) {
   }
 
   return (
-    <button
-      onClick={e => { e.stopPropagation(); setShowPicker(true) }}
-      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-        soName
-          ? 'bg-teal-500/20 text-teal-400 hover:bg-teal-500/30'
-          : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-      }`}
-    >
-      {soName ? `SO: ${soName}` : 'Assign SO'}
-    </button>
+    <div className="flex items-center gap-2">
+      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+        soName ? 'bg-teal-500/20 text-teal-400' : 'bg-gray-500/20 text-gray-400'
+      }`}>
+        {soName ? `SO: ${soName}` : 'No SO Assigned'}
+      </span>
+      <button
+        onClick={e => { e.stopPropagation(); setShowPicker(true) }}
+        className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue/20 text-blue hover:bg-blue/30 transition-colors"
+      >
+        {soName ? 'Change' : 'Assign'}
+      </button>
+    </div>
   )
 }
 
@@ -860,7 +865,7 @@ export default function ApplicationDetail({ id, onBack }) {
                 <>
                   <FieldCard
                     label="SO Decision"
-                    value={app.so_decision === 'confirmed' ? 'Confirmed' : 'Declined'}
+                    value={app.so_decision === 'confirm' ? 'Confirmed' : 'Declined'}
                   />
                   {app.so_decision_at && (
                     <FieldCard
