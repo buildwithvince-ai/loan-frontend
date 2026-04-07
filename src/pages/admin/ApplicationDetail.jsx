@@ -422,7 +422,19 @@ function FileViewerModal({ appId, onClose }) {
           {!loading && !error && files.length > 0 && (
             <div className="space-y-4">
               {files.map((f, i) => {
-                const label = f.field || f.fieldName || f.field_name || f.label || `File ${i + 1}`
+                const rawField = f.field || f.fieldName || f.field_name || f.label || ''
+                const FIELD_LABELS = {
+                  validIdFront: 'Valid ID — Front', validIdBack: 'Valid ID — Back',
+                  barangayClearance: 'Barangay Clearance', payslipCoe: 'Payslip + COE',
+                  proofOfBilling: 'Proof of Billing', moaGroupLoan: 'MOA for Group Loan',
+                  proofOfIncome: 'Proof of Income', dtiPermit: 'DTI Permit',
+                  businessPermit: 'Business Permit', proofOfResidency: 'Proof of Residency',
+                  latestItr: 'Latest ITR', bankStatement: 'Bank Statement',
+                }
+                const label = FIELD_LABELS[rawField]
+                  || (rawField.startsWith('member_') ? rawField.replace(/member_(\d+)_file_(\d+)/, 'Member $1 — File $2') : null)
+                  || rawField
+                  || `File ${i + 1}`
                 const name = f.filename || f.originalname || f.name || ''
                 const url = f.url || f.signed_url || f.signedUrl || ''
 
