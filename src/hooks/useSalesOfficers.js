@@ -19,7 +19,7 @@ export default function useSalesOfficers() {
       const res = await fetch(`${API_BASE}/api/public/sales-officers`)
       if (!res.ok) throw new Error('Failed to load sales officers')
       const data = await res.json()
-      const list = Array.isArray(data) ? data : data.officers || []
+      const list = Array.isArray(data) ? data : data.data || data.officers || []
       setOfficers(list.length ? list : FALLBACK_OFFICERS)
     } catch (err) {
       setError(err.message)
