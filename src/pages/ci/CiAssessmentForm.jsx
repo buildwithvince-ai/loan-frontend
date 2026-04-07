@@ -362,15 +362,27 @@ export default function CiAssessmentForm({ app, onBack }) {
 
       {/* Application summary */}
       <div className="bg-surface border border-border rounded-xl p-5 mb-6">
-        <h3 className="text-white font-semibold text-sm mb-3">Application Summary</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
+        <h3 className="text-white font-semibold text-sm mb-3">Applicant Information</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
           <div>
             <span className="text-muted text-xs block">Name</span>
             <span className="text-white">{fullName}</span>
           </div>
           <div>
+            <span className="text-muted text-xs block">Age</span>
+            <span className="text-white">{age != null ? `${age} years old` : '—'}</span>
+          </div>
+          <div>
             <span className="text-muted text-xs block">Phone</span>
             <span className="text-white">{app.phone || app.mobile || '—'}</span>
+          </div>
+          <div>
+            <span className="text-muted text-xs block">Civil Status</span>
+            <span className="text-white">{civilStatus || '—'}</span>
+          </div>
+          <div className="sm:col-span-2 lg:col-span-4">
+            <span className="text-muted text-xs block">Address</span>
+            <span className="text-white">{address || '—'}</span>
           </div>
           <div>
             <span className="text-muted text-xs block">Loan Type</span>
@@ -387,8 +399,8 @@ export default function CiAssessmentForm({ app, onBack }) {
             <span className="text-white">{app.term || app.loan_term ? `${app.term || app.loan_term} months` : '—'}</span>
           </div>
           <div>
-            <span className="text-muted text-xs block">Submitted</span>
-            <span className="text-white">{formatDate(app.submitted_at || app.created_at)}</span>
+            <span className="text-muted text-xs block">Purpose</span>
+            <span className="text-white">{loanPurpose || '—'}</span>
           </div>
         </div>
       </div>
@@ -402,41 +414,6 @@ export default function CiAssessmentForm({ app, onBack }) {
               <p className="text-red-400 text-sm font-medium">Automatic decline — applicant exceeds maximum age (65). Age: {age}</p>
             </div>
           )}
-
-          {/* Applicant Info (read-only from application) */}
-          <div className="bg-surface border border-border rounded-xl p-5">
-            <h4 className="text-white font-semibold text-sm mb-3">Applicant Information</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <span className={labelCls}>Client Name</span>
-                <p className="text-white text-sm">{fullName || '—'}</p>
-              </div>
-              <div>
-                <span className={labelCls}>Age</span>
-                <p className="text-white text-sm">{age != null ? `${age} years old` : '—'}</p>
-              </div>
-              <div>
-                <span className={labelCls}>Contact Number</span>
-                <p className="text-white text-sm">{contactNumber || '—'}</p>
-              </div>
-              <div className="sm:col-span-2 lg:col-span-3">
-                <span className={labelCls}>Complete Address</span>
-                <p className="text-white text-sm">{address || '—'}</p>
-              </div>
-              <div>
-                <span className={labelCls}>Loan Product</span>
-                <p className="text-white text-sm uppercase">{app.loan_type || '—'}</p>
-              </div>
-              <div>
-                <span className={labelCls}>Civil Status</span>
-                <p className="text-white text-sm">{civilStatus || '—'}</p>
-              </div>
-              <div>
-                <span className={labelCls}>Loan Purpose</span>
-                <p className="text-white text-sm">{loanPurpose || '—'}</p>
-              </div>
-            </div>
-          </div>
 
           {/* CI Investigation Fields */}
           <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
