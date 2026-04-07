@@ -327,7 +327,7 @@ export default function PersonalLoanForm() {
     try {
       const fd = new FormData()
       fd.append('loanType', 'personal')
-      const keyMap = { presentBarangay: 'barangay' }
+      const keyMap = { presentBarangay: 'barangay', salesOfficerId: 'sales_officer_id' }
       Object.entries(form).forEach(([k, v]) => {
         if (k !== 'confirmAccurate' && k !== 'agreeTerms' && k !== 'sameAsPresent' && k !== 'addSpouse') {
           fd.append(keyMap[k] || k, v)

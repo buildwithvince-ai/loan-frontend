@@ -305,7 +305,7 @@ export default function SblLoanForm() {
     try {
       const fd = new FormData()
       fd.append('loanType', 'sbl')
-      fd.append('salesOfficerId', salesOfficerId)
+      fd.append('sales_officer_id', salesOfficerId)
       fd.append('groupName', groupName)
       if (agentName.trim()) fd.append('agentName', agentName)
       fd.append('totalLoanAmount', totalLoanAmount)

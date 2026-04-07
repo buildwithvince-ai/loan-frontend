@@ -298,7 +298,7 @@ export default function GroupLoanForm() {
 
       const fd = new FormData()
       fd.append('loanType', 'group')
-      fd.append('salesOfficerId', salesOfficerId)
+      fd.append('sales_officer_id', salesOfficerId)
       fd.append('groupName', autoGroupName)
       fd.append('totalLoanAmount', totalAmount)
       fd.append('loanTerm', loanTerm)
