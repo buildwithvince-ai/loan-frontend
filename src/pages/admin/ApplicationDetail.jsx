@@ -3,6 +3,7 @@ import { adminFetch, pipelineFetch, useToast } from './AdminDashboard'
 import { normalizeFinScore, computeFinalFromCiTotal, getTier, getNextTierHint, TIER_CONFIG } from './scoring'
 import CiScoringForm, { CiFormReadOnly } from './CiScoringForm'
 import { useAuth } from '../../context/AuthContext'
+import useSalesOfficers from '../../hooks/useSalesOfficers'
 
 // --- Shared UI components ---
 
@@ -104,7 +105,90 @@ function getField(app, ...keys) {
 
 // --- Section 1: Application Summary ---
 
-function ApplicationSummary({ app, onViewDocuments }) {
+function SoAssigner({ app, appId, onAssigned }) {
+  const { hasAnyRole } = useAuth()
+  const canAssign = hasAnyRole(['admin', 'super_admin'])
+  const { officers } = useSalesOfficers()
+  const [assigning, setAssigning] = useState(false)
+  const [showPicker, setShowPicker] = useState(false)
+  const addToast = useToast()
+
+  const soName = app.assigned_sales_officer_name
+  const soId = app.assigned_sales_officer
+
+  const handleAssign = async (officerId) => {
+    setAssigning(true)
+    try {
+      const res = await pipelineFetch(`/${appId}/assign-sales-officer`, {
+        method: 'PATCH',
+        body: JSON.stringify({ sales_officer_id: officerId }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to assign SO')
+      }
+      addToast('Sales Officer assigned')
+      setShowPicker(false)
+      await onAssigned()
+    } catch (err) {
+      addToast(err.message, 'error')
+    } finally {
+      setAssigning(false)
+    }
+  }
+
+  if (!canAssign) {
+    return soName ? (
+      <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-teal-500/20 text-teal-400">
+        SO: {soName}
+      </span>
+    ) : (
+      <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400">
+        No SO Assigned
+      </span>
+    )
+  }
+
+  if (showPicker) {
+    return (
+      <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+        <select
+          defaultValue=""
+          onChange={e => e.target.value && handleAssign(e.target.value)}
+          disabled={assigning}
+          className="bg-surface-alt border border-border rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-green/50"
+        >
+          <option value="" disabled>Select SO...</option>
+          {officers.map(o => (
+            <option key={o.id} value={o.id}>{o.full_name}</option>
+          ))}
+        </select>
+        <button
+          onClick={() => setShowPicker(false)}
+          className="text-muted hover:text-white text-xs transition-colors"
+        >
+          Cancel
+        </button>
+        {assigning && <div className="w-3.5 h-3.5 border-2 border-green border-t-transparent rounded-full animate-spin" />}
+      </div>
+    )
+  }
+
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); setShowPicker(true) }}
+      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+        soName
+          ? 'bg-teal-500/20 text-teal-400 hover:bg-teal-500/30'
+          : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+      }`}
+    >
+      {soName ? `SO: ${soName}` : 'Assign SO'}
+    </button>
+  )
+}
+
+function ApplicationSummary({ app, appId, onViewDocuments, onRefresh }) {
   const fd = app.form_data || {}
   const data = { ...fd, ...app } // app fields override form_data
   const age = calcAge(data.date_of_birth || data.dob || data.birthdate || data.dateOfBirth)
@@ -146,20 +230,10 @@ function ApplicationSummary({ app, onViewDocuments }) {
   // Spouse / co-borrower
   const spouseName = getField(app, 'spouseName', 'spouse_name', 'spouseFirstName', 'coBorrowerName', 'co_borrower_name')
 
-  const soName = app.assigned_sales_officer_name
-
   return (
     <Section
       title="Section 1 — Application Summary"
-      rightContent={soName ? (
-        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-teal-500/20 text-teal-400">
-          SO: {soName}
-        </span>
-      ) : (
-        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400">
-          No SO Assigned
-        </span>
-      )}
+      rightContent={<SoAssigner app={app} appId={appId} onAssigned={onRefresh} />}
     >
       <div className="pt-4 space-y-5">
         {/* Personal Information */}
@@ -743,7 +817,7 @@ export default function ApplicationDetail({ id, onBack }) {
 
       <div className="flex flex-col gap-5">
         {/* SECTION 1 — Application Summary */}
-        <ApplicationSummary app={app} onViewDocuments={() => setShowFileViewer(true)} />
+        <ApplicationSummary app={app} appId={id} onViewDocuments={() => setShowFileViewer(true)} onRefresh={fetchApp} />
 
         {/* SECTION 2 — FinScore Result */}
         <FinScoreSection finscoreRaw={finscoreRaw} finscoreNorm={finscoreNorm} />
