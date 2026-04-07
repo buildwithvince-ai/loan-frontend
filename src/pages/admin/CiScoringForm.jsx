@@ -301,7 +301,10 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
           notes: remarks,
         }),
       })
-      if (!res.ok) throw new Error('Failed to submit CI score')
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || errData.message || 'Failed to submit CI score')
+      }
       addToast('CI Investigation submitted successfully')
       onSubmitSuccess()
     } catch (err) {
