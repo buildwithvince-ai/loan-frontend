@@ -55,7 +55,10 @@ export default function CiApplicationsList({ onStartAssessment }) {
     return () => clearInterval(intervalRef.current)
   }, [])
 
-  const filtered = apps.filter((app) => {
+  // Only show apps at ci_officer stage (ready for assessment) or already assessed by CI
+  const ciRelevant = apps.filter((app) => app.stage === 'ci_officer' || app.ci_score != null)
+
+  const filtered = ciRelevant.filter((app) => {
     if (!search) return true
     const q = search.toLowerCase()
     const name = (app.full_name || `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`).toLowerCase()
