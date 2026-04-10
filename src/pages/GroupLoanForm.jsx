@@ -637,7 +637,7 @@ export default function GroupLoanForm() {
                             </div>
                             <div>
                               <Label required>Monthly Income (₱)</Label>
-                              <Input type="number" value={member.monthlyIncome} onChange={e => updateMember(i, 'monthlyIncome', e.target.value)} placeholder="15000" min={0} />
+                              <Input type="number" value={member.monthlyIncome} onChange={e => updateMember(i, 'monthlyIncome', e.target.value)} placeholder="5000" min={0} />
                               <FieldError message={errors[`${prefix}monthlyIncome`]} />
                             </div>
                           </div>
