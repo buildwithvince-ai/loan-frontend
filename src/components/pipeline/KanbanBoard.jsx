@@ -46,6 +46,7 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
   // Verifier / approver action state
   const [returnApp, setReturnApp] = useState(null) // app for ReturnModal
   const [soConfirmLoading, setSoConfirmLoading] = useState(null) // app id being confirmed
+  const [soDecisionLoading, setSoDecisionLoading] = useState(null) // app id SO is deciding on
 
   const intervalRef = useRef(null)
 
@@ -208,12 +209,41 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
       if (String(a.id || a._id) === String(returnApp.id || returnApp._id)) {
         return updatedApp?.stage
           ? { ...a, ...updatedApp }
-          : { ...a, stage: 'sales_officer', returned_count: (a.returned_count || 0) + 1 }
+          : { ...a, stage: 'sales_officer', so_confirmation_sent_at: new Date().toISOString() }
       }
       return a
     }))
     setReturnApp(null)
     fetchApps()
+  }
+
+  async function handleSODecision(app, decision) {
+    const appId = app.id || app._id
+    setSoDecisionLoading(appId)
+    try {
+      const res = await pipelineFetch(`/${appId}/transition`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          to_stage: 'approver',
+          meta: { so_decision: decision },
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.message || data.error || 'Failed to record decision')
+      setApps(prev => prev.map(a => {
+        if (String(a.id || a._id) === String(appId)) {
+          return data?.stage
+            ? { ...a, ...data }
+            : { ...a, stage: 'approver', so_decision: decision, so_decision_at: new Date().toISOString() }
+        }
+        return a
+      }))
+      fetchApps()
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setSoDecisionLoading(null)
+    }
   }
 
   if (loading) {
@@ -257,6 +287,8 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
                 onCardClick={onCardClick}
                 onVerifierAction={handleVerifierAction}
                 onRequestSOConfirmation={handleRequestSOConfirmation}
+                onSODecision={handleSODecision}
+                soDecisionLoading={soDecisionLoading}
                 userRoles={roles}
               />
             ))}

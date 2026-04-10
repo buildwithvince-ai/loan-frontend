@@ -4,7 +4,7 @@ const products = [
   {
     title: 'Personal Loan',
     description: 'Quick cash for medical bills, education, home improvement, or emergencies.',
-    range: '₱10,000 – ₱30,000',
+    range: '₱10,000 – ₱200,000',
     terms: '3, 6, or 12 months',
     route: '/apply/personal',
     icon: (
@@ -16,7 +16,7 @@ const products = [
   {
     title: 'SME Loan',
     description: 'Working capital, equipment, inventory, or expansion funding for your business.',
-    range: '₱50,000 – ₱100,000',
+    range: '₱50,000 – ₱300,000',
     terms: '3, 6, 12, or 24 months',
     route: '/apply/sme',
     icon: (
@@ -40,7 +40,7 @@ const products = [
   {
     title: 'Group Loan',
     description: 'Group-based lending for communities — shared accountability, flexible terms.',
-    range: '₱10,000 – ₱50,000',
+    range: '₱10,000 – ₱50,000 per member',
     terms: '3, 6, or 12 months',
     route: '/apply/group',
     icon: (

@@ -12,7 +12,7 @@ function LockIcon() {
   )
 }
 
-export default function KanbanColumn({ stage, cards, onCardClick, onVerifierAction, onRequestSOConfirmation, userRoles = [] }) {
+export default function KanbanColumn({ stage, cards, onCardClick, onVerifierAction, onRequestSOConfirmation, onSODecision, soDecisionLoading, userRoles = [] }) {
   const isLocked = LOCKED_STAGES.includes(stage)
   const isDeclined = stage === 'declined'
 
@@ -93,6 +93,27 @@ export default function KanbanColumn({ stage, cards, onCardClick, onVerifierActi
                 <button
                   onClick={(e) => { e.stopPropagation(); onVerifierAction(app, 'decline') }}
                   className="flex-1 text-xs px-2 py-1.5 rounded-md bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors font-medium"
+                >
+                  Decline
+                </button>
+              </div>
+            )}
+
+            {/* Sales Officer confirmation actions */}
+            {stage === 'sales_officer' && app.so_confirmation_sent_at && !app.so_decision &&
+              userRoles.some((r) => ['sales_officer', 'admin', 'super_admin'].includes(r)) && (
+              <div className="flex items-center gap-1.5 px-1 pb-2 -mt-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSODecision(app, 'confirm') }}
+                  disabled={soDecisionLoading === String(app.id || app._id)}
+                  className="flex-1 text-xs px-2 py-1.5 rounded-md bg-green/10 text-green border border-green/20 hover:bg-green/20 transition-colors font-medium disabled:opacity-40"
+                >
+                  {soDecisionLoading === String(app.id || app._id) ? '…' : 'Confirm'}
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSODecision(app, 'decline') }}
+                  disabled={soDecisionLoading === String(app.id || app._id)}
+                  className="flex-1 text-xs px-2 py-1.5 rounded-md bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors font-medium disabled:opacity-40"
                 >
                   Decline
                 </button>

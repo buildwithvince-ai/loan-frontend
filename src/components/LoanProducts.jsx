@@ -4,7 +4,7 @@ const products = [
   {
     title: 'Personal Loan',
     description: 'Quick cash for your personal needs — medical bills, education, home improvement, or emergencies.',
-    range: '₱10,000 – ₱30,000',
+    range: '₱10,000 – ₱200,000',
     terms: '3, 6, or 12 months',
     repayment: 'Bimonthly',
     minIncome: '₱15,000/month',
@@ -60,10 +60,10 @@ const products = [
   {
     title: 'Group Loan',
     description: 'Community-based lending for groups — shared accountability with bimonthly repayment schedules.',
-    range: '₱10,000 – ₱50,000',
+    range: '₱10,000 – ₱50,000 per member',
     terms: '3, 6, or 12 months',
     repayment: 'Bimonthly',
-    minIncome: '₱15,000/month',
+    minIncome: '₱5,000/month',
     route: '/apply/group',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-7 h-7">

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 
 const PRODUCTS = [
-  { name: 'Personal Loan', min: 10000, max: 30000, terms: [3, 6, 12], rate: 0.035 },
+  { name: 'Personal Loan', min: 10000, max: 200000, terms: [3, 6, 12], rate: 0.035 },
   { name: 'SME Loan', min: 50000, max: 300000, terms: [3, 6, 12, 24], rate: 0.03 },
   { name: 'AKAP Loan', min: 5000, max: 40000, terms: [3, 4, 5, 6], rate: 0.04 },
   { name: 'SBL', min: 5000, max: 100000, terms: [3, 6, 12], rate: 0.05 },

@@ -518,7 +518,7 @@ function Step1({ form, set, errors, officers, soLoading, soError, soRetry }) {
       {/* Amount input */}
       <div>
         <Label required>Loan Amount</Label>
-        <p className="text-muted text-xs mb-2">₱10,000 – ₱30,000</p>
+        <p className="text-muted text-xs mb-2">₱10,000 – ₱200,000</p>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">₱</span>
           <input
@@ -532,7 +532,7 @@ function Step1({ form, set, errors, officers, soLoading, soError, soRetry }) {
               if (!isNaN(num)) set('loanAmount', num)
             }}
             onBlur={() => {
-              set('loanAmount', Math.min(Math.max(form.loanAmount, 10000), 30000))
+              set('loanAmount', Math.min(Math.max(form.loanAmount, 10000), 200000))
             }}
             className="w-full pl-8 pr-3 py-3 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
           />
