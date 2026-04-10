@@ -369,11 +369,11 @@ function FileViewerModal({ appId, onClose }) {
       setLoading(true)
       setError(null)
       try {
-        const res = await pipelineFetch(`/${appId}/files`)
+        const res = await adminFetch(`/applications/${appId}/files`)
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data.message || data.error || 'Failed to load files')
         if (cancelled) return
-        const list = Array.isArray(data) ? data : data.files || []
+        const list = Array.isArray(data) ? data : data.files || data.data || []
         setFiles(list)
       } catch (err) {
         if (!cancelled) setError(err.message)
@@ -425,11 +425,21 @@ function FileViewerModal({ appId, onClose }) {
                 const rawField = f.field || f.fieldName || f.field_name || f.label || ''
                 const FIELD_LABELS = {
                   validIdFront: 'Valid ID — Front', validIdBack: 'Valid ID — Back',
-                  barangayClearance: 'Barangay Clearance', payslipCoe: 'Payslip + COE',
-                  proofOfBilling: 'Proof of Billing', moaGroupLoan: 'MOA for Group Loan',
-                  proofOfIncome: 'Proof of Income', dtiPermit: 'DTI Permit',
-                  businessPermit: 'Business Permit', proofOfResidency: 'Proof of Residency',
+                  validId: 'Valid Government ID',
+                  barangayClearance: 'Barangay Clearance',
+                  payslip: 'Payslip', coe: 'Certificate of Employment (COE)',
+                  payslipCoe: 'Payslip + COE',
+                  proofOfBilling: 'Proof of Billing',
+                  proofOfIncome: 'Proof of Income',
+                  businessPermitBarangay: 'Business Permit — Barangay',
+                  businessPermit: 'Business Permit', dtiPermit: 'DTI Permit',
+                  dtiRegistration: 'DTI Registration',
+                  suppliersCustomersList: 'List of 3 Suppliers / Customers',
+                  certificateOfNoClaim: 'Certificate of No Claim',
+                  sblApplicationForm: 'SBL Application Form',
+                  proofOfResidency: 'Proof of Residency',
                   latestItr: 'Latest ITR', bankStatement: 'Bank Statement',
+                  prcId: 'PRC ID', companyId: 'Company ID',
                 }
                 const label = FIELD_LABELS[rawField]
                   || (rawField.startsWith('member_') ? rawField.replace(/member_(\d+)_file_(\d+)/, 'Member $1 — File $2') : null)
