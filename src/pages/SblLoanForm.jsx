@@ -28,10 +28,7 @@ const MEMBER_DOCS = [
   { key: 'payslip', label: 'Latest 2 Months Payslip (with Chairman + Treasurer signature)' },
 ]
 
-const LEADER_DOCS = [
-  ...MEMBER_DOCS,
-  { key: 'moaSalaryDeduction', label: 'MOA for Salary Deduction' },
-]
+const LEADER_DOCS = [...MEMBER_DOCS]
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
 const MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -133,9 +130,9 @@ export default function SblLoanForm() {
   const { officers, loading: soLoading, error: soError, retry: soRetry } = useSalesOfficers()
   const [agentName, setAgentName] = useState('')
   const [loanTerm, setLoanTerm] = useState(6)
-  const [memberCount, setMemberCount] = useState(1)
-  const [members, setMembers] = useState(() => [createMember()])
-  const [memberDocs, setMemberDocs] = useState(() => [{}])
+  const [memberCount, setMemberCount] = useState(5)
+  const [members, setMembers] = useState(() => Array.from({ length: 5 }, () => createMember()))
+  const [memberDocs, setMemberDocs] = useState(() => Array.from({ length: 5 }, () => ({})))
   const [expandedMembers, setExpandedMembers] = useState({ 0: true })
   const [errors, setErrors] = useState({})
   const [confirmAccurate, setConfirmAccurate] = useState(false)
@@ -219,7 +216,7 @@ export default function SblLoanForm() {
 
     if (step === 1) {
       if (!salesOfficerId) e.salesOfficerId = 'Please select your Sales Officer'
-      if (memberCount < 1) e.memberCount = 'At least 1 member is required'
+      if (memberCount < 5) e.memberCount = 'Minimum 5 members required'
     }
 
     if (step === 2) {
@@ -547,12 +544,12 @@ export default function SblLoanForm() {
                   type="number"
                   value={memberCount}
                   onChange={e => {
-                    const v = Math.max(1, parseInt(e.target.value) || 1)
+                    const v = Math.max(5, parseInt(e.target.value) || 5)
                     setMemberCount(v)
                     setErrors(prev => ({ ...prev, memberCount: undefined }))
                   }}
-                  min={1}
-                  placeholder="Minimum 1"
+                  min={5}
+                  placeholder="Minimum 5"
                 />
                 <FieldError message={errors.memberCount} />
               </div>

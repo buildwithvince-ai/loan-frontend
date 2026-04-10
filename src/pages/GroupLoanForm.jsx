@@ -21,14 +21,12 @@ const MEMBER_DOCS = [
   { key: 'validIdFront', label: 'Valid Government ID — Front' },
   { key: 'validIdBack', label: 'Valid Government ID — Back' },
   { key: 'barangayClearance', label: 'Barangay Clearance' },
-  { key: 'payslipCoe', label: '1 Month Payslip + COE' },
+  { key: 'payslip', label: '1 Month Payslip' },
+  { key: 'coe', label: 'Certificate of Employment (COE)' },
   { key: 'proofOfBilling', label: 'Proof of Billing' },
 ]
 
-const LEADER_DOCS = [
-  ...MEMBER_DOCS,
-  { key: 'moaGroupLoan', label: 'MOA for Group Loan' },
-]
+const LEADER_DOCS = [...MEMBER_DOCS]
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
 const MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -43,6 +41,8 @@ function createMember() {
     mobile: '',
     email: '',
     employmentStatus: '',
+    employerName: '',
+    position: '',
     monthlyIncome: '',
     loanAmount: 10000,
     houseStreet: '',
@@ -639,6 +639,17 @@ export default function GroupLoanForm() {
                               <Label required>Monthly Income (₱)</Label>
                               <Input type="number" value={member.monthlyIncome} onChange={e => updateMember(i, 'monthlyIncome', e.target.value)} placeholder="15000" min={0} />
                               <FieldError message={errors[`${prefix}monthlyIncome`]} />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <Label>Employer Name</Label>
+                              <Input value={member.employerName} onChange={e => updateMember(i, 'employerName', e.target.value)} placeholder="Company / Employer" />
+                            </div>
+                            <div>
+                              <Label>Position</Label>
+                              <Input value={member.position} onChange={e => updateMember(i, 'position', e.target.value)} placeholder="Job title" />
                             </div>
                           </div>
 

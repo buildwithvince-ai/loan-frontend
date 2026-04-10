@@ -26,6 +26,7 @@ const REQUIRED_DOCS = [
   { key: 'validIdBack', label: 'Valid Government ID — Back' },
   { key: 'proofOfBilling', label: 'Proof of Billing' },
   { key: 'suppliersCustomersList', label: 'List of 3 Suppliers / Customers' },
+  { key: 'certificateOfNoClaim', label: 'Certificate of No Claim' },
 ]
 
 const OPTIONAL_DOCS = [

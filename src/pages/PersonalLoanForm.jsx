@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import useSalesOfficers from '../hooks/useSalesOfficers'
 
-const TOTAL_STEPS = 9
+const TOTAL_STEPS = 8
 
 const PURPOSES = ['Medical', 'Education', 'Home Improvement', 'Business Capital', 'Emergency', 'Other']
 const CIVIL_STATUSES = ['Single', 'Married', 'Widowed', 'Separated']
@@ -79,17 +79,7 @@ const initialForm = {
   spouseMobile: '',
   spouseEmployer: '',
   spouseIncome: '',
-  // Step 7
-  refAName: '',
-  refARelationship: '',
-  refAContact: '',
-  refBName: '',
-  refBRelationship: '',
-  refBContact: '',
-  refCName: '',
-  refCRelationship: '',
-  refCContact: '',
-  // Step 9
+  // Step 8
   confirmAccurate: false,
 }
 
@@ -292,20 +282,12 @@ export default function PersonalLoanForm() {
     }
 
     if (step === 7) {
-      ;['A', 'B', 'C'].forEach(ref => {
-        if (!form[`ref${ref}Name`].trim()) e[`ref${ref}Name`] = 'Required'
-        if (!form[`ref${ref}Relationship`].trim()) e[`ref${ref}Relationship`] = 'Required'
-        if (!form[`ref${ref}Contact`].trim()) e[`ref${ref}Contact`] = 'Required'
-      })
-    }
-
-    if (step === 8) {
       REQUIRED_DOCS.forEach(d => {
         if (!docs[d.key]) e[d.key] = 'This document is required'
       })
     }
 
-    if (step === 9) {
+    if (step === 8) {
       if (!form.confirmAccurate) e.confirmAccurate = 'You must confirm before submitting'
       if (!form.agreeTerms) e.agreeTerms = 'You must agree to the Terms and Conditions'
     }
@@ -424,7 +406,7 @@ export default function PersonalLoanForm() {
 
   const stepLabels = [
     'Loan Details', 'Personal Info', 'Present Address', 'Permanent Address',
-    'Employment', 'Spouse', 'References', 'Documents', 'Review'
+    'Employment', 'Spouse', 'Documents', 'Review'
   ]
 
   return (
@@ -456,9 +438,8 @@ export default function PersonalLoanForm() {
           {step === 4 && <Step4 form={form} set={set} errors={errors} />}
           {step === 5 && <Step5 form={form} set={set} errors={errors} />}
           {step === 6 && <Step6 form={form} set={set} errors={errors} />}
-          {step === 7 && <Step7 form={form} set={set} errors={errors} />}
-          {step === 8 && <Step8 docs={docs} errors={errors} handleFile={handleFile} removeFile={removeFile} />}
-          {step === 9 && <Step9 form={form} set={set} docs={docs} errors={errors} />}
+          {step === 7 && <Step8 docs={docs} errors={errors} handleFile={handleFile} removeFile={removeFile} />}
+          {step === 8 && <Step9 form={form} set={set} docs={docs} errors={errors} />}
 
           {/* Navigation */}
           <div className="flex justify-between items-center mt-8 pt-6 border-t border-border">
@@ -816,43 +797,6 @@ function Step6({ form, set, errors }) {
   )
 }
 
-function Step7({ form, set, errors }) {
-  const refs = [
-    { label: 'Reference A', prefix: 'refA' },
-    { label: 'Reference B', prefix: 'refB' },
-    { label: 'Reference C', prefix: 'refC' },
-  ]
-  return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-bold text-green mb-1">Personal References</h2>
-      <p className="text-muted text-sm mb-4">Provide 3 personal references (not relatives).</p>
-
-      {refs.map((ref, i) => (
-        <div key={ref.prefix} className="bg-surface-alt/20 border border-border rounded-xl p-5 space-y-4">
-          <h3 className="text-blue text-sm font-semibold uppercase tracking-wider">{ref.label}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <Label required>Full Name</Label>
-              <Input value={form[`${ref.prefix}Name`]} onChange={e => set(`${ref.prefix}Name`, e.target.value)} placeholder="Full name" />
-              <FieldError message={errors[`${ref.prefix}Name`]} />
-            </div>
-            <div>
-              <Label required>Relationship</Label>
-              <Input value={form[`${ref.prefix}Relationship`]} onChange={e => set(`${ref.prefix}Relationship`, e.target.value)} placeholder="e.g. Friend" />
-              <FieldError message={errors[`${ref.prefix}Relationship`]} />
-            </div>
-            <div>
-              <Label required>Contact Number</Label>
-              <Input value={form[`${ref.prefix}Contact`]} onChange={e => set(`${ref.prefix}Contact`, e.target.value)} placeholder="09XXXXXXXXX" maxLength={11} />
-              <FieldError message={errors[`${ref.prefix}Contact`]} />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 function Step8({ docs, errors, handleFile, removeFile }) {
   const fileInputRefs = useRef({})
   return (
@@ -961,14 +905,6 @@ function Step9({ form, set, docs, errors }) {
           ],
         }]
       : []),
-    {
-      title: 'Personal References',
-      items: [
-        ['Ref A', `${form.refAName} (${form.refARelationship}) — ${form.refAContact}`],
-        ['Ref B', `${form.refBName} (${form.refBRelationship}) — ${form.refBContact}`],
-        ['Ref C', `${form.refCName} (${form.refCRelationship}) — ${form.refCContact}`],
-      ],
-    },
     {
       title: 'Documents',
       items: ALL_DOCS.filter(d => docs[d.key]).map(d => [d.label, docs[d.key].name]),
