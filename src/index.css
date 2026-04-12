@@ -61,6 +61,42 @@
   --font-sans: 'Method', system-ui, sans-serif;
 }
 
+/* Light mode overrides — scoped to admin/CI dashboards only */
+.light-mode {
+  --color-canvas: #F1F5F9;
+  --color-surface: #F8FAFC;
+  --color-surface-alt: #FFFFFF;
+  --color-white: #1E293B;
+  --color-muted: #64748B;
+  --color-border: #E2E8F0;
+  color-scheme: light;
+}
+
+/* Declined column — swap dark red-950 tints for light-friendly versions */
+.light-mode [class*="bg-red-950"] {
+  background-color: rgb(254 226 226 / 0.5) !important;
+}
+.light-mode [class*="border-red-900"] {
+  border-color: rgb(252 165 165 / 0.4) !important;
+}
+.light-mode [class*="bg-red-900"] {
+  background-color: rgb(254 202 202 / 0.6) !important;
+}
+.light-mode [class*="text-red-900"] {
+  color: rgb(239 68 68) !important;
+}
+
+/* Soften dark shadows in light mode */
+.light-mode [class*="shadow-black"] {
+  --tw-shadow-color: rgb(0 0 0 / 0.08) !important;
+}
+
+/* Native select/option elements in light mode */
+.light-mode select option {
+  background-color: #fff;
+  color: #1E293B;
+}
+
 html {
   scroll-behavior: smooth;
 }

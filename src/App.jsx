@@ -17,6 +17,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import UserManagement from './pages/admin/UserManagement'
 import MyAccount from './pages/admin/MyAccount'
 import CiPortal from './pages/ci/CiPortal'
+import { ThemeProvider } from './context/ThemeContext'
 
 function PublicLayout({ children }) {
   return (
@@ -48,7 +49,7 @@ function App() {
         path="/admin"
         element={
           <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-            <AdminLayout><AdminDashboard /></AdminLayout>
+            <ThemeProvider><AdminLayout><AdminDashboard /></AdminLayout></ThemeProvider>
           </ProtectedRoute>
         }
       />
@@ -56,7 +57,7 @@ function App() {
         path="/admin/users"
         element={
           <ProtectedRoute allowedRoles={['super_admin']}>
-            <AdminLayout><UserManagement /></AdminLayout>
+            <ThemeProvider><AdminLayout><UserManagement /></AdminLayout></ThemeProvider>
           </ProtectedRoute>
         }
       />
@@ -64,7 +65,7 @@ function App() {
         path="/admin/account"
         element={
           <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-            <AdminLayout><MyAccount /></AdminLayout>
+            <ThemeProvider><AdminLayout><MyAccount /></AdminLayout></ThemeProvider>
           </ProtectedRoute>
         }
       />
@@ -74,7 +75,7 @@ function App() {
         path="/ci"
         element={
           <ProtectedRoute allowedRoles={['ci_officer', 'admin', 'super_admin']}>
-            <CiPortal />
+            <ThemeProvider><CiPortal /></ThemeProvider>
           </ProtectedRoute>
         }
       />
