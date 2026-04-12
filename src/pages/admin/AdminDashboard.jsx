@@ -47,9 +47,9 @@ function Toast({ toasts, removeToast }) {
           key={t.id}
           className={`px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-fade-in-up flex items-center gap-2 max-w-sm ${
             t.type === 'success'
-              ? 'bg-green/90 text-white'
+              ? 'bg-green/60 text-white'
               : t.type === 'error'
-              ? 'bg-red-500/90 text-white'
+              ? 'bg-red-500/70 text-white'
               : 'bg-surface-alt text-white'
           }`}
         >
@@ -119,7 +119,7 @@ export default function AdminDashboard() {
                 onClick={() => switchDashView('list')}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                   dashView === 'list'
-                    ? 'bg-surface-alt text-green'
+                    ? 'bg-surface-alt text-green/60'
                     : 'text-muted hover:text-white'
                 }`}
               >
@@ -129,7 +129,7 @@ export default function AdminDashboard() {
                 onClick={() => switchDashView('pipeline')}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                   dashView === 'pipeline'
-                    ? 'bg-surface-alt text-green'
+                    ? 'bg-surface-alt text-green/60'
                     : 'text-muted hover:text-white'
                 }`}
               >

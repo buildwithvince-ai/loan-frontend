@@ -103,7 +103,7 @@ function RadioGroup({ name, options, value, onChange, disabled }) {
           />
           <span className="text-sm text-white flex-1">{opt.label}</span>
           <span className={`text-xs font-mono shrink-0 ${
-            value === opt.pts ? 'text-green' : 'text-muted'
+            value === opt.pts ? 'text-green/60' : 'text-muted'
           }`}>
             {opt.pts >= 0 ? `${opt.pts} pts` : `${opt.pts} pts`}
           </span>
@@ -141,7 +141,7 @@ function CheckboxGroup({ options, values, onChange, disabled }) {
           />
           <span className="text-sm text-white flex-1">{opt.label}</span>
           <span className={`text-xs font-mono shrink-0 ${
-            values.includes(opt.pts) ? 'text-red-400' : 'text-muted'
+            values.includes(opt.pts) ? 'text-red-400/70' : 'text-muted'
           }`}>
             {opt.pts} pts
           </span>
@@ -155,7 +155,7 @@ function SectionHeader({ number, title, maxPts, currentPts }) {
   return (
     <div className="flex items-center justify-between mb-3">
       <h4 className="text-white font-semibold text-sm">
-        {number && <span className="text-green mr-1.5">Q{number}.</span>}
+        {number && <span className="text-green/60 mr-1.5">Q{number}.</span>}
         {title}
       </h4>
       {maxPts != null && (
@@ -320,8 +320,8 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
       <div className="flex-1 space-y-6">
         {/* Age warning */}
         {ageOver65 && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-            <p className="text-red-400 text-sm font-medium">
+          <div className="bg-red-500/7 border border-red-500/21 rounded-lg p-4">
+            <p className="text-red-400/70 text-sm font-medium">
               Automatic decline — applicant exceeds maximum age (65). Age: {age}
             </p>
           </div>
@@ -386,8 +386,8 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
               </div>
               {relativeAtGr8 === 'yes' && (
                 <div className="mt-3 space-y-2">
-                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
-                    <p className="text-amber-400 text-xs font-medium">Immediately call the office</p>
+                  <div className="bg-amber-500/7 border border-amber-500/21 rounded-lg p-3">
+                    <p className="text-amber-400/70 text-xs font-medium">Immediately call the office</p>
                   </div>
                   <input
                     type="text"
@@ -595,13 +595,13 @@ function ScorePanel({ q1, q2, q3, q4, bonus, totalDeductions, baseScore, ciTotal
         <ScoreLine label="Q3 Work Stability" value={q3} max={10} />
         <ScoreLine label="Q4 Residency" value={q4} max={10} />
         {bonus > 0 && (
-          <div className="flex justify-between text-green">
+          <div className="flex justify-between text-green/60">
             <span>Renewal Bonus</span>
             <span>+{bonus}</span>
           </div>
         )}
         {totalDeductions < 0 && (
-          <div className="flex justify-between text-red-400">
+          <div className="flex justify-between text-red-400/70">
             <span>Renewal Deduction</span>
             <span>{totalDeductions}</span>
           </div>
@@ -618,16 +618,16 @@ function ScorePanel({ q1, q2, q3, q4, bonus, totalDeductions, baseScore, ciTotal
       <div className="border-t border-border/50 pt-2 space-y-1.5 text-xs">
         <div className="flex justify-between">
           <span className="text-muted">FinScore (50%)</span>
-          <span className={finUnavailable ? 'text-amber-400' : 'text-blue'}>
+          <span className={finUnavailable ? 'text-amber-400/70' : 'text-blue/60'}>
             {finUnavailable ? 'N/A' : `${finscoreContrib} / 50`}
           </span>
         </div>
         {finUnavailable && (
-          <p className="text-amber-400 text-[10px]">FinScore unavailable — max 50 pts from CI</p>
+          <p className="text-amber-400/70 text-[10px]">FinScore unavailable — max 50 pts from CI</p>
         )}
         <div className="flex justify-between">
           <span className="text-muted">CI Score (50%)</span>
-          <span className="text-green">{anyScored ? `${ciContrib} / 50` : '— / 50'}</span>
+          <span className="text-green/60">{anyScored ? `${ciContrib} / 50` : '— / 50'}</span>
         </div>
       </div>
 
@@ -647,7 +647,7 @@ function ScorePanel({ q1, q2, q3, q4, bonus, totalDeductions, baseScore, ciTotal
           </div>
         )}
         {anyScored && hint && (
-          <p className="text-amber-400 text-xs mt-2">{hint}</p>
+          <p className="text-amber-400/70 text-xs mt-2">{hint}</p>
         )}
       </div>
     </div>

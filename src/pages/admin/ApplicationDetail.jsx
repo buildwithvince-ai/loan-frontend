@@ -141,7 +141,7 @@ function SoAssigner({ app, appId, onAssigned }) {
 
   if (!canAssign) {
     return soName ? (
-      <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-teal-500/20 text-teal-400">
+      <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-teal-500/12 text-teal-400/60">
         SO: {soName}
       </span>
     ) : (
@@ -179,13 +179,13 @@ function SoAssigner({ app, appId, onAssigned }) {
   return (
     <div className="flex items-center gap-2">
       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-        soName ? 'bg-teal-500/20 text-teal-400' : 'bg-gray-500/20 text-gray-400'
+        soName ? 'bg-teal-500/12 text-teal-400/60' : 'bg-gray-500/20 text-gray-400'
       }`}>
         {soName ? `SO: ${soName}` : 'No SO Assigned'}
       </span>
       <button
         onClick={e => { e.stopPropagation(); setShowPicker(true) }}
-        className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue/20 text-blue hover:bg-blue/30 transition-colors"
+        className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue/12 text-blue/60 hover:bg-blue/18 hover:text-blue transition-colors"
       >
         {soName ? 'Change' : 'Assign'}
       </button>
@@ -343,7 +343,7 @@ function ApplicationSummary({ app, appId, onViewDocuments, onRefresh }) {
         <div>
           <button
             onClick={() => onViewDocuments?.()}
-            className="flex items-center gap-2 text-sm text-blue hover:text-blue/80 transition-colors"
+            className="flex items-center gap-2 text-sm text-blue/60 hover:text-blue transition-colors"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
               <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" strokeLinecap="round" strokeLinejoin="round" />
@@ -410,8 +410,8 @@ function FileViewerModal({ appId, onClose }) {
           )}
 
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="p-3 bg-red-500/7 border border-red-500/21 rounded-lg">
+              <p className="text-red-400/70 text-sm">{error}</p>
             </div>
           )}
 
@@ -460,7 +460,7 @@ function FileViewerModal({ appId, onClose }) {
                           href={url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-blue hover:text-blue/80 transition-colors shrink-0 ml-3"
+                          className="text-xs text-blue/60 hover:text-blue transition-colors shrink-0 ml-3"
                         >
                           Open in new tab ↗
                         </a>
@@ -518,9 +518,9 @@ function FinScoreSection({ finscoreRaw, finscoreNorm }) {
               <Field label="Raw Score" value="Not Available" />
               <Field label="Normalized" value="0 / 100" />
             </div>
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-center gap-2">
-              <span className="text-amber-400 text-lg">⚠</span>
-              <span className="text-amber-400 text-sm">FinScore unavailable — CI carries full weight on 50pts max</span>
+            <div className="bg-amber-500/7 border border-amber-500/21 rounded-lg p-3 flex items-center gap-2">
+              <span className="text-amber-400/70 text-lg">⚠</span>
+              <span className="text-amber-400/70 text-sm">FinScore unavailable — CI carries full weight on 50pts max</span>
             </div>
           </div>
         ) : (
@@ -533,7 +533,7 @@ function FinScoreSection({ finscoreRaw, finscoreNorm }) {
             <div className="bg-surface-alt rounded-lg p-3">
               <div className="flex justify-between text-xs mb-1.5">
                 <span className="text-muted">FinScore Normalized</span>
-                <span className="text-blue">{finscoreNorm} / 100</span>
+                <span className="text-blue/60">{finscoreNorm} / 100</span>
               </div>
               <div className="h-3 bg-canvas rounded-full overflow-hidden">
                 <div
@@ -606,16 +606,16 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
         {isDecided ? (
           <div className="space-y-4">
             <div className={`border rounded-lg p-4 ${
-              app.status === 'approved' ? 'bg-green/10 border-green/30' : 'bg-red-500/10 border-red-500/30'
+              app.status === 'approved' ? 'bg-green/6 border-green/18' : 'bg-red-500/7 border-red-500/21'
             }`}>
-              <p className={`text-lg font-bold ${app.status === 'approved' ? 'text-green' : 'text-red-400'}`}>
+              <p className={`text-lg font-bold ${app.status === 'approved' ? 'text-green/60' : 'text-red-400/70'}`}>
                 {app.status === 'approved' ? 'APPROVED' : 'DECLINED'}
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Field label="Final Score" value={effectiveFinal != null ? `${effectiveFinal} / 100` : '—'} />
               <Field label="Tier" value={<Badge label={tierConfig.label} colorClass={tierConfig.badgeClass} />} />
-              <Field label="Status" value={<Badge label={app.status} colorClass={app.status === 'approved' ? 'bg-green/20 text-green' : 'bg-red-500/20 text-red-400'} />} />
+              <Field label="Status" value={<Badge label={app.status} colorClass={app.status === 'approved' ? 'bg-green/12 text-green/60' : 'bg-red-500/14 text-red-400/70'} />} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {app.reviewed_by && <Field label="Reviewed By" value={app.reviewed_by} />}
@@ -694,7 +694,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
                     disabled={actionLoading}
                     className="border border-gray-500 text-gray-400 hover:bg-gray-500/10 font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
                   >Override Approve</button>
-                  <span className="text-xs text-amber-400">Override requires supervisor approval</span>
+                  <span className="text-xs text-amber-400/70">Override requires supervisor approval</span>
                 </div>
               </div>
             )}
@@ -713,14 +713,14 @@ function ActivityLog({ app, finscoreRaw, finscoreNorm, effectiveFinal, effective
       <div className="pt-4">
         <div className="space-y-3">
           {(app.submitted_at || app.created_at) && (
-            <LogEntry color="bg-blue" text="Application received" date={formatDate(app.submitted_at || app.created_at)} />
+            <LogEntry color="bg-blue/60" text="Application received" date={formatDate(app.submitted_at || app.created_at)} />
           )}
           {finscoreRaw > 0 && (
-            <LogEntry color="bg-blue" text={`FinScore calculated: ${finscoreRaw} (normalized: ${finscoreNorm})`} />
+            <LogEntry color="bg-blue/60" text={`FinScore calculated: ${finscoreRaw} (normalized: ${finscoreNorm})`} />
           )}
           {app.ci_score != null && (
             <LogEntry
-              color="bg-green"
+              color="bg-green/60"
               text={`CI submitted: ${app.ci_score}/50${app.reviewed_by ? ` by ${app.reviewed_by}` : ''}`}
               date={app.reviewed_at ? formatDate(app.reviewed_at) : null}
               note={app.notes || app.ci_notes}
@@ -728,13 +728,13 @@ function ActivityLog({ app, finscoreRaw, finscoreNorm, effectiveFinal, effective
           )}
           {app.ci_score != null && effectiveFinal != null && (
             <LogEntry
-              color={effectiveTier === 'approved' ? 'bg-green' : effectiveTier === 'tier_b' ? 'bg-amber-500' : 'bg-red-500'}
+              color={effectiveTier === 'approved' ? 'bg-green/60' : effectiveTier === 'tier_b' ? 'bg-amber-500/70' : 'bg-red-500/70'}
               text={`Final Score: ${effectiveFinal} → Tier: ${TIER_CONFIG[effectiveTier]?.label || effectiveTier}`}
             />
           )}
           {app.status !== 'pending' && (
             <LogEntry
-              color={app.status === 'approved' ? 'bg-green' : 'bg-red-500'}
+              color={app.status === 'approved' ? 'bg-green/60' : 'bg-red-500/70'}
               text={`Application ${app.status}${app.reviewed_by ? ` by ${app.reviewed_by}` : ''}`}
               date={app.reviewed_at ? formatDate(app.reviewed_at) : null}
             />
@@ -904,7 +904,7 @@ export default function ApplicationDetail({ id, onBack }) {
               )}
               {app.so_confirmation_sent_at && !app.so_decision && (
                 <div className="col-span-full">
-                  <span className="text-yellow-400 text-sm animate-pulse">Awaiting sales officer response…</span>
+                  <span className="text-yellow-400/70 text-sm animate-pulse">Awaiting sales officer response…</span>
                 </div>
               )}
               {app.returned_count > 0 && (

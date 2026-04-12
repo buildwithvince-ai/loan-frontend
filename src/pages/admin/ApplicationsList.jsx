@@ -3,17 +3,17 @@ import { adminFetch } from './AdminDashboard'
 import { normalizeFinScore, computeFinalFromCiTotal, getTier, TIER_CONFIG } from './scoring'
 
 const LOAN_TYPE_COLORS = {
-  personal: 'bg-blue/20 text-blue',
-  sme: 'bg-purple-500/20 text-purple-400',
-  akap: 'bg-amber-500/20 text-amber-400',
-  group: 'bg-teal-500/20 text-teal-400',
-  sbl: 'bg-pink-500/20 text-pink-400',
+  personal: 'bg-blue/12 text-blue/60',
+  sme: 'bg-purple-500/12 text-purple-400/60',
+  akap: 'bg-amber-500/14 text-amber-400/70',
+  group: 'bg-teal-500/12 text-teal-400/60',
+  sbl: 'bg-pink-500/14 text-pink-400/70',
 }
 
 const STATUS_COLORS = {
   pending: 'bg-gray-500/20 text-gray-400',
-  approved: 'bg-green/20 text-green',
-  declined: 'bg-red-500/20 text-red-400',
+  approved: 'bg-green/12 text-green/60',
+  declined: 'bg-red-500/14 text-red-400/70',
 }
 
 function Badge({ label, colorClass }) {
@@ -228,7 +228,7 @@ export default function ApplicationsList({ onReview }) {
                     key={app.id || app.reference_id}
                     className="border-b border-border/50 hover:bg-surface-alt/50 transition-colors"
                   >
-                    <td className="px-4 py-3 text-blue font-mono text-xs">{app.reference_id || '—'}</td>
+                    <td className="px-4 py-3 text-blue/60 font-mono text-xs">{app.reference_id || '—'}</td>
                     <td className="px-4 py-3 text-white font-medium">
                       {app.firstName || app.first_name} {app.lastName || app.last_name}
                     </td>
@@ -251,7 +251,7 @@ export default function ApplicationsList({ onReview }) {
                     <td className="px-4 py-3">
                       <Badge
                         label={hasCi ? 'CI Done' : 'Awaiting CI'}
-                        colorClass={hasCi ? 'bg-blue/20 text-blue' : 'bg-gray-500/20 text-gray-400'}
+                        colorClass={hasCi ? 'bg-blue/12 text-blue/60' : 'bg-gray-500/20 text-gray-400'}
                       />
                     </td>
                     <td className="px-4 py-3">
@@ -281,7 +281,7 @@ export default function ApplicationsList({ onReview }) {
                     <td className="px-4 py-3">
                       <button
                         onClick={() => onReview(app.id || app.reference_id)}
-                        className="px-3 py-1.5 bg-green/10 text-green rounded-lg text-xs font-medium hover:bg-green/20 transition-colors"
+                        className="px-3 py-1.5 bg-green/6 text-green/60 rounded-lg text-xs font-medium hover:bg-green/12 hover:text-green transition-colors"
                       >
                         Review
                       </button>
@@ -327,7 +327,7 @@ export default function ApplicationsList({ onReview }) {
                   >
                     {app.mobile || app.phone || '—'}
                   </button>
-                  <p className="text-blue text-xs font-mono">{app.reference_id || '—'}</p>
+                  <p className="text-blue/60 text-xs font-mono">{app.reference_id || '—'}</p>
                 </div>
                 <div className="flex flex-col gap-1 items-end">
                   <Badge
@@ -379,7 +379,7 @@ export default function ApplicationsList({ onReview }) {
                 <span className="text-muted text-xs">{formatDate(app.submitted_at || app.created_at)}</span>
                 <button
                   onClick={() => onReview(app.id || app.reference_id)}
-                  className="px-3 py-1.5 bg-green/10 text-green rounded-lg text-xs font-medium hover:bg-green/20 transition-colors"
+                  className="px-3 py-1.5 bg-green/6 text-green/60 rounded-lg text-xs font-medium hover:bg-green/12 hover:text-green transition-colors"
                 >
                   Review
                 </button>
@@ -398,8 +398,8 @@ export default function ApplicationsList({ onReview }) {
           <div className="bg-surface border border-border rounded-xl p-5 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-green/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 text-green">
+                <div className="w-9 h-9 rounded-lg bg-green/6 flex items-center justify-center shrink-0 mt-0.5">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 text-green/60">
                     <path d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
@@ -413,7 +413,7 @@ export default function ApplicationsList({ onReview }) {
               </div>
               <button
                 onClick={() => exportConsentCsv(filtered)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-green/10 hover:bg-green/20 text-green border border-green/20 rounded-lg text-sm font-medium transition-colors shrink-0"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-green/6 hover:bg-green/12 text-green/60 hover:text-green border border-green/12 rounded-lg text-sm font-medium transition-colors shrink-0"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
                   <path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" strokeLinecap="round" strokeLinejoin="round" />
