@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import ApplicationsList from './ApplicationsList'
 import ApplicationDetail from './ApplicationDetail'
 import KanbanBoard from '../../components/pipeline/KanbanBoard'
+import ReportProblemButton from '../../components/ReportProblemButton'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
 const ADMIN_API = `${API_BASE}/api/admin`
@@ -161,6 +162,7 @@ export default function AdminDashboard() {
           <ApplicationsList onReview={openDetail} />
         )}
       </div>
+      <ReportProblemButton />
     </ToastContext.Provider>
   )
 }

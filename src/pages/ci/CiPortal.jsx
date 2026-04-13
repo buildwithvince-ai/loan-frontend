@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import CiApplicationsList from './CiApplicationsList'
 import CiAssessmentForm from './CiAssessmentForm'
+import ReportProblemButton from '../../components/ReportProblemButton'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
 const CI_API = `${API_BASE}/api/ci`
@@ -130,6 +131,7 @@ export default function CiPortal() {
           )}
         </main>
       </div>
+      <ReportProblemButton />
     </ToastContext.Provider>
   )
 }
