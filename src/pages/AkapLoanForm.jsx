@@ -20,16 +20,15 @@ const EMPLOYMENT_STATUSES = [
 const TERMS = [3, 4, 5, 6]
 
 const REQUIRED_DOCS = [
-  { key: 'businessPermitBarangay', label: 'Business Permit — Barangay' },
   { key: 'barangayClearance', label: 'Barangay Clearance' },
   { key: 'validIdFront', label: 'Valid Government ID — Front' },
   { key: 'validIdBack', label: 'Valid Government ID — Back' },
   { key: 'proofOfBilling', label: 'Proof of Billing' },
   { key: 'suppliersCustomersList', label: 'List of 3 Suppliers / Customers' },
-  { key: 'certificateOfNoClaim', label: 'Certificate of No Claim' },
 ]
 
 const OPTIONAL_DOCS = [
+  { key: 'businessPermitBarangay', label: 'Business Permit — Barangay' },
   { key: 'dtiRegistration', label: 'DTI Registration' },
 ]
 
