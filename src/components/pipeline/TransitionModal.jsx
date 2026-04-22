@@ -28,6 +28,7 @@ export default function TransitionModal({ fromStage, toStage, application, onCon
   const [declineReason, setDeclineReason] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [timedOut, setTimedOut] = useState(false)
 
   const fullName = [
     application?.firstName || application?.first_name || '',
@@ -58,8 +59,10 @@ export default function TransitionModal({ fromStage, toStage, application, onCon
   })()
 
   const handleConfirm = async () => {
+    if (loading) return
     setLoading(true)
     setError(null)
+    setTimedOut(false)
     try {
       const meta = {}
       if (declineReason.trim()) meta.decline_reason = declineReason.trim()
@@ -67,6 +70,7 @@ export default function TransitionModal({ fromStage, toStage, application, onCon
       const res = await pipelineFetch(`/${appId}/transition`, {
         method: 'PATCH',
         body: JSON.stringify({ to_stage: toStage, meta }),
+        timeoutMs: isApproverToProcessing ? 60000 : undefined,
       })
 
       const data = await res.json().catch(() => ({}))
@@ -76,9 +80,14 @@ export default function TransitionModal({ fromStage, toStage, application, onCon
       }
 
       onConfirm(data)
+      setLoading(false)
     } catch (err) {
+      if (isApproverToProcessing && err.name === 'AbortError') {
+        setTimedOut(true)
+        setTimeout(() => onConfirm(null), 5000)
+        return
+      }
       setError(err.message)
-    } finally {
       setLoading(false)
     }
   }
@@ -204,8 +213,17 @@ export default function TransitionModal({ fromStage, toStage, application, onCon
             </p>
           )}
 
+          {/* Timeout notice (approver → processing) */}
+          {timedOut && (
+            <div className="p-3 bg-blue/10 border border-blue/30 rounded-lg">
+              <p className="text-blue text-sm">
+                Approval is taking longer than expected. Refreshing status…
+              </p>
+            </div>
+          )}
+
           {/* API error */}
-          {error && (
+          {error && !timedOut && (
             <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
               <p className="text-red-400 text-sm">{error}</p>
             </div>
@@ -217,7 +235,7 @@ export default function TransitionModal({ fromStage, toStage, application, onCon
           <button
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 text-sm text-muted hover:text-white transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm text-muted hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -233,7 +251,11 @@ export default function TransitionModal({ fromStage, toStage, application, onCon
             {loading ? (
               <span className="flex items-center gap-2">
                 <span className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" />
-                Processing...
+                {timedOut
+                  ? 'Refreshing…'
+                  : isApproverToProcessing
+                    ? 'Approving… up to a minute'
+                    : 'Processing…'}
               </span>
             ) : confirmLabel}
           </button>

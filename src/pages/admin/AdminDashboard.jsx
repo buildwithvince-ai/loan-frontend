@@ -15,28 +15,32 @@ export const useToast = () => useContext(ToastContext)
 // Admin API helper — uses JWT token for auth
 let _getToken = () => null
 
+function buildFetch(baseUrl) {
+  return function ({ timeoutMs, ...options } = {}, path) {
+    const token = _getToken()
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    }
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    const init = { ...options, headers }
+    if (!timeoutMs) return fetch(`${baseUrl}${path}`, init)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    return fetch(`${baseUrl}${path}`, { ...init, signal: controller.signal })
+      .finally(() => clearTimeout(timer))
+  }
+}
+
+const _adminFetchInner = buildFetch(ADMIN_API)
+const _pipelineFetchInner = buildFetch(`${API_BASE}/api/pipeline`)
+
 export function adminFetch(path, options = {}) {
-  const token = _getToken()
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  }
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-  return fetch(`${ADMIN_API}${path}`, { ...options, headers })
+  return _adminFetchInner(options, path)
 }
 
 export function pipelineFetch(path, options = {}) {
-  const token = _getToken()
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  }
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-  return fetch(`${API_BASE}/api/pipeline${path}`, { ...options, headers })
+  return _pipelineFetchInner(options, path)
 }
 
 // Toast component

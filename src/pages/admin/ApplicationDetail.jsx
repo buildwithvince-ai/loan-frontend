@@ -54,16 +54,33 @@ function Badge({ label, colorClass }) {
   )
 }
 
-function ConfirmModal({ title, message, confirmLabel, confirmClass, onConfirm, onCancel }) {
+function ConfirmModal({ title, message, confirmLabel, confirmClass, onConfirm, onCancel, loading, loadingLabel }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onCancel} />
+      <div className="absolute inset-0 bg-black/60" onClick={loading ? undefined : onCancel} />
       <div className="relative bg-surface border border-border rounded-xl p-6 max-w-md w-full">
         <h3 className="text-white font-bold text-lg mb-2">{title}</h3>
         <p className="text-muted text-sm mb-6">{message}</p>
         <div className="flex gap-3 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 text-sm text-muted hover:text-white border border-border rounded-lg transition-colors">Cancel</button>
-          <button onClick={onConfirm} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${confirmClass}`}>{confirmLabel}</button>
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="px-4 py-2 text-sm text-muted hover:text-white border border-border rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${confirmClass}`}
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                {loadingLabel || 'Processing…'}
+              </span>
+            ) : confirmLabel}
+          </button>
         </div>
       </div>
     </div>
@@ -561,24 +578,52 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
   const isDecided = app.status !== 'pending'
 
   const executeAction = async (endpoint, body = {}) => {
+    if (actionLoading) return
     setActionLoading(true)
+    const isApprove = endpoint === 'approve'
+    let keepLoading = false
     try {
       const res = await adminFetch(`/applications/${id}/${endpoint}`, {
         method: 'PATCH',
         body: JSON.stringify({ reviewed_by: app.reviewed_by || undefined, ...body }),
+        timeoutMs: isApprove ? 60000 : undefined,
       })
-      if (!res.ok) throw new Error(`Failed to ${endpoint}`)
-      addToast(`Application ${endpoint}d`)
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.message || data.error || `Failed to ${endpoint}`)
+      if (isApprove) {
+        const borrowerId = data.borrowerId || data.borrower_id || data.application?.borrower_id || data.application?.loandisk_borrower_id
+        addToast(borrowerId ? `Application approved · Borrower #${borrowerId}` : 'Application approved')
+      } else {
+        addToast(`Application ${endpoint}d`)
+      }
       await onRefresh()
     } catch (err) {
-      addToast(err.message, 'error')
+      if (isApprove && err.name === 'AbortError') {
+        keepLoading = true
+        addToast('Approval is taking longer than expected. Refreshing status…', 'info')
+        setTimeout(async () => {
+          try {
+            const latest = await onRefresh()
+            const bid = latest?.borrower_id || latest?.loandisk_borrower_id
+            if (latest?.status === 'approved' && bid) {
+              addToast(`Application approved · Borrower #${bid}`)
+            } else {
+              addToast('Status unchanged. Retrying may create a duplicate borrower — verify in Loandisk before retrying.', 'error')
+            }
+          } finally {
+            setActionLoading(false)
+          }
+        }, 5000)
+        return
+      }
+      addToast(err.message || `Failed to ${endpoint}`, 'error')
     } finally {
-      setActionLoading(false)
+      if (!keepLoading) setActionLoading(false)
     }
   }
 
-  const confirmAction = (title, message, label, cls, action) => {
-    setConfirmModal({ title, message, confirmLabel: label, confirmClass: cls, action })
+  const confirmAction = (title, message, label, cls, action, loadingLabel) => {
+    setConfirmModal({ title, message, confirmLabel: label, confirmClass: cls, action, loadingLabel })
   }
 
   const executeConfirm = async () => {
@@ -597,6 +642,8 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
             message={confirmModal.message}
             confirmLabel={confirmModal.confirmLabel}
             confirmClass={confirmModal.confirmClass}
+            loading={actionLoading}
+            loadingLabel={confirmModal.loadingLabel}
             onConfirm={executeConfirm}
             onCancel={() => setConfirmModal(null)}
           />
@@ -634,10 +681,15 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
             {effectiveTier === 'approved' && (
               <div className="flex flex-wrap gap-3">
                 <button
-                  onClick={() => confirmAction('Approve Application', `Are you sure you want to approve this application for ${fullName}?`, 'Approve', 'bg-green hover:bg-green-hover text-white', () => executeAction('approve'))}
+                  onClick={() => confirmAction('Approve Application', `Are you sure you want to approve this application for ${fullName}?`, 'Approve', 'bg-green hover:bg-green-hover text-white', () => executeAction('approve'), 'Approving… up to a minute')}
                   disabled={actionLoading}
-                  className="bg-green hover:bg-green-hover text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
-                >Approve</button>
+                  className="bg-green hover:bg-green-hover text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >{actionLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Approving…
+                  </span>
+                ) : 'Approve'}</button>
                 <button
                   onClick={() => confirmAction('Decline Application', `Are you sure you want to decline this application for ${fullName}?`, 'Decline', 'bg-red-500 hover:bg-red-600 text-white', () => executeAction('decline'))}
                   disabled={actionLoading}
@@ -666,7 +718,8 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
                         'Approve with Adjustments',
                         `Approve with adjusted terms for ${fullName}? ${adjustedAmount ? 'Amount: ₱' + Number(adjustedAmount).toLocaleString() : ''} ${adjustedTerm ? 'Term: ' + adjustedTerm + ' months' : ''}`,
                         'Approve with Adjustments', 'bg-amber-500 hover:bg-amber-600 text-white',
-                        () => executeAction('approve', { adjusted_amount: adjustedAmount ? Number(adjustedAmount) : undefined, adjusted_term: adjustedTerm ? Number(adjustedTerm) : undefined })
+                        () => executeAction('approve', { adjusted_amount: adjustedAmount ? Number(adjustedAmount) : undefined, adjusted_term: adjustedTerm ? Number(adjustedTerm) : undefined }),
+                        'Approving… up to a minute'
                       )
                     }}
                     disabled={actionLoading}
@@ -690,9 +743,9 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
                 >Decline</button>
                 <div className="flex flex-col items-start gap-1">
                   <button
-                    onClick={() => confirmAction('Override: Approve', `Override approval for ${fullName}? This requires supervisor approval.`, 'Override Approve', 'bg-gray-500 hover:bg-gray-600 text-white', () => executeAction('approve', { override: true }))}
+                    onClick={() => confirmAction('Override: Approve', `Override approval for ${fullName}? This requires supervisor approval.`, 'Override Approve', 'bg-gray-500 hover:bg-gray-600 text-white', () => executeAction('approve', { override: true }), 'Approving… up to a minute')}
                     disabled={actionLoading}
-                    className="border border-gray-500 text-gray-400 hover:bg-gray-500/10 font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                    className="border border-gray-500 text-gray-400 hover:bg-gray-500/10 font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >Override Approve</button>
                   <span className="text-xs text-amber-400/70">Override requires supervisor approval</span>
                 </div>
@@ -794,8 +847,10 @@ export default function ApplicationDetail({ id, onBack }) {
 
       setApp(appData)
       setError(null)
+      return appData
     } catch (err) {
       setError(err.message)
+      return null
     } finally {
       setLoading(false)
     }

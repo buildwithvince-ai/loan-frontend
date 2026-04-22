@@ -146,19 +146,22 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
   function handleTransitionConfirm(updatedApp) {
     if (!pendingTransition) return
     const { app, toStage } = pendingTransition
-    // Immediately update local state so card moves
-    setApps((prev) =>
-      prev.map((a) => {
-        const id = a.id || a._id || a.reference_id
-        const targetId = app.id || app._id || app.reference_id
-        if (String(id) === String(targetId)) {
-          return updatedApp?.stage
-            ? { ...a, ...updatedApp }
-            : { ...a, stage: toStage }
-        }
-        return a
-      })
-    )
+    // Only optimistically update when server confirmed (updatedApp is truthy).
+    // Timeout path passes null → rely solely on fetchApps to resolve state.
+    if (updatedApp) {
+      setApps((prev) =>
+        prev.map((a) => {
+          const id = a.id || a._id || a.reference_id
+          const targetId = app.id || app._id || app.reference_id
+          if (String(id) === String(targetId)) {
+            return updatedApp.stage
+              ? { ...a, ...updatedApp }
+              : { ...a, stage: toStage }
+          }
+          return a
+        })
+      )
+    }
     setPendingTransition(null)
     // Re-fetch from server to ensure consistency with backend
     fetchApps()
