@@ -3,6 +3,7 @@ import { STAGE_LABELS } from '../../constants/pipeline'
 import { pipelineFetch } from '../../pages/admin/AdminDashboard'
 
 export default function ReturnModal({ application, onConfirm, onCancel }) {
+  const [reason, setReason] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -21,7 +22,7 @@ export default function ReturnModal({ application, onConfirm, onCancel }) {
         method: 'PATCH',
         body: JSON.stringify({
           to_stage: 'sales_officer',
-          meta: { so_confirmation_requested: true },
+          meta: { so_confirmation_requested: true, return_reason: reason.trim() },
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -63,6 +64,19 @@ export default function ReturnModal({ application, onConfirm, onCancel }) {
             This will send the application to the Sales Officer for client confirmation. The SO will need to confirm or decline before it proceeds to the Approver.
           </p>
 
+          <div>
+            <label className="block text-xs text-muted mb-1.5">
+              Reason for return <span className="text-red-400">*</span>
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              placeholder="Explain why this application is being returned to the Sales Officer..."
+              className="w-full bg-canvas border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-muted/50 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/20 outline-none resize-none transition-colors"
+            />
+          </div>
+
           {error && (
             <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
               <p className="text-red-400 text-sm">{error}</p>
@@ -80,7 +94,7 @@ export default function ReturnModal({ application, onConfirm, onCancel }) {
           </button>
           <button
             onClick={handleConfirm}
-            disabled={loading}
+            disabled={loading || !reason.trim()}
             className="px-5 py-2 rounded-lg text-sm font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {loading ? (

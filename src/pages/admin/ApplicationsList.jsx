@@ -14,6 +14,7 @@ const STATUS_COLORS = {
   pending: 'bg-gray-500/20 text-gray-400',
   approved: 'bg-green/12 text-green/60',
   declined: 'bg-red-500/14 text-red-400/70',
+  pending_sa_confirmation: 'bg-amber-500/14 text-amber-400/70',
 }
 
 function Badge({ label, colorClass }) {
@@ -106,7 +107,9 @@ export default function ApplicationsList({ onReview }) {
   const soNames = [...new Set(apps.map(a => a.assigned_sales_officer_name).filter(Boolean))].sort()
 
   const filtered = apps.filter((app) => {
-    if (statusFilter !== 'all' && app.status !== statusFilter) return false
+    if (statusFilter === 'sa_rejected') {
+      if (!(app.status === 'pending' && app.stage === 'approver' && app.sa_rejection_note)) return false
+    } else if (statusFilter !== 'all' && app.status !== statusFilter) return false
     if (typeFilter !== 'all' && app.loan_type !== typeFilter) return false
     if (soFilter !== 'all') {
       if (soFilter === 'none' && app.assigned_sales_officer_name) return false
@@ -161,6 +164,8 @@ export default function ApplicationsList({ onReview }) {
           <option value="pending">Pending</option>
           <option value="approved">Approved</option>
           <option value="declined">Declined</option>
+          <option value="pending_sa_confirmation">Pending SA Confirmation</option>
+          <option value="sa_rejected">SA Rejected — Awaiting Re-review</option>
         </select>
         <select
           value={typeFilter}
@@ -270,10 +275,15 @@ export default function ApplicationsList({ onReview }) {
                       ) : <span className="text-muted">—</span>}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge
-                        label={app.status || 'pending'}
-                        colorClass={STATUS_COLORS[app.status] || STATUS_COLORS.pending}
-                      />
+                      <div className="flex flex-col gap-1">
+                        <Badge
+                          label={app.status || 'pending'}
+                          colorClass={STATUS_COLORS[app.status] || STATUS_COLORS.pending}
+                        />
+                        {app.sa_rejection_note && app.status === 'pending' && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/14 text-red-400/70">SA Rejected</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-white">
                       {app.assigned_sales_officer_name || <span className="text-muted">—</span>}
@@ -334,6 +344,9 @@ export default function ApplicationsList({ onReview }) {
                     label={app.status || 'pending'}
                     colorClass={STATUS_COLORS[app.status] || STATUS_COLORS.pending}
                   />
+                  {app.sa_rejection_note && app.status === 'pending' && (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/14 text-red-400/70">SA Rejected</span>
+                  )}
                   <Badge
                     label={hasCi ? 'CI Done' : 'Awaiting CI'}
                     colorClass={hasCi ? 'bg-blue/20 text-blue' : 'bg-gray-500/20 text-gray-400'}

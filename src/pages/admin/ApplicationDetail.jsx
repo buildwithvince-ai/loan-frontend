@@ -4,6 +4,7 @@ import { normalizeFinScore, computeFinalFromCiTotal, getTier, getNextTierHint, T
 import CiScoringForm, { CiFormReadOnly } from './CiScoringForm'
 import { useAuth } from '../../context/AuthContext'
 import useSalesOfficers from '../../hooks/useSalesOfficers'
+import { calcLoanSummary, fmtCurrency, defaultSchemeId, PAYMENT_SCHEMES, PAYMENT_SCHEME_LABELS, SCHEME_SUFFIX } from '../../lib/loanCalculations'
 
 // --- Shared UI components ---
 
@@ -330,6 +331,10 @@ function ApplicationSummary({ app, appId, onViewDocuments, onRefresh }) {
             <FieldCard label="Amount" value={formatCurrency(app.loan_amount || app.amount)} />
             <FieldCard label="Term" value={getField(app, 'term', 'loan_term') ? `${getField(app, 'term', 'loan_term')} months` : null} />
             <FieldCard label="Purpose" value={getField(app, 'loan_purpose', 'loanPurpose', 'purpose')} />
+            <FieldCard label="Application Type" value={app.application_category === 'renewal' ? 'Renewal' : 'New'} />
+            {app.application_category === 'renewal' && app.linked_borrower_id && (
+              <FieldCard label="Linked Borrower ID" value={app.linked_borrower_id} />
+            )}
           </div>
         </div>
 
@@ -568,14 +573,97 @@ function FinScoreSection({ finscoreRaw, finscoreNorm }) {
 
 // --- Section 4: Decision ---
 
+function LoanSummaryPanel({ principal, durationMonths, ratePercent, schemeId, loanType }) {
+  const summary = calcLoanSummary(principal, durationMonths, ratePercent, schemeId, loanType)
+  const suffix = SCHEME_SUFFIX[schemeId] || '/ month'
+  const schemeLabel = PAYMENT_SCHEME_LABELS[schemeId] || '—'
+  return (
+    <div className="bg-canvas border border-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border/60">
+        <p className="text-muted text-xs font-semibold uppercase tracking-wide">Loan Summary</p>
+      </div>
+      <div className="px-4 py-3 space-y-1.5 text-sm">
+        <div className="flex justify-between">
+          <span className="text-muted">Principal</span>
+          <span className="text-white font-medium">{fmtCurrency(principal)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted">Service Processing Fee (5%)</span>
+          <span className="text-white">{fmtCurrency(summary.serviceFee)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted">Insurance Charges (1%)</span>
+          <span className="text-white">{fmtCurrency(summary.insuranceFee)}</span>
+        </div>
+        <div className="border-t border-border/50 pt-1.5 flex justify-between">
+          <span className="text-muted">Net Disbursement to Borrower</span>
+          <span className="text-green font-semibold">{fmtCurrency(summary.netDisbursement)}</span>
+        </div>
+        <div className="pt-1 flex justify-between">
+          <span className="text-muted">Total Interest</span>
+          <span className="text-white">{fmtCurrency(summary.totalInterest)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted">Total Repayment</span>
+          <span className="text-white font-medium">{fmtCurrency(summary.totalRepayment)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted">Number of Repayments</span>
+          <span className="text-white">{summary.numRepayments} ({schemeLabel})</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted">Repayment Amount</span>
+          <span className="text-blue/80 font-semibold">{fmtCurrency(summary.repaymentAmount)} {suffix}</span>
+        </div>
+        {summary.isAkapCapped && (
+          <p className="text-amber-400/70 text-xs pt-1">AKAP loans are capped at 24 weekly repayments.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, onRefresh }) {
-  const [adjustedAmount, setAdjustedAmount] = useState(String(app.loan_amount || app.amount || ''))
-  const [adjustedTerm, setAdjustedTerm] = useState('')
+  const loanType = (app.loan_type || '').toLowerCase()
+  const originalAmount = app.loan_amount || app.amount || ''
+  const originalTerm = app.loan_term || app.term || ''
+  const originalInterestRate = app.interest_rate || 5
+  const originalSchemeId = app.payment_scheme_id || defaultSchemeId(loanType)
+
+  const [adjustedAmount, setAdjustedAmount] = useState(String(originalAmount))
+  const [adjustedTerm, setAdjustedTerm] = useState(String(originalTerm))
+  const [interestRate, setInterestRate] = useState(5)
+  const [schemeId, setSchemeId] = useState(defaultSchemeId(loanType))
+  const [discountReason, setDiscountReason] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [actionLoading, setActionLoading] = useState(false)
   const [confirmModal, setConfirmModal] = useState(null)
   const addToast = useToast()
   const fullName = `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.trim()
   const isDecided = app.status !== 'pending'
+  const isAkap = loanType === 'akap'
+
+  const availableSchemes = isAkap
+    ? PAYMENT_SCHEMES.filter(s => s.id === 3413)
+    : PAYMENT_SCHEMES.filter(s => s.id !== 3413)
+
+  const hasDiff = () => {
+    const amtChanged = adjustedAmount && Number(adjustedAmount) !== Number(originalAmount)
+    const termChanged = adjustedTerm && Number(adjustedTerm) !== Number(originalTerm)
+    const rateChanged = interestRate !== originalInterestRate
+    const schemeChanged = schemeId !== originalSchemeId
+    return amtChanged || termChanged || rateChanged || schemeChanged
+  }
+
+  const validateFields = () => {
+    const e = {}
+    if (!adjustedAmount || Number(adjustedAmount) <= 0) e.amount = 'Enter a valid loan amount'
+    const term = Number(adjustedTerm)
+    if (!term || term < 3 || term > 24) e.term = 'Duration must be between 3 and 24 months'
+    if (interestRate < 3 || interestRate > 5) e.rate = 'Rate must be between 3% and 5%'
+    if (interestRate < 5 && discountReason.trim().length < 10) e.discountReason = 'Discount reason required (min 10 characters)'
+    return e
+  }
 
   const executeAction = async (endpoint, body = {}) => {
     if (actionLoading) return
@@ -631,7 +719,153 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
     setConfirmModal(null)
   }
 
+  const handleApprove = () => {
+    const errs = validateFields()
+    if (Object.keys(errs).length > 0) { setFieldErrors(errs); return }
+    setFieldErrors({})
+    const approveBody = {
+      adjusted_amount: Number(adjustedAmount),
+      adjusted_term: Number(adjustedTerm),
+      interest_rate: interestRate,
+      payment_scheme_id: schemeId,
+      discount_reason: interestRate < 5 ? discountReason.trim() : null,
+    }
+    if (hasDiff()) {
+      const parts = []
+      if (Number(adjustedAmount) !== Number(originalAmount)) parts.push(`Amount: ${formatCurrency(Number(originalAmount))} → ${formatCurrency(Number(adjustedAmount))}`)
+      if (Number(adjustedTerm) !== Number(originalTerm)) parts.push(`Term: ${originalTerm} mo → ${adjustedTerm} mo`)
+      if (interestRate !== originalInterestRate) parts.push(`Rate: ${originalInterestRate}% → ${interestRate}%`)
+      if (schemeId !== originalSchemeId) parts.push(`Scheme: ${PAYMENT_SCHEME_LABELS[originalSchemeId]} → ${PAYMENT_SCHEME_LABELS[schemeId]}`)
+      confirmAction(
+        'Modified Loan Terms',
+        `You've changed the SA's original terms (${parts.join(' | ')}). Approving will send this back to the SA for confirmation.`,
+        'Confirm & Send to SA',
+        'bg-amber-500 hover:bg-amber-600 text-white',
+        () => executeAction('approve', approveBody),
+        'Sending to SA…'
+      )
+    } else {
+      confirmAction(
+        'Approve Application',
+        `Are you sure you want to approve this application for ${fullName}?`,
+        'Approve',
+        'bg-green hover:bg-green-hover text-white',
+        () => executeAction('approve', approveBody),
+        'Approving… up to a minute'
+      )
+    }
+  }
+
   const inputCls = 'w-full bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-white text-sm focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none'
+  const inputErrCls = 'w-full bg-surface-alt border border-red-500/50 rounded-lg px-4 py-2.5 text-white text-sm focus:border-red-400/50 focus:ring-1 focus:ring-red-400/20 outline-none'
+
+  const LoanTermsFields = ({ requireAmount = false }) => (
+    <div className="space-y-4">
+      {/* Amount + Term */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="text-muted text-xs block mb-1.5">Loan Amount (₱)</label>
+          <input
+            type="number"
+            value={adjustedAmount}
+            onChange={(e) => { setAdjustedAmount(e.target.value); setFieldErrors(prev => ({ ...prev, amount: undefined })) }}
+            className={fieldErrors.amount ? inputErrCls : inputCls}
+            placeholder={requireAmount ? 'e.g. 20000' : undefined}
+          />
+          {fieldErrors.amount && <p className="text-red-400 text-xs mt-1">{fieldErrors.amount}</p>}
+        </div>
+        <div>
+          <label className="text-muted text-xs block mb-1.5">Loan Duration (Months)</label>
+          <input
+            type="number"
+            min={3}
+            max={24}
+            step={1}
+            value={adjustedTerm}
+            onChange={(e) => { setAdjustedTerm(e.target.value); setFieldErrors(prev => ({ ...prev, term: undefined })) }}
+            className={fieldErrors.term ? inputErrCls : inputCls}
+            placeholder={requireAmount ? 'e.g. 6' : undefined}
+          />
+          <p className="text-muted text-xs mt-1">Between 3 and 24 months.</p>
+          {fieldErrors.term && <p className="text-red-400 text-xs mt-0.5">{fieldErrors.term}</p>}
+        </div>
+      </div>
+
+      {/* Payment Scheme + Interest Rate */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="text-muted text-xs block mb-1.5">Payment Scheme</label>
+          <select
+            value={schemeId}
+            onChange={(e) => setSchemeId(Number(e.target.value))}
+            disabled={isAkap}
+            className={`${inputCls} disabled:opacity-60 disabled:cursor-not-allowed appearance-none`}
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}
+          >
+            {availableSchemes.map(s => (
+              <option key={s.id} value={s.id}>{s.label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-muted text-xs block mb-1.5">Interest Rate (% per month)</label>
+          <input
+            type="number"
+            min={3}
+            max={5}
+            step={0.25}
+            value={interestRate}
+            onChange={(e) => {
+              const val = Number(e.target.value)
+              setInterestRate(val)
+              if (val >= 5) setDiscountReason('')
+              setFieldErrors(prev => ({ ...prev, rate: undefined, discountReason: undefined }))
+            }}
+            className={fieldErrors.rate ? inputErrCls : inputCls}
+          />
+          <p className="text-muted text-xs mt-1">Standard rate is 5%. Lower rates require a discount reason.</p>
+          {fieldErrors.rate && <p className="text-red-400 text-xs mt-0.5">{fieldErrors.rate}</p>}
+        </div>
+      </div>
+
+      {/* Discount Reason */}
+      {interestRate < 5 && (
+        <div>
+          <label className="text-muted text-xs block mb-1.5">
+            Discount Reason <span className="text-red-400">*</span>
+          </label>
+          <textarea
+            value={discountReason}
+            onChange={(e) => { setDiscountReason(e.target.value); setFieldErrors(prev => ({ ...prev, discountReason: undefined })) }}
+            rows={3}
+            maxLength={500}
+            placeholder="e.g., Borrower is SBL group treasurer / Barangay Captain endorsement / Group leader discount"
+            className={`w-full rounded-lg px-4 py-2.5 text-white text-sm bg-surface-alt border resize-none outline-none focus:ring-1 transition-colors ${
+              fieldErrors.discountReason
+                ? 'border-red-500/50 focus:border-red-400/50 focus:ring-red-400/20'
+                : 'border-border focus:border-green/50 focus:ring-green/30'
+            }`}
+          />
+          <div className="flex justify-between mt-1">
+            {fieldErrors.discountReason
+              ? <p className="text-red-400 text-xs">{fieldErrors.discountReason}</p>
+              : <span />
+            }
+            <p className="text-muted text-xs">{discountReason.length}/500</p>
+          </div>
+        </div>
+      )}
+
+      {/* Loan Summary */}
+      <LoanSummaryPanel
+        principal={Number(adjustedAmount) || 0}
+        durationMonths={Number(adjustedTerm) || 0}
+        ratePercent={interestRate}
+        schemeId={schemeId}
+        loanType={loanType}
+      />
+    </div>
+  )
 
   return (
     <Section title="Section 4 — Decision">
@@ -653,21 +887,42 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
         {isDecided ? (
           <div className="space-y-4">
             <div className={`border rounded-lg p-4 ${
-              app.status === 'approved' ? 'bg-green/6 border-green/18' : 'bg-red-500/7 border-red-500/21'
+              app.status === 'approved' ? 'bg-green/6 border-green/18'
+              : app.status === 'pending_sa_confirmation' ? 'bg-amber-500/7 border-amber-500/21'
+              : 'bg-red-500/7 border-red-500/21'
             }`}>
-              <p className={`text-lg font-bold ${app.status === 'approved' ? 'text-green/60' : 'text-red-400/70'}`}>
-                {app.status === 'approved' ? 'APPROVED' : 'DECLINED'}
+              <p className={`text-lg font-bold ${
+                app.status === 'approved' ? 'text-green/60'
+                : app.status === 'pending_sa_confirmation' ? 'text-amber-400/70'
+                : 'text-red-400/70'
+              }`}>
+                {app.status === 'approved' ? 'APPROVED'
+                  : app.status === 'pending_sa_confirmation' ? 'PENDING SA CONFIRMATION'
+                  : 'DECLINED'}
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Field label="Final Score" value={effectiveFinal != null ? `${effectiveFinal} / 100` : '—'} />
               <Field label="Tier" value={<Badge label={tierConfig.label} colorClass={tierConfig.badgeClass} />} />
-              <Field label="Status" value={<Badge label={app.status} colorClass={app.status === 'approved' ? 'bg-green/12 text-green/60' : 'bg-red-500/14 text-red-400/70'} />} />
+              <Field label="Status" value={<Badge
+                label={app.status === 'pending_sa_confirmation' ? 'Pending SA Confirmation' : app.status}
+                colorClass={
+                  app.status === 'approved' ? 'bg-green/12 text-green/60'
+                  : app.status === 'pending_sa_confirmation' ? 'bg-amber-500/14 text-amber-400/70'
+                  : 'bg-red-500/14 text-red-400/70'
+                }
+              />} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {app.reviewed_by && <Field label="Reviewed By" value={app.reviewed_by} />}
               {app.reviewed_at && <Field label="Reviewed At" value={formatDate(app.reviewed_at)} />}
               {app.borrower_id && <Field label="Loandisk Borrower ID" value={app.borrower_id} />}
+              {app.status === 'pending_sa_confirmation' && app.approver_proposed_amount && (
+                <Field label="Proposed Amount" value={formatCurrency(app.approver_proposed_amount)} />
+              )}
+              {app.status === 'pending_sa_confirmation' && app.approver_proposed_term && (
+                <Field label="Proposed Term" value={`${app.approver_proposed_term} months`} />
+              )}
             </div>
           </div>
         ) : (
@@ -679,52 +934,82 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
 
             {/* Tier-specific actions */}
             {effectiveTier === 'approved' && (
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => confirmAction('Approve Application', `Are you sure you want to approve this application for ${fullName}?`, 'Approve', 'bg-green hover:bg-green-hover text-white', () => executeAction('approve'), 'Approving… up to a minute')}
-                  disabled={actionLoading}
-                  className="bg-green hover:bg-green-hover text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >{actionLoading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Approving…
-                  </span>
-                ) : 'Approve'}</button>
-                <button
-                  onClick={() => confirmAction('Decline Application', `Are you sure you want to decline this application for ${fullName}?`, 'Decline', 'bg-red-500 hover:bg-red-600 text-white', () => executeAction('decline'))}
-                  disabled={actionLoading}
-                  className="border border-red-500 text-red-400 hover:bg-red-500/10 font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
-                >Decline</button>
+              <div className="space-y-5">
+                {/* Original values */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-surface-alt/50 rounded-lg">
+                  <div>
+                    <p className="text-muted text-xs mb-0.5">SA Original Amount</p>
+                    <p className="text-white text-sm font-medium">{formatCurrency(originalAmount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted text-xs mb-0.5">SA Original Term</p>
+                    <p className="text-white text-sm font-medium">{originalTerm ? `${originalTerm} months` : '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted text-xs mb-0.5">Original Rate</p>
+                    <p className="text-white text-sm font-medium">{originalInterestRate}%</p>
+                  </div>
+                  <div>
+                    <p className="text-muted text-xs mb-0.5">Original Scheme</p>
+                    <p className="text-white text-sm font-medium">{PAYMENT_SCHEME_LABELS[originalSchemeId] || '—'}</p>
+                  </div>
+                </div>
+
+                <LoanTermsFields />
+
+                {hasDiff() && (
+                  <div className="flex items-start gap-2 p-3 bg-amber-500/7 border border-amber-500/21 rounded-lg">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-amber-400 shrink-0 mt-0.5">
+                      <path d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <p className="text-amber-400/70 text-xs">
+                      Terms differ from SA's original. Approving will send back to SA for confirmation before proceeding to Loandisk.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={handleApprove}
+                    disabled={actionLoading}
+                    className={`font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      hasDiff()
+                        ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                        : 'bg-green hover:bg-green-hover text-white'
+                    }`}
+                  >
+                    {actionLoading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Processing…
+                      </span>
+                    ) : hasDiff() ? 'Approve with Modified Terms' : 'Approve'}
+                  </button>
+                  <button
+                    onClick={() => confirmAction('Decline Application', `Are you sure you want to decline this application for ${fullName}?`, 'Decline', 'bg-red-500 hover:bg-red-600 text-white', () => executeAction('decline'))}
+                    disabled={actionLoading}
+                    className="border border-red-500 text-red-400 hover:bg-red-500/10 font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                  >Decline</button>
+                </div>
               </div>
             )}
 
             {effectiveTier === 'tier_b' && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-muted text-xs block mb-1.5">Adjusted Amount (₱)</label>
-                    <input type="number" value={adjustedAmount} onChange={(e) => setAdjustedAmount(e.target.value)} className={inputCls} placeholder="e.g. 20000" />
-                  </div>
-                  <div>
-                    <label className="text-muted text-xs block mb-1.5">Adjusted Term (months)</label>
-                    <input type="number" value={adjustedTerm} onChange={(e) => setAdjustedTerm(e.target.value)} className={inputCls} placeholder="e.g. 6" />
-                  </div>
-                </div>
+              <div className="space-y-5">
+                <LoanTermsFields requireAmount />
                 <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={() => {
-                      if (!adjustedAmount && !adjustedTerm) { addToast('Enter adjusted amount or term', 'error'); return }
-                      confirmAction(
-                        'Approve with Adjustments',
-                        `Approve with adjusted terms for ${fullName}? ${adjustedAmount ? 'Amount: ₱' + Number(adjustedAmount).toLocaleString() : ''} ${adjustedTerm ? 'Term: ' + adjustedTerm + ' months' : ''}`,
-                        'Approve with Adjustments', 'bg-amber-500 hover:bg-amber-600 text-white',
-                        () => executeAction('approve', { adjusted_amount: adjustedAmount ? Number(adjustedAmount) : undefined, adjusted_term: adjustedTerm ? Number(adjustedTerm) : undefined }),
-                        'Approving… up to a minute'
-                      )
-                    }}
+                    onClick={handleApprove}
                     disabled={actionLoading}
                     className="bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
-                  >Approve with Adjustments</button>
+                  >
+                    {actionLoading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Processing…
+                      </span>
+                    ) : 'Approve with Adjustments'}
+                  </button>
                   <button
                     onClick={() => confirmAction('Decline Application', `Are you sure you want to decline this application for ${fullName}?`, 'Decline', 'bg-red-500 hover:bg-red-600 text-white', () => executeAction('decline'))}
                     disabled={actionLoading}
@@ -755,6 +1040,186 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
         )}
       </div>
     </Section>
+  )
+}
+
+// --- SA Confirmation Banner ---
+
+function SaConfirmationBanner({ app, id, onRefresh }) {
+  const [rejectMode, setRejectMode] = useState(false)
+  const [rejectNote, setRejectNote] = useState('')
+  const [loading, setLoading] = useState(false)
+  const addToast = useToast()
+
+  const originalAmount = app.loan_amount || app.amount
+  const originalTerm = app.loan_term || app.term
+  const originalRate = app.interest_rate || 5
+  const originalScheme = app.payment_scheme_id || defaultSchemeId(app.loan_type || '')
+  const proposedAmount = app.approver_proposed_amount
+  const proposedTerm = app.approver_proposed_term
+  const proposedRate = app.approver_proposed_interest_rate
+  const proposedScheme = app.approver_proposed_payment_scheme_id
+
+  const amountDiff = proposedAmount && Number(proposedAmount) !== Number(originalAmount)
+  const termDiff = proposedTerm && Number(proposedTerm) !== Number(originalTerm)
+  const rateDiff = proposedRate != null && Number(proposedRate) !== Number(originalRate)
+  const schemeDiff = proposedScheme != null && Number(proposedScheme) !== Number(originalScheme)
+
+  const handleConfirm = async () => {
+    setLoading(true)
+    try {
+      const res = await adminFetch(`/applications/${id}/confirm-terms`, { method: 'PATCH' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.message || data.error || 'Failed to confirm')
+      addToast('Terms confirmed — proceeding to Loandisk')
+      await onRefresh()
+    } catch (err) {
+      addToast(err.message, 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleReject = async () => {
+    if (!rejectNote.trim()) return
+    setLoading(true)
+    try {
+      const res = await adminFetch(`/applications/${id}/reject-terms`, {
+        method: 'PATCH',
+        body: JSON.stringify({ note: rejectNote.trim() }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.message || data.error || 'Failed to reject')
+      addToast('Changes rejected — application returned to approver')
+      await onRefresh()
+    } catch (err) {
+      addToast(err.message, 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="bg-amber-500/7 border border-amber-500/30 rounded-xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-amber-500/20 flex items-center gap-2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-amber-400 shrink-0">
+          <path d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <h3 className="text-amber-400 font-semibold text-sm">Approver Modified Loan Terms — SA Confirmation Required</h3>
+      </div>
+
+      <div className="px-5 pb-5 pt-4 space-y-4">
+        {/* Diff table */}
+        <div className="overflow-hidden rounded-lg border border-amber-500/20">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-amber-500/20">
+                <th className="text-left px-3 py-2 text-muted text-xs font-medium w-24">Field</th>
+                <th className="text-left px-3 py-2 text-muted text-xs font-medium">Original (SA)</th>
+                <th className="text-left px-3 py-2 text-amber-400/70 text-xs font-medium">Proposed (Approver)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {amountDiff && (
+                <tr className="border-b border-amber-500/10 last:border-0">
+                  <td className="px-3 py-2 text-muted text-xs">Amount</td>
+                  <td className="px-3 py-2 text-white">{formatCurrency(originalAmount)}</td>
+                  <td className="px-3 py-2 text-amber-400 font-medium">{formatCurrency(proposedAmount)}</td>
+                </tr>
+              )}
+              {termDiff && (
+                <tr className="border-b border-amber-500/10 last:border-0">
+                  <td className="px-3 py-2 text-muted text-xs">Term</td>
+                  <td className="px-3 py-2 text-white">{originalTerm} months</td>
+                  <td className="px-3 py-2 text-amber-400 font-medium">{proposedTerm} months</td>
+                </tr>
+              )}
+              {rateDiff && (
+                <tr className="border-b border-amber-500/10 last:border-0">
+                  <td className="px-3 py-2 text-muted text-xs">Rate</td>
+                  <td className="px-3 py-2 text-white">{originalRate}%</td>
+                  <td className="px-3 py-2 text-amber-400 font-medium">{proposedRate}%</td>
+                </tr>
+              )}
+              {schemeDiff && (
+                <tr className="border-b border-amber-500/10 last:border-0">
+                  <td className="px-3 py-2 text-muted text-xs">Scheme</td>
+                  <td className="px-3 py-2 text-white">{PAYMENT_SCHEME_LABELS[originalScheme] || '—'}</td>
+                  <td className="px-3 py-2 text-amber-400 font-medium">{PAYMENT_SCHEME_LABELS[proposedScheme] || '—'}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {app.discount_reason && (
+          <div className="p-3 bg-canvas border border-amber-500/20 rounded-lg">
+            <p className="text-muted text-xs mb-0.5">Discount reason from approver:</p>
+            <p className="text-white text-sm">{app.discount_reason}</p>
+          </div>
+        )}
+
+        {rejectMode ? (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs text-muted mb-1.5">
+                Reason for rejection <span className="text-red-400">*</span>
+              </label>
+              <textarea
+                value={rejectNote}
+                onChange={(e) => setRejectNote(e.target.value)}
+                rows={3}
+                placeholder="Explain why you're rejecting the approver's modified terms..."
+                className="w-full bg-canvas border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-muted/50 focus:border-red-400/50 focus:ring-1 focus:ring-red-400/20 outline-none resize-none transition-colors"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleReject}
+                disabled={loading || !rejectNote.trim()}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Rejecting…
+                  </span>
+                ) : 'Confirm Rejection'}
+              </button>
+              <button
+                onClick={() => { setRejectMode(false); setRejectNote('') }}
+                disabled={loading}
+                className="px-4 py-2 text-sm text-muted hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleConfirm}
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-green hover:bg-green-hover text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Confirming…
+                </span>
+              ) : 'Confirm Changes'}
+            </button>
+            <button
+              onClick={() => setRejectMode(true)}
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium rounded-lg border border-red-500/50 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+            >
+              Reject Changes
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -970,6 +1435,30 @@ export default function ApplicationDetail({ id, onBack }) {
               )}
             </div>
           </Section>
+        )}
+
+        {/* SA rejection note — shown to approver when SA sent terms back */}
+        {app.sa_rejection_note && app.status === 'pending' && app.stage === 'approver' && (
+          <div className="bg-red-500/7 border border-red-500/30 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-red-500/20 flex items-center gap-2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-red-400 shrink-0">
+                <path d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <h3 className="text-red-400 font-semibold text-sm">SA Rejected Modified Terms — Re-review Required</h3>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-muted text-xs mb-1">Rejection reason from Sales Officer:</p>
+              <p className="text-white text-sm">{app.sa_rejection_note}</p>
+              {app.sa_rejection_at && (
+                <p className="text-muted text-xs mt-2">{formatDate(app.sa_rejection_at)}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* SA Confirmation Banner — shown to SA when approver has modified terms */}
+        {app.status === 'pending_sa_confirmation' && (
+          <SaConfirmationBanner app={app} id={id} onRefresh={fetchApp} />
         )}
 
         {/* SECTION 4 — Decision */}

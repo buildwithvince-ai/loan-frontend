@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import useSalesOfficers from '../hooks/useSalesOfficers'
+import BorrowerLookup from '../components/BorrowerLookup'
 
 const TOTAL_STEPS = 8
 
@@ -38,6 +39,8 @@ const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 
 const initialForm = {
+  application_category: 'new',
+  linked_borrower: null,
   salesOfficerId: '',
   loanAmount: 5000, paymentTerm: 3, purpose: '',
   businessName: '', businessType: '', dtiNumber: '', dateEstablished: '',
@@ -137,6 +140,7 @@ export default function AkapLoanForm() {
     const e = {}
 
     if (step === 1) {
+      if (form.application_category === 'renewal' && !form.linked_borrower) e.linked_borrower = 'Select an existing borrower to link this renewal'
       if (!form.salesOfficerId) e.salesOfficerId = 'Please select your Sales Officer'
       if (!form.purpose) e.purpose = 'Purpose is required'
     }
@@ -212,9 +216,13 @@ export default function AkapLoanForm() {
     try {
       const fd = new FormData()
       fd.append('loanType', 'akap')
+      fd.append('application_category', form.application_category)
+      if (form.application_category === 'renewal' && form.linked_borrower) {
+        fd.append('linked_borrower_id', form.linked_borrower.loandisk_borrower_id || form.linked_borrower.id)
+      }
       const keyMap = { presentBarangay: 'barangay', monthlyGrossRevenue: 'monthlyIncome', salesOfficerId: 'sales_officer_id' }
       Object.entries(form).forEach(([k, v]) => {
-        if (k !== 'confirmAccurate' && k !== 'agreeTerms' && k !== 'sameAsPresent' && k !== 'addCoBorrower') fd.append(keyMap[k] || k, v)
+        if (k !== 'confirmAccurate' && k !== 'agreeTerms' && k !== 'sameAsPresent' && k !== 'addCoBorrower' && k !== 'application_category' && k !== 'linked_borrower') fd.append(keyMap[k] || k, v)
       })
       Object.entries(docs).forEach(([k, file]) => fd.append(k, file, file.name))
       const res = await fetch('https://loan-backend-production-cd45.up.railway.app/api/application/submit', { method: 'POST', body: fd })
@@ -328,6 +336,39 @@ function Step1({ form, set, errors, officers, soLoading, soError, soRetry }) {
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-green mb-1">Loan Details</h2>
       <p className="text-muted text-sm mb-4">How much funding do you need?</p>
+
+      {/* Application Type */}
+      <div>
+        <label className="block text-sm font-medium text-white mb-2">Application Type</label>
+        <div className="flex rounded-xl border border-border overflow-hidden">
+          {[['new', 'New Loan'], ['renewal', 'Renewal']].map(([val, label]) => (
+            <button
+              key={val}
+              type="button"
+              onClick={() => set('application_category', val)}
+              className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                form.application_category === val
+                  ? 'bg-green text-white'
+                  : 'bg-surface-alt text-muted hover:text-white'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Borrower Lookup (renewal only) */}
+      {form.application_category === 'renewal' && (
+        <div>
+          <label className="block text-sm font-medium text-white mb-1.5">
+            Link Existing Borrower <span className="text-red-400">*</span>
+          </label>
+          <p className="text-muted text-xs mb-2">Search for the borrower's existing record to avoid duplicate entries.</p>
+          <BorrowerLookup value={form.linked_borrower} onChange={(b) => set('linked_borrower', b)} />
+          {errors.linked_borrower && <p className="text-red-400 text-xs mt-1">{errors.linked_borrower}</p>}
+        </div>
+      )}
 
       {/* Sales Officer Selection */}
       <div className="mb-6">

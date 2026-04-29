@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import useSalesOfficers from '../hooks/useSalesOfficers'
+import BorrowerLookup from '../components/BorrowerLookup'
 
 const TOTAL_STEPS = 3
 
@@ -125,6 +126,8 @@ function FieldError({ message }) {
 
 export default function GroupLoanForm() {
   const [step, setStep] = useState(1)
+  const [applicationCategory, setApplicationCategory] = useState('new')
+  const [linkedBorrower, setLinkedBorrower] = useState(null)
   const [salesOfficerId, setSalesOfficerId] = useState('')
   const { officers, loading: soLoading, error: soError, retry: soRetry } = useSalesOfficers()
   const [loanTerm, setLoanTerm] = useState(3)
@@ -206,6 +209,7 @@ export default function GroupLoanForm() {
     const e = {}
 
     if (step === 1) {
+      if (applicationCategory === 'renewal' && !linkedBorrower) e.linked_borrower = 'Select an existing borrower to link this renewal'
       if (!salesOfficerId) e.salesOfficerId = 'Please select your Sales Officer'
       if (memberCount < 5) e.memberCount = 'Minimum 5 members required'
     }
@@ -298,6 +302,10 @@ export default function GroupLoanForm() {
 
       const fd = new FormData()
       fd.append('loanType', 'group')
+      fd.append('application_category', applicationCategory)
+      if (applicationCategory === 'renewal' && linkedBorrower) {
+        fd.append('linked_borrower_id', linkedBorrower.loandisk_borrower_id || linkedBorrower.id)
+      }
       fd.append('sales_officer_id', salesOfficerId)
       fd.append('groupName', autoGroupName)
       fd.append('totalLoanAmount', totalAmount)
@@ -443,6 +451,39 @@ export default function GroupLoanForm() {
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-green mb-1">Group Details</h2>
               <p className="text-muted text-sm mb-4">Set up your group loan parameters.</p>
+
+              {/* Application Type */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Application Type</label>
+                <div className="flex rounded-xl border border-border overflow-hidden">
+                  {[['new', 'New Loan'], ['renewal', 'Renewal']].map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => { setApplicationCategory(val); setErrors(prev => ({ ...prev, linked_borrower: undefined })) }}
+                      className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                        applicationCategory === val
+                          ? 'bg-green text-white'
+                          : 'bg-surface-alt text-muted hover:text-white'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Borrower Lookup (renewal only) */}
+              {applicationCategory === 'renewal' && (
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1.5">
+                    Link Existing Borrower <span className="text-red-400">*</span>
+                  </label>
+                  <p className="text-muted text-xs mb-2">Search for the borrower's existing record to avoid duplicate entries.</p>
+                  <BorrowerLookup value={linkedBorrower} onChange={setLinkedBorrower} />
+                  {errors.linked_borrower && <p className="text-red-400 text-xs mt-1">{errors.linked_borrower}</p>}
+                </div>
+              )}
 
               {/* Sales Officer Selection */}
               <div className="mb-6">
