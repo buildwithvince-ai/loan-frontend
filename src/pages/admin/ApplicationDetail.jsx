@@ -55,13 +55,37 @@ function Badge({ label, colorClass }) {
   )
 }
 
-function ConfirmModal({ title, message, confirmLabel, confirmClass, onConfirm, onCancel, loading, loadingLabel }) {
+function ConfirmModal({ title, message, confirmLabel, confirmClass, onConfirm, onCancel, loading, loadingLabel, requiresReason }) {
+  const [reason, setReason] = useState('')
+  const MIN_REASON = 10
+  const reasonValid = reason.trim().length >= MIN_REASON
+  const canConfirm = !loading && (!requiresReason || reasonValid)
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/60" onClick={loading ? undefined : onCancel} />
       <div className="relative bg-surface border border-border rounded-xl p-6 max-w-md w-full">
         <h3 className="text-white font-bold text-lg mb-2">{title}</h3>
-        <p className="text-muted text-sm mb-6">{message}</p>
+        <p className="text-muted text-sm mb-4">{message}</p>
+        {requiresReason && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-white mb-2">
+              Reason for Declining <span className="text-red-400">*</span>
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={4}
+              disabled={loading}
+              placeholder="Provide a clear reason (min 10 characters)…"
+              className="w-full px-3 py-2 bg-surface-alt border border-border rounded-lg text-white text-sm placeholder:text-muted/60 focus:outline-none focus:border-red-500 disabled:opacity-50 resize-none"
+            />
+            <div className="flex justify-end mt-1">
+              <span className={`text-xs ${reasonValid ? 'text-muted' : 'text-amber-400/70'}`}>
+                {reason.trim().length}/{MIN_REASON} characters
+              </span>
+            </div>
+          </div>
+        )}
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
@@ -71,8 +95,8 @@ function ConfirmModal({ title, message, confirmLabel, confirmClass, onConfirm, o
             Cancel
           </button>
           <button
-            onClick={onConfirm}
-            disabled={loading}
+            onClick={() => onConfirm(requiresReason ? reason.trim() : undefined)}
+            disabled={!canConfirm}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${confirmClass}`}
           >
             {loading ? (
@@ -710,12 +734,12 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
     }
   }
 
-  const confirmAction = (title, message, label, cls, action, loadingLabel) => {
-    setConfirmModal({ title, message, confirmLabel: label, confirmClass: cls, action, loadingLabel })
+  const confirmAction = (title, message, label, cls, action, loadingLabel, requiresReason = false) => {
+    setConfirmModal({ title, message, confirmLabel: label, confirmClass: cls, action, loadingLabel, requiresReason })
   }
 
-  const executeConfirm = async () => {
-    if (confirmModal?.action) await confirmModal.action()
+  const executeConfirm = async (reason) => {
+    if (confirmModal?.action) await confirmModal.action(reason)
     setConfirmModal(null)
   }
 
@@ -878,6 +902,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
             confirmClass={confirmModal.confirmClass}
             loading={actionLoading}
             loadingLabel={confirmModal.loadingLabel}
+            requiresReason={confirmModal.requiresReason}
             onConfirm={executeConfirm}
             onCancel={() => setConfirmModal(null)}
           />
@@ -986,7 +1011,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
                     ) : hasDiff() ? 'Approve with Modified Terms' : 'Approve'}
                   </button>
                   <button
-                    onClick={() => confirmAction('Decline Application', `Are you sure you want to decline this application for ${fullName}?`, 'Decline', 'bg-red-500 hover:bg-red-600 text-white', () => executeAction('decline'))}
+                    onClick={() => confirmAction('Decline Application', `Are you sure you want to decline this application for ${fullName}?`, 'Decline', 'bg-red-500 hover:bg-red-600 text-white', (reason) => executeAction('decline', { decline_reason: reason }), undefined, true)}
                     disabled={actionLoading}
                     className="border border-red-500 text-red-400 hover:bg-red-500/10 font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
                   >Decline</button>
@@ -1011,7 +1036,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
                     ) : 'Approve with Adjustments'}
                   </button>
                   <button
-                    onClick={() => confirmAction('Decline Application', `Are you sure you want to decline this application for ${fullName}?`, 'Decline', 'bg-red-500 hover:bg-red-600 text-white', () => executeAction('decline'))}
+                    onClick={() => confirmAction('Decline Application', `Are you sure you want to decline this application for ${fullName}?`, 'Decline', 'bg-red-500 hover:bg-red-600 text-white', (reason) => executeAction('decline', { decline_reason: reason }), undefined, true)}
                     disabled={actionLoading}
                     className="border border-red-500 text-red-400 hover:bg-red-500/10 font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
                   >Decline</button>
@@ -1022,7 +1047,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
             {effectiveTier === 'declined' && (
               <div className="flex flex-wrap gap-3 items-start">
                 <button
-                  onClick={() => confirmAction('Decline Application', `Are you sure you want to decline this application for ${fullName}?`, 'Decline', 'bg-red-500 hover:bg-red-600 text-white', () => executeAction('decline'))}
+                  onClick={() => confirmAction('Decline Application', `Are you sure you want to decline this application for ${fullName}?`, 'Decline', 'bg-red-500 hover:bg-red-600 text-white', (reason) => executeAction('decline', { decline_reason: reason }), undefined, true)}
                   disabled={actionLoading}
                   className="bg-red-500 hover:bg-red-600 text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
                 >Decline</button>

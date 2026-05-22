@@ -18,7 +18,29 @@
       "Bash(git:*)",
       "Bash(curl:*)",
       "Bash(python3 -m json.tool)",
-      "Bash(find /Users/vinzerra/Desktop/loan-frontend -name .env* -o -name netlify.toml -o -name postcss.config.* -o -name tailwind.config.*)"
+      "Bash(find /Users/vinzerra/Desktop/loan-frontend -name .env* -o -name netlify.toml -o -name postcss.config.* -o -name tailwind.config.*)",
+      "Bash(grep -r \"VITE_ADMIN_SECRET\\\\|VITE_CI_SECRET\" /Users/vinzerra/Desktop/loan-frontend/.env*)",
+      "Bash(python3 -c \":*)",
+      "Bash(ls -la /private/tmp/claude-501/-Users-vinzerra-Desktop-loan-frontend/44439bbc-4065-4022-a7c7-226bc253bc1d/tasks/*.output)",
+      "Bash(while read:*)",
+      "Bash(do echo:*)",
+      "Read(//Users/vinzerra/Desktop/loan-frontend/**)",
+      "Bash(done)",
+      "Bash(railway logs:*)",
+      "Bash(node:*)",
+      "Bash(find /Users/vinzerra/Desktop/loan-frontend/src -type f \\\\\\( -name \"*.jsx\" -o -name \"*.js\" \\\\\\) -exec grep -l \"email\\\\|notification\\\\|send\\\\|notify\" {} \\\\;)",
+      "Bash(grep -rn \"submit\\\\|api.*POST\\\\|POST.*submit\\\\|application.*submit\" /Users/vinzerra/Desktop/loan-frontend/src/pages/*.jsx --include=\"*.jsx\")",
+      "Bash(grep:*)",
+      "Bash(xargs ls *)",
+      "Bash(mkdir -p /tmp/gr8-shots)",
+      "Read(//tmp/**)",
+      "Bash(npm i *)",
+      "Read(//private/tmp/gr8-shots/**)",
+      "Bash(npx playwright *)",
+      "Bash(EMAIL='ask@builtwithvince.com' PASSWORD='gr8gr8' node /tmp/gr8-shots/shoot.js /Users/vinzerra/Desktop/loan-frontend/screenshots)",
+      "Bash(EMAIL='ask@builtwithvince.com' PASSWORD='gr8gr8' node /tmp/gr8-shots/shoot-all.js /Users/vinzerra/Desktop/loan-frontend/screenshots)",
+      "Bash(awk '{print $5, $9}')",
+      "Bash(EMAIL='ask@builtwithvince.com' PASSWORD='gr8gr8' node *)"
     ]
   }
 }
