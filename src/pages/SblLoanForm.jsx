@@ -316,6 +316,7 @@ export default function SblLoanForm() {
       fd.append('totalLoanAmount', totalLoanAmount)
       fd.append('loanTerm', loanTerm)
       fd.append('members', JSON.stringify(members))
+      fd.append('consentAgreed', 'true')
 
       members.forEach((_, memberIndex) => {
         const docs = memberDocs[memberIndex] || {}
@@ -329,13 +330,19 @@ export default function SblLoanForm() {
         })
       })
 
+      for (const [k, v] of fd.entries()) {
+        console.log('[sbl submit]', k, v instanceof File ? `File(${v.name})` : v)
+      }
+
       const res = await fetch('https://loan-backend-production-cd45.up.railway.app/api/application/submit-group', {
         method: 'POST',
         body: fd,
       })
       const data = await res.json()
+      console.log('[sbl submit] response', res.status, data)
       setResult(data)
-    } catch {
+    } catch (err) {
+      console.error('[sbl submit] failed', err)
       setResult({ status: 'error', message: 'Something went wrong. Please try again.' })
     } finally {
       setSubmitting(false)

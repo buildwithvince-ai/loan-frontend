@@ -311,6 +311,7 @@ export default function GroupLoanForm() {
       fd.append('totalLoanAmount', totalAmount)
       fd.append('loanTerm', loanTerm)
       fd.append('members', JSON.stringify(members))
+      fd.append('consentAgreed', 'true')
 
       // Append files keyed as member_${index}_file_${fileIndex}
       members.forEach((_, memberIndex) => {
@@ -325,13 +326,19 @@ export default function GroupLoanForm() {
         })
       })
 
+      for (const [k, v] of fd.entries()) {
+        console.log('[group submit]', k, v instanceof File ? `File(${v.name})` : v)
+      }
+
       const res = await fetch('https://loan-backend-production-cd45.up.railway.app/api/application/submit-group', {
         method: 'POST',
         body: fd,
       })
       const data = await res.json()
+      console.log('[group submit] response', res.status, data)
       setResult(data)
-    } catch {
+    } catch (err) {
+      console.error('[group submit] failed', err)
       setResult({ status: 'error', message: 'Something went wrong. Please try again.' })
     } finally {
       setSubmitting(false)
