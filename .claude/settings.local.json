@@ -40,7 +40,9 @@
       "Bash(EMAIL='ask@builtwithvince.com' PASSWORD='gr8gr8' node /tmp/gr8-shots/shoot.js /Users/vinzerra/Desktop/loan-frontend/screenshots)",
       "Bash(EMAIL='ask@builtwithvince.com' PASSWORD='gr8gr8' node /tmp/gr8-shots/shoot-all.js /Users/vinzerra/Desktop/loan-frontend/screenshots)",
       "Bash(awk '{print $5, $9}')",
-      "Bash(EMAIL='ask@builtwithvince.com' PASSWORD='gr8gr8' node *)"
+      "Bash(EMAIL='ask@builtwithvince.com' PASSWORD='gr8gr8' node *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); apps=d if isinstance\\(d,list\\) else d.get\\('applications'\\) or d.get\\('data'\\) or []; print\\('TOTAL',len\\(apps\\)\\); [print\\(a.get\\('id'\\), a.get\\('loan_type'\\), a.get\\('status'\\), 'scheme=',a.get\\('payment_scheme_id'\\),'rate=',a.get\\('interest_rate'\\),'|',a.get\\('groupName'\\) or a.get\\('group_name'\\) or '', a.get\\('reference_id'\\) or a.get\\('referenceId'\\) or ''\\) for a in apps[:40]]\")",
+      "Bash(python3 -c \"import sys,json; a=json.load\\(sys.stdin\\); a=a.get\\('application',a\\); [print\\(k,'=',v\\) for k,v in a.items\\(\\) if 'scheme' in k.lower\\(\\) or 'rate' in k.lower\\(\\) or 'proposed' in k.lower\\(\\) or 'interest' in k.lower\\(\\) or k in \\('loan_type','status','loan_term','approver_proposed_term'\\)]\")"
     ]
   }
 }

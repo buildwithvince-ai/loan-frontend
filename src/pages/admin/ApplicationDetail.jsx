@@ -4,7 +4,7 @@ import { normalizeFinScore, computeFinalFromCiTotal, getTier, getNextTierHint, T
 import CiScoringForm, { CiFormReadOnly } from './CiScoringForm'
 import { useAuth } from '../../context/AuthContext'
 import useSalesOfficers from '../../hooks/useSalesOfficers'
-import { calcLoanSummary, fmtCurrency, defaultSchemeId, PAYMENT_SCHEMES, PAYMENT_SCHEME_LABELS, SCHEME_SUFFIX } from '../../lib/loanCalculations'
+import { calcLoanSummary, fmtCurrency, defaultSchemeId, defaultRate, PAYMENT_SCHEMES, PAYMENT_SCHEME_LABELS, SCHEME_SUFFIX } from '../../lib/loanCalculations'
 
 // --- Shared UI components ---
 
@@ -651,12 +651,13 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
   const loanType = (app.loan_type || '').toLowerCase()
   const originalAmount = app.loan_amount || app.amount || ''
   const originalTerm = app.loan_term || app.term || ''
-  const originalInterestRate = app.interest_rate || 5
+  const defRate = defaultRate(loanType)
+  const originalInterestRate = app.interest_rate || defRate
   const originalSchemeId = app.payment_scheme_id || defaultSchemeId(loanType)
 
   const [adjustedAmount, setAdjustedAmount] = useState(String(originalAmount))
   const [adjustedTerm, setAdjustedTerm] = useState(String(originalTerm))
-  const [interestRate, setInterestRate] = useState(5)
+  const [interestRate, setInterestRate] = useState(originalInterestRate)
   const [schemeId, setSchemeId] = useState(defaultSchemeId(loanType))
   const [discountReason, setDiscountReason] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
@@ -668,8 +669,8 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
   const isAkap = loanType === 'akap'
 
   const availableSchemes = isAkap
-    ? PAYMENT_SCHEMES.filter(s => s.id === 3413)
-    : PAYMENT_SCHEMES.filter(s => s.id !== 3413)
+    ? PAYMENT_SCHEMES.filter(s => s.id === 4)
+    : PAYMENT_SCHEMES.filter(s => s.id !== 4)
 
   const hasDiff = () => {
     const amtChanged = adjustedAmount && Number(adjustedAmount) !== Number(originalAmount)
@@ -685,7 +686,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
     const term = Number(adjustedTerm)
     if (!term || term < 3 || term > 24) e.term = 'Duration must be between 3 and 24 months'
     if (interestRate < 3 || interestRate > 5) e.rate = 'Rate must be between 3% and 5%'
-    if (interestRate < 5 && discountReason.trim().length < 10) e.discountReason = 'Discount reason required (min 10 characters)'
+    if (interestRate < defRate && discountReason.trim().length < 10) e.discountReason = 'Discount reason required (min 10 characters)'
     return e
   }
 
@@ -752,7 +753,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
       adjusted_term: Number(adjustedTerm),
       interest_rate: interestRate,
       payment_scheme_id: schemeId,
-      discount_reason: interestRate < 5 ? discountReason.trim() : null,
+      discount_reason: interestRate < defRate ? discountReason.trim() : null,
     }
     if (hasDiff()) {
       const parts = []
@@ -842,18 +843,18 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
             onChange={(e) => {
               const val = Number(e.target.value)
               setInterestRate(val)
-              if (val >= 5) setDiscountReason('')
+              if (val >= defRate) setDiscountReason('')
               setFieldErrors(prev => ({ ...prev, rate: undefined, discountReason: undefined }))
             }}
             className={fieldErrors.rate ? inputErrCls : inputCls}
           />
-          <p className="text-muted text-xs mt-1">Standard rate is 5%. Lower rates require a discount reason.</p>
+          <p className="text-muted text-xs mt-1">Default rate for this product is {defRate}%. Lower rates require a discount reason.</p>
           {fieldErrors.rate && <p className="text-red-400 text-xs mt-0.5">{fieldErrors.rate}</p>}
         </div>
       </div>
 
       {/* Discount Reason */}
-      {interestRate < 5 && (
+      {interestRate < defRate && (
         <div>
           <label className="text-muted text-xs block mb-1.5">
             Discount Reason <span className="text-red-400">*</span>
@@ -1078,7 +1079,7 @@ function SaConfirmationBanner({ app, id, onRefresh }) {
 
   const originalAmount = app.loan_amount || app.amount
   const originalTerm = app.loan_term || app.term
-  const originalRate = app.interest_rate || 5
+  const originalRate = app.interest_rate || defaultRate(app.loan_type || '')
   const originalScheme = app.payment_scheme_id || defaultSchemeId(app.loan_type || '')
   const proposedAmount = app.approver_proposed_amount
   const proposedTerm = app.approver_proposed_term
