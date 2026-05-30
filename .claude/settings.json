@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; case \"$(basename \"$f\")\" in .env|.env.*|*.env) printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Editing .env / secret files is blocked to prevent committing secrets. Use VITE_* env vars in the Cloudflare dashboard instead.\"}}';; esac; }",
+            "statusMessage": "Checking for secret files"
+          }
+        ]
+      }
+    ]
+  }
+}
