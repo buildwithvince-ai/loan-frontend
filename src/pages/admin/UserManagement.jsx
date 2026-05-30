@@ -3,26 +3,27 @@ import { useAuth } from '../../context/AuthContext'
 import InviteUserModal from '../../components/users/InviteUserModal'
 import EditRoleModal from '../../components/users/EditRoleModal'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
 
 // ─── Role badge config ────────────────────────────────────────────────────────
 const ROLE_BADGE = {
-  super_admin:             'bg-purple-500/20 text-purple-400',
-  admin:                   'bg-blue/20 text-blue',
-  sales_officer:           'bg-teal-500/20 text-teal-400',
-  verifier:                'bg-amber-500/20 text-amber-400',
-  ci_officer:              'bg-green/20 text-green',
-  approver:                'bg-indigo-500/20 text-indigo-400',
+  super_admin: 'bg-purple-500/20 text-purple-400',
+  admin: 'bg-blue/20 text-blue',
+  sales_officer: 'bg-teal-500/20 text-teal-400',
+  verifier: 'bg-amber-500/20 text-amber-400',
+  ci_officer: 'bg-green/20 text-green',
+  approver: 'bg-indigo-500/20 text-indigo-400',
   loan_processing_officer: 'bg-pink-500/20 text-pink-400',
 }
 
 const ROLE_LABEL = {
-  super_admin:             'Super Admin',
-  admin:                   'Admin',
-  sales_officer:           'Sales Officer',
-  verifier:                'Verifier',
-  ci_officer:              'CI Officer',
-  approver:                'Approver',
+  super_admin: 'Super Admin',
+  admin: 'Admin',
+  sales_officer: 'Sales Officer',
+  verifier: 'Verifier',
+  ci_officer: 'CI Officer',
+  approver: 'Approver',
   loan_processing_officer: 'Loan Processing Officer',
 }
 
@@ -31,8 +32,11 @@ function RoleBadges({ roles }) {
   const list = Array.isArray(roles) ? roles : roles ? [roles] : []
   return (
     <div className="flex flex-wrap gap-1">
-      {list.map((r) => (
-        <span key={r} className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${ROLE_BADGE[r] || 'bg-surface-alt text-muted'}`}>
+      {list.map(r => (
+        <span
+          key={r}
+          className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${ROLE_BADGE[r] || 'bg-surface-alt text-muted'}`}
+        >
           {ROLE_LABEL[r] || r}
         </span>
       ))}
@@ -42,7 +46,9 @@ function RoleBadges({ roles }) {
 
 function StatusBadge({ active }) {
   return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${active ? 'bg-green/20 text-green' : 'bg-red-500/20 text-red-400'}`}>
+    <span
+      className={`px-2 py-0.5 rounded-full text-xs font-medium ${active ? 'bg-green/20 text-green' : 'bg-red-500/20 text-red-400'}`}
+    >
       {active ? 'Active' : 'Inactive'}
     </span>
   )
@@ -63,7 +69,9 @@ function ConfirmToggleModal({ user, onConfirm, onClose, loading }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onClick={e => {
+        if (e.target === e.currentTarget) onClose()
+      }}
     >
       <div className="w-full max-w-sm bg-surface border border-border rounded-xl p-6 shadow-2xl">
         <h2 className="text-white font-bold text-lg mb-2">
@@ -75,9 +83,7 @@ function ConfirmToggleModal({ user, onConfirm, onClose, loading }) {
           </p>
         )}
         {!deactivating && (
-          <p className="text-muted text-sm mb-5">
-            This user will regain access to the system.
-          </p>
+          <p className="text-muted text-sm mb-5">This user will regain access to the system.</p>
         )}
         <div className="flex items-center gap-3">
           <button
@@ -111,7 +117,9 @@ function Toast({ message, type, onDismiss }) {
       }`}
     >
       <span className="flex-1">{message}</span>
-      <button onClick={onDismiss} className="text-white/70 hover:text-white">✕</button>
+      <button onClick={onDismiss} className="text-white/70 hover:text-white">
+        ✕
+      </button>
     </div>
   )
 }
@@ -120,14 +128,14 @@ function Toast({ message, type, onDismiss }) {
 export default function UserManagement() {
   const { getToken } = useAuth()
 
-  const [users, setUsers]               = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [error, setError]               = useState(null)
-  const [showInvite, setShowInvite]     = useState(false)
-  const [editTarget, setEditTarget]     = useState(null)   // user obj for EditRoleModal
-  const [toggleTarget, setToggleTarget] = useState(null)   // user obj for confirm modal
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [showInvite, setShowInvite] = useState(false)
+  const [editTarget, setEditTarget] = useState(null) // user obj for EditRoleModal
+  const [toggleTarget, setToggleTarget] = useState(null) // user obj for confirm modal
   const [toggleLoading, setToggleLoading] = useState(false)
-  const [toast, setToast]               = useState(null)   // { message, type }
+  const [toast, setToast] = useState(null) // { message, type }
 
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type })
@@ -152,10 +160,12 @@ export default function UserManagement() {
       const data = await res.json()
       const raw = Array.isArray(data) ? data : data.users || []
       // Normalize: ensure every user has a roles array
-      setUsers(raw.map((u) => ({
-        ...u,
-        roles: Array.isArray(u.roles) && u.roles.length ? u.roles : u.role ? [u.role] : [],
-      })))
+      setUsers(
+        raw.map(u => ({
+          ...u,
+          roles: Array.isArray(u.roles) && u.roles.length ? u.roles : u.role ? [u.role] : [],
+        })),
+      )
     } catch (err) {
       setError(err.message)
     } finally {
@@ -182,7 +192,9 @@ export default function UserManagement() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || data.error || 'Failed to update status.')
-      showToast(`${toggleTarget.full_name} has been ${toggleTarget.is_active ? 'deactivated' : 'reactivated'}.`)
+      showToast(
+        `${toggleTarget.full_name} has been ${toggleTarget.is_active ? 'deactivated' : 'reactivated'}.`,
+      )
       setToggleTarget(null)
       fetchUsers()
     } catch (err) {
@@ -205,13 +217,18 @@ export default function UserManagement() {
   return (
     <>
       {/* Toast */}
-      {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />
+      )}
 
       {/* Modals */}
       {showInvite && (
         <InviteUserModal
           getToken={getToken}
-          onSuccess={() => { showToast('User created successfully.'); fetchUsers() }}
+          onSuccess={() => {
+            showToast('User created successfully.')
+            fetchUsers()
+          }}
           onClose={() => setShowInvite(false)}
         />
       )}
@@ -219,7 +236,10 @@ export default function UserManagement() {
         <EditRoleModal
           user={editTarget}
           getToken={getToken}
-          onSuccess={() => { showToast('User updated.'); fetchUsers() }}
+          onSuccess={() => {
+            showToast('User updated.')
+            fetchUsers()
+          }}
           onClose={() => setEditTarget(null)}
         />
       )}
@@ -244,7 +264,14 @@ export default function UserManagement() {
             onClick={() => setShowInvite(true)}
             className="bg-green hover:bg-green/90 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
             Invite User
@@ -257,7 +284,10 @@ export default function UserManagement() {
         {!loading && error && (
           <div className="text-center py-20">
             <p className="text-red-400 mb-4">{error}</p>
-            <button onClick={fetchUsers} className="text-green hover:text-green/80 text-sm transition-colors">
+            <button
+              onClick={fetchUsers}
+              className="text-green hover:text-green/80 text-sm transition-colors"
+            >
               Retry
             </button>
           </div>
@@ -291,16 +321,24 @@ export default function UserManagement() {
                         </td>
                       </tr>
                     )}
-                    {users.map((u) => (
+                    {users.map(u => (
                       <tr
                         key={u.id}
                         className={`border-t border-border/50 hover:bg-surface-alt/30 transition-colors ${!u.is_active ? 'opacity-50' : ''}`}
                       >
-                        <td className="px-4 py-3 text-white font-medium whitespace-nowrap">{u.full_name}</td>
+                        <td className="px-4 py-3 text-white font-medium whitespace-nowrap">
+                          {u.full_name}
+                        </td>
                         <td className="px-4 py-3 text-muted whitespace-nowrap">{u.email}</td>
-                        <td className="px-4 py-3"><RoleBadges roles={u.roles} /></td>
-                        <td className="px-4 py-3"><StatusBadge active={u.is_active} /></td>
-                        <td className="px-4 py-3 text-muted whitespace-nowrap">{formatDate(u.created_at)}</td>
+                        <td className="px-4 py-3">
+                          <RoleBadges roles={u.roles} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge active={u.is_active} />
+                        </td>
+                        <td className="px-4 py-3 text-muted whitespace-nowrap">
+                          {formatDate(u.created_at)}
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             {!u.roles.includes('super_admin') && (
@@ -337,7 +375,7 @@ export default function UserManagement() {
               {users.length === 0 && (
                 <p className="text-muted text-sm text-center py-12">No users found.</p>
               )}
-              {users.map((u) => (
+              {users.map(u => (
                 <div
                   key={u.id}
                   className={`bg-surface border border-border rounded-xl p-4 ${!u.is_active ? 'opacity-50' : ''}`}

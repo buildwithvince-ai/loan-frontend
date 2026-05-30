@@ -23,7 +23,10 @@ function PublicLayout({ children }) {
   return (
     <div className="min-h-screen bg-canvas text-white">
       {/* Fixed watermark */}
-      <div className="fixed inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 0, opacity: 0.04 }}>
+      <div
+        className="fixed inset-0 flex items-center justify-center pointer-events-none"
+        style={{ zIndex: 0, opacity: 0.04 }}
+      >
         <img src="/gr8logo.png" alt="" className="w-[600px] h-auto select-none" draggable={false} />
       </div>
       <div className="relative" style={{ zIndex: 1 }}>
@@ -35,7 +38,14 @@ function PublicLayout({ children }) {
   )
 }
 
-const ADMIN_ROLES = ['admin', 'super_admin', 'sales_officer', 'verifier', 'approver', 'loan_processing_officer']
+const ADMIN_ROLES = [
+  'admin',
+  'super_admin',
+  'sales_officer',
+  'verifier',
+  'approver',
+  'loan_processing_officer',
+]
 
 function App() {
   return (
@@ -49,7 +59,11 @@ function App() {
         path="/admin"
         element={
           <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-            <ThemeProvider><AdminLayout><AdminDashboard /></AdminLayout></ThemeProvider>
+            <ThemeProvider>
+              <AdminLayout>
+                <AdminDashboard />
+              </AdminLayout>
+            </ThemeProvider>
           </ProtectedRoute>
         }
       />
@@ -57,7 +71,11 @@ function App() {
         path="/admin/users"
         element={
           <ProtectedRoute allowedRoles={['super_admin']}>
-            <ThemeProvider><AdminLayout><UserManagement /></AdminLayout></ThemeProvider>
+            <ThemeProvider>
+              <AdminLayout>
+                <UserManagement />
+              </AdminLayout>
+            </ThemeProvider>
           </ProtectedRoute>
         }
       />
@@ -65,7 +83,11 @@ function App() {
         path="/admin/account"
         element={
           <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-            <ThemeProvider><AdminLayout><MyAccount /></AdminLayout></ThemeProvider>
+            <ThemeProvider>
+              <AdminLayout>
+                <MyAccount />
+              </AdminLayout>
+            </ThemeProvider>
           </ProtectedRoute>
         }
       />
@@ -75,20 +97,78 @@ function App() {
         path="/ci"
         element={
           <ProtectedRoute allowedRoles={['ci_officer', 'admin', 'super_admin']}>
-            <ThemeProvider><CiPortal /></ThemeProvider>
+            <ThemeProvider>
+              <CiPortal />
+            </ThemeProvider>
           </ProtectedRoute>
         }
       />
 
       {/* Public routes — with navbar/footer/watermark */}
-      <Route path="/" element={<PublicLayout><LandingPage /></PublicLayout>} />
-      <Route path="/apply" element={<PublicLayout><SelectProduct /></PublicLayout>} />
-      <Route path="/apply/personal" element={<PublicLayout><PersonalLoanForm /></PublicLayout>} />
-      <Route path="/apply/sme" element={<PublicLayout><SmeLoanForm /></PublicLayout>} />
-      <Route path="/apply/akap" element={<PublicLayout><AkapLoanForm /></PublicLayout>} />
-      <Route path="/apply/group" element={<PublicLayout><GroupLoanForm /></PublicLayout>} />
-      <Route path="/apply/sbl" element={<PublicLayout><SblLoanForm /></PublicLayout>} />
-      <Route path="/termsandconditions" element={<PublicLayout><TermsAndConditions /></PublicLayout>} />
+      <Route
+        path="/"
+        element={
+          <PublicLayout>
+            <LandingPage />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path="/apply"
+        element={
+          <PublicLayout>
+            <SelectProduct />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path="/apply/personal"
+        element={
+          <PublicLayout>
+            <PersonalLoanForm />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path="/apply/sme"
+        element={
+          <PublicLayout>
+            <SmeLoanForm />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path="/apply/akap"
+        element={
+          <PublicLayout>
+            <AkapLoanForm />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path="/apply/group"
+        element={
+          <PublicLayout>
+            <GroupLoanForm />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path="/apply/sbl"
+        element={
+          <PublicLayout>
+            <SblLoanForm />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path="/termsandconditions"
+        element={
+          <PublicLayout>
+            <TermsAndConditions />
+          </PublicLayout>
+        }
+      />
     </Routes>
   )
 }

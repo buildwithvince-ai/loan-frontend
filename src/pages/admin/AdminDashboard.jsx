@@ -5,7 +5,8 @@ import ApplicationDetail from './ApplicationDetail'
 import KanbanBoard from '../../components/pipeline/KanbanBoard'
 import ReportProblemButton from '../../components/ReportProblemButton'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
 const ADMIN_API = `${API_BASE}/api/admin`
 
 // Toast context
@@ -27,8 +28,9 @@ function buildFetch(baseUrl) {
     if (!timeoutMs) return fetch(`${baseUrl}${path}`, init)
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
-    return fetch(`${baseUrl}${path}`, { ...init, signal: controller.signal })
-      .finally(() => clearTimeout(timer))
+    return fetch(`${baseUrl}${path}`, { ...init, signal: controller.signal }).finally(() =>
+      clearTimeout(timer),
+    )
   }
 }
 
@@ -47,15 +49,15 @@ export function pipelineFetch(path, options = {}) {
 function Toast({ toasts, removeToast }) {
   return (
     <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
-      {toasts.map((t) => (
+      {toasts.map(t => (
         <div
           key={t.id}
           className={`px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-fade-in-up flex items-center gap-2 max-w-sm ${
             t.type === 'success'
               ? 'bg-green/60 text-white'
               : t.type === 'error'
-              ? 'bg-red-500/70 text-white'
-              : 'bg-surface-alt text-white'
+                ? 'bg-red-500/70 text-white'
+                : 'bg-surface-alt text-white'
           }`}
         >
           <span className="flex-1">{t.message}</span>
@@ -75,28 +77,26 @@ export default function AdminDashboard() {
   _getToken = getToken
 
   const [view, setView] = useState('list') // 'list' | 'detail'
-  const [dashView, setDashView] = useState(
-    () => localStorage.getItem('gr8_admin_view') || 'list'
-  ) // 'list' | 'pipeline'
+  const [dashView, setDashView] = useState(() => localStorage.getItem('gr8_admin_view') || 'list') // 'list' | 'pipeline'
   const [selectedAppId, setSelectedAppId] = useState(null)
   const [toasts, setToasts] = useState([])
 
   const addToast = useCallback((message, type = 'success') => {
     const id = Date.now()
-    setToasts((prev) => [...prev, { id, message, type }])
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000)
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
   }, [])
 
-  const removeToast = useCallback((id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
+  const removeToast = useCallback(id => {
+    setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
 
-  const openDetail = (id) => {
+  const openDetail = id => {
     setSelectedAppId(id)
     setView('detail')
   }
 
-  const openDetailFromCard = (app) => {
+  const openDetailFromCard = app => {
     const id = app.id || app._id || app.reference_id
     openDetail(id)
   }
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
     setSelectedAppId(null)
   }
 
-  const switchDashView = (v) => {
+  const switchDashView = v => {
     setDashView(v)
     localStorage.setItem('gr8_admin_view', v)
   }
@@ -150,7 +150,14 @@ export default function AdminDashboard() {
             onClick={backToList}
             className="mb-4 flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
             Back to Applications

@@ -76,7 +76,8 @@ function calcAge(dob) {
   return age
 }
 
-const inputCls = 'w-full bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-white text-sm focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none'
+const inputCls =
+  'w-full bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-white text-sm focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none'
 const labelCls = 'text-muted text-xs block mb-1.5'
 
 function RadioGroup({ name, options, value, onChange }) {
@@ -86,12 +87,22 @@ function RadioGroup({ name, options, value, onChange }) {
         <label
           key={i}
           className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
-            value === opt.pts ? 'bg-surface-alt border-green/40' : 'border-border/50 hover:border-border'
+            value === opt.pts
+              ? 'bg-surface-alt border-green/40'
+              : 'border-border/50 hover:border-border'
           }`}
         >
-          <input type="radio" name={name} checked={value === opt.pts} onChange={() => onChange(opt.pts)} className="accent-green w-4 h-4 shrink-0" />
+          <input
+            type="radio"
+            name={name}
+            checked={value === opt.pts}
+            onChange={() => onChange(opt.pts)}
+            className="accent-green w-4 h-4 shrink-0"
+          />
           <span className="text-sm text-white flex-1">{opt.label}</span>
-          <span className={`text-xs font-mono shrink-0 ${value === opt.pts ? 'text-green' : 'text-muted'}`}>
+          <span
+            className={`text-xs font-mono shrink-0 ${value === opt.pts ? 'text-green' : 'text-muted'}`}
+          >
             {opt.pts >= 0 ? `${opt.pts} pts` : `${opt.pts} pts`}
           </span>
         </label>
@@ -101,8 +112,8 @@ function RadioGroup({ name, options, value, onChange }) {
 }
 
 function CheckboxGroup({ options, values, onChange }) {
-  const toggle = (pts) => {
-    onChange(values.includes(pts) ? values.filter((v) => v !== pts) : [...values, pts])
+  const toggle = pts => {
+    onChange(values.includes(pts) ? values.filter(v => v !== pts) : [...values, pts])
   }
   return (
     <div className="space-y-2">
@@ -110,12 +121,23 @@ function CheckboxGroup({ options, values, onChange }) {
         <label
           key={i}
           className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
-            values.includes(opt.pts) ? 'bg-red-500/5 border-red-500/40' : 'border-border/50 hover:border-border'
+            values.includes(opt.pts)
+              ? 'bg-red-500/5 border-red-500/40'
+              : 'border-border/50 hover:border-border'
           }`}
         >
-          <input type="checkbox" checked={values.includes(opt.pts)} onChange={() => toggle(opt.pts)} className="accent-red-500 w-4 h-4 shrink-0" />
+          <input
+            type="checkbox"
+            checked={values.includes(opt.pts)}
+            onChange={() => toggle(opt.pts)}
+            className="accent-red-500 w-4 h-4 shrink-0"
+          />
           <span className="text-sm text-white flex-1">{opt.label}</span>
-          <span className={`text-xs font-mono shrink-0 ${values.includes(opt.pts) ? 'text-red-400' : 'text-muted'}`}>{opt.pts} pts</span>
+          <span
+            className={`text-xs font-mono shrink-0 ${values.includes(opt.pts) ? 'text-red-400' : 'text-muted'}`}
+          >
+            {opt.pts} pts
+          </span>
         </label>
       ))}
     </div>
@@ -131,7 +153,8 @@ function SectionHeader({ number, title, maxPts, currentPts }) {
       </h4>
       {maxPts != null && (
         <span className="text-xs font-mono text-muted">
-          <span className={currentPts != null ? 'text-white' : ''}>{currentPts ?? '—'}</span> / {maxPts} pts
+          <span className={currentPts != null ? 'text-white' : ''}>{currentPts ?? '—'}</span> /{' '}
+          {maxPts} pts
         </span>
       )}
     </div>
@@ -144,16 +167,38 @@ function formatCurrency(amount) {
 
 function formatDate(dateStr) {
   if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+  return new Date(dateStr).toLocaleDateString('en-PH', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
 export default function CiAssessmentForm({ app, onBack }) {
   const isSme = app.loan_type === 'sme'
   const isSbl = app.loan_type === 'sbl'
-  const fullName = app.full_name || `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.trim()
-  const age = calcAge(app.date_of_birth || app.dob || app.birthdate || app.dateOfBirth || (app.form_data && (app.form_data.date_of_birth || app.form_data.dob || app.form_data.dateOfBirth)))
-  const address = [app.present_address, app.presentBarangay || app.barangay, app.present_city, app.present_province]
-    .filter(Boolean).join(', ') || app.address || ''
+  const fullName =
+    app.full_name ||
+    `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.trim()
+  const age = calcAge(
+    app.date_of_birth ||
+      app.dob ||
+      app.birthdate ||
+      app.dateOfBirth ||
+      (app.form_data &&
+        (app.form_data.date_of_birth || app.form_data.dob || app.form_data.dateOfBirth)),
+  )
+  const address =
+    [
+      app.present_address,
+      app.presentBarangay || app.barangay,
+      app.present_city,
+      app.present_province,
+    ]
+      .filter(Boolean)
+      .join(', ') ||
+    app.address ||
+    ''
   const addToast = useCiToast()
 
   const contactNumber = app.phone || app.mobile || ''
@@ -217,14 +262,38 @@ export default function CiAssessmentForm({ app, onBack }) {
   }
 
   const validate = () => {
-    if (!interviewer) { addToast('Select an interviewer', 'error'); return false }
-    if (contactStatus == null) { addToast('Select contact status', 'error'); return false }
-    if (q1 == null) { addToast('Answer Q1: Declared Net Income', 'error'); return false }
-    if (q2 == null) { addToast('Answer Q2: Verified Net Income', 'error'); return false }
-    if (q3 == null) { addToast('Answer Q3: Work/Business Stability', 'error'); return false }
-    if (q4 == null) { addToast('Answer Q4: Residency', 'error'); return false }
-    if (ciRecommendation == null) { addToast('Select CI recommendation', 'error'); return false }
-    if (!remarks.trim()) { addToast('Remarks are required', 'error'); return false }
+    if (!interviewer) {
+      addToast('Select an interviewer', 'error')
+      return false
+    }
+    if (contactStatus == null) {
+      addToast('Select contact status', 'error')
+      return false
+    }
+    if (q1 == null) {
+      addToast('Answer Q1: Declared Net Income', 'error')
+      return false
+    }
+    if (q2 == null) {
+      addToast('Answer Q2: Verified Net Income', 'error')
+      return false
+    }
+    if (q3 == null) {
+      addToast('Answer Q3: Work/Business Stability', 'error')
+      return false
+    }
+    if (q4 == null) {
+      addToast('Answer Q4: Residency', 'error')
+      return false
+    }
+    if (ciRecommendation == null) {
+      addToast('Select CI recommendation', 'error')
+      return false
+    }
+    if (!remarks.trim()) {
+      addToast('Remarks are required', 'error')
+      return false
+    }
     return true
   }
 
@@ -258,11 +327,13 @@ export default function CiAssessmentForm({ app, onBack }) {
         total_deductions: totalDeductions,
         base_score: baseScore,
         ci_total: ciTotal,
-        references: isSbl ? null : [
-          { name: ref1Name, phone: ref1Phone },
-          { name: ref2Name, phone: ref2Phone },
-          { name: ref3Name, phone: ref3Phone },
-        ],
+        references: isSbl
+          ? null
+          : [
+              { name: ref1Name, phone: ref1Phone },
+              { name: ref2Name, phone: ref2Phone },
+              { name: ref3Name, phone: ref3Phone },
+            ],
         sbl_brgy_chairman: isSbl ? brgyChairman : null,
         sbl_brgy_treasurer: isSbl ? brgyTreasurer : null,
         ci_recommendation: ciRecommendation,
@@ -322,7 +393,9 @@ export default function CiAssessmentForm({ app, onBack }) {
               <span className="text-white font-bold">{ciTotal} / 50</span>
             </div>
           </div>
-          <p className="text-muted text-xs mb-6">This application will now be reviewed by the supervisor.</p>
+          <p className="text-muted text-xs mb-6">
+            This application will now be reviewed by the supervisor.
+          </p>
           <button
             onClick={onBack}
             className="w-full bg-green hover:bg-green-hover text-white font-medium py-2.5 rounded-lg transition-colors"
@@ -343,11 +416,20 @@ export default function CiAssessmentForm({ app, onBack }) {
           <div className="relative bg-surface border border-border rounded-xl p-6 max-w-md w-full">
             <h3 className="text-white font-bold text-lg mb-2">Submit CI Assessment</h3>
             <p className="text-muted text-sm mb-6">
-              Submit CI assessment for <span className="text-white">{fullName}</span>? This cannot be edited after submission.
+              Submit CI assessment for <span className="text-white">{fullName}</span>? This cannot
+              be edited after submission.
             </p>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setShowConfirm(false)} className="px-4 py-2 text-sm text-muted hover:text-white border border-border rounded-lg transition-colors">Cancel</button>
-              <button onClick={handleConfirmSubmit} className="px-4 py-2 text-sm font-medium bg-green hover:bg-green-hover text-white rounded-lg transition-colors">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="px-4 py-2 text-sm text-muted hover:text-white border border-border rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSubmit}
+                className="px-4 py-2 text-sm font-medium bg-green hover:bg-green-hover text-white rounded-lg transition-colors"
+              >
                 {submitting ? 'Submitting...' : 'Confirm Submit'}
               </button>
             </div>
@@ -356,7 +438,10 @@ export default function CiAssessmentForm({ app, onBack }) {
       )}
 
       {/* Back button */}
-      <button onClick={handleBack} className="flex items-center gap-2 text-muted hover:text-white text-sm mb-6 transition-colors">
+      <button
+        onClick={handleBack}
+        className="flex items-center gap-2 text-muted hover:text-white text-sm mb-6 transition-colors"
+      >
         ← Back to Applications
       </button>
 
@@ -386,9 +471,19 @@ export default function CiAssessmentForm({ app, onBack }) {
           </div>
           <div>
             <span className="text-muted text-xs block">Loan Type</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
-              { personal: 'bg-blue/20 text-blue', sme: 'bg-purple-500/20 text-purple-400', akap: 'bg-amber-500/20 text-amber-400', group: 'bg-teal-500/20 text-teal-400', sbl: 'bg-pink-500/20 text-pink-400' }[app.loan_type] || 'bg-gray-500/20 text-gray-400'
-            }`}>{app.loan_type || '—'}</span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                {
+                  personal: 'bg-blue/20 text-blue',
+                  sme: 'bg-purple-500/20 text-purple-400',
+                  akap: 'bg-amber-500/20 text-amber-400',
+                  group: 'bg-teal-500/20 text-teal-400',
+                  sbl: 'bg-pink-500/20 text-pink-400',
+                }[app.loan_type] || 'bg-gray-500/20 text-gray-400'
+              }`}
+            >
+              {app.loan_type || '—'}
+            </span>
           </div>
           <div>
             <span className="text-muted text-xs block">Amount</span>
@@ -396,7 +491,9 @@ export default function CiAssessmentForm({ app, onBack }) {
           </div>
           <div>
             <span className="text-muted text-xs block">Term</span>
-            <span className="text-white">{app.term || app.loan_term ? `${app.term || app.loan_term} months` : '—'}</span>
+            <span className="text-white">
+              {app.term || app.loan_term ? `${app.term || app.loan_term} months` : '—'}
+            </span>
           </div>
           <div>
             <span className="text-muted text-xs block">Purpose</span>
@@ -411,7 +508,9 @@ export default function CiAssessmentForm({ app, onBack }) {
           {/* Age warning */}
           {age != null && age > 65 && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-              <p className="text-red-400 text-sm font-medium">Automatic decline — applicant exceeds maximum age (65). Age: {age}</p>
+              <p className="text-red-400 text-sm font-medium">
+                Automatic decline — applicant exceeds maximum age (65). Age: {age}
+              </p>
             </div>
           )}
 
@@ -422,11 +521,22 @@ export default function CiAssessmentForm({ app, onBack }) {
               <div>
                 <label className={labelCls}>Contact Status *</label>
                 <div className="flex gap-3 mt-1">
-                  {['contacted', 'uncontacted'].map((v) => (
-                    <label key={v} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
-                      contactStatus === v ? 'bg-surface-alt border-green/40' : 'border-border/50 hover:border-border'
-                    }`}>
-                      <input type="radio" name="ciContactStatus" checked={contactStatus === v} onChange={() => setContactStatus(v)} className="accent-green w-4 h-4" />
+                  {['contacted', 'uncontacted'].map(v => (
+                    <label
+                      key={v}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+                        contactStatus === v
+                          ? 'bg-surface-alt border-green/40'
+                          : 'border-border/50 hover:border-border'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="ciContactStatus"
+                        checked={contactStatus === v}
+                        onChange={() => setContactStatus(v)}
+                        className="accent-green w-4 h-4"
+                      />
                       <span className="text-sm text-white capitalize">{v}</span>
                     </label>
                   ))}
@@ -434,19 +544,40 @@ export default function CiAssessmentForm({ app, onBack }) {
               </div>
               <div>
                 <label className={labelCls}>Interviewer *</label>
-                <select value={interviewer} onChange={(e) => setInterviewer(e.target.value)} className={inputCls}>
+                <select
+                  value={interviewer}
+                  onChange={e => setInterviewer(e.target.value)}
+                  className={inputCls}
+                >
                   <option value="">Select interviewer</option>
-                  {INTERVIEWERS.map((name) => <option key={name} value={name}>{name}</option>)}
+                  {INTERVIEWERS.map(name => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="sm:col-span-2">
                 <label className={labelCls}>Relative working at GR8 Lending?</label>
                 <div className="flex gap-3 mt-1">
-                  {['no', 'yes'].map((v) => (
-                    <label key={v} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
-                      relativeAtGr8 === v ? (v === 'yes' ? 'bg-amber-500/10 border-amber-500/40' : 'bg-surface-alt border-green/40') : 'border-border/50 hover:border-border'
-                    }`}>
-                      <input type="radio" name="ciRelGr8" checked={relativeAtGr8 === v} onChange={() => setRelativeAtGr8(v)} className="accent-green w-4 h-4" />
+                  {['no', 'yes'].map(v => (
+                    <label
+                      key={v}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+                        relativeAtGr8 === v
+                          ? v === 'yes'
+                            ? 'bg-amber-500/10 border-amber-500/40'
+                            : 'bg-surface-alt border-green/40'
+                          : 'border-border/50 hover:border-border'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="ciRelGr8"
+                        checked={relativeAtGr8 === v}
+                        onChange={() => setRelativeAtGr8(v)}
+                        className="accent-green w-4 h-4"
+                      />
                       <span className="text-sm text-white capitalize">{v}</span>
                     </label>
                   ))}
@@ -454,9 +585,17 @@ export default function CiAssessmentForm({ app, onBack }) {
                 {relativeAtGr8 === 'yes' && (
                   <div className="mt-3 space-y-2">
                     <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-                      <p className="text-red-400 text-xs font-medium">Call the office immediately</p>
+                      <p className="text-red-400 text-xs font-medium">
+                        Call the office immediately
+                      </p>
                     </div>
-                    <input type="text" value={relativeWho} onChange={(e) => setRelativeWho(e.target.value)} className={inputCls} placeholder="Please specify who" />
+                    <input
+                      type="text"
+                      value={relativeWho}
+                      onChange={e => setRelativeWho(e.target.value)}
+                      className={inputCls}
+                      placeholder="Please specify who"
+                    />
                   </div>
                 )}
               </div>
@@ -465,21 +604,40 @@ export default function CiAssessmentForm({ app, onBack }) {
 
           {/* Q1 */}
           <div className="bg-surface border border-border rounded-xl p-5">
-            <SectionHeader number="1" title="Capacity to Pay — Declared Net Income" maxPts={20} currentPts={q1} />
-            <p className="text-muted text-xs mb-3">{isSme ? 'SME brackets' : 'Standard brackets'}</p>
+            <SectionHeader
+              number="1"
+              title="Capacity to Pay — Declared Net Income"
+              maxPts={20}
+              currentPts={q1}
+            />
+            <p className="text-muted text-xs mb-3">
+              {isSme ? 'SME brackets' : 'Standard brackets'}
+            </p>
             <RadioGroup name="ciQ1" options={q1Options} value={q1} onChange={setQ1} />
           </div>
 
           {/* Q2 */}
           <div className="bg-surface border border-border rounded-xl p-5">
-            <SectionHeader number="2" title="Capacity to Pay — Verified Net Income" maxPts={10} currentPts={q2} />
-            <p className="text-muted text-xs mb-3">{isSme ? 'SME brackets' : 'Standard brackets'}</p>
+            <SectionHeader
+              number="2"
+              title="Capacity to Pay — Verified Net Income"
+              maxPts={10}
+              currentPts={q2}
+            />
+            <p className="text-muted text-xs mb-3">
+              {isSme ? 'SME brackets' : 'Standard brackets'}
+            </p>
             <RadioGroup name="ciQ2" options={q2Options} value={q2} onChange={setQ2} />
           </div>
 
           {/* Q3 */}
           <div className="bg-surface border border-border rounded-xl p-5">
-            <SectionHeader number="3" title="Work / Business Stability" maxPts={10} currentPts={q3} />
+            <SectionHeader
+              number="3"
+              title="Work / Business Stability"
+              maxPts={10}
+              currentPts={q3}
+            />
             <RadioGroup name="ciQ3" options={Q3_OPTIONS} value={q3} onChange={setQ3} />
           </div>
 
@@ -492,32 +650,73 @@ export default function CiAssessmentForm({ app, onBack }) {
           {/* Renewal Bonus */}
           <div className="bg-surface border border-border rounded-xl p-5">
             <SectionHeader title="Additional Points for Renewal (optional)" />
-            <RadioGroup name="ciRenewalBonus" options={RENEWAL_BONUS} value={renewalBonus} onChange={setRenewalBonus} />
+            <RadioGroup
+              name="ciRenewalBonus"
+              options={RENEWAL_BONUS}
+              value={renewalBonus}
+              onChange={setRenewalBonus}
+            />
           </div>
 
           {/* Deductions */}
           <div className="bg-surface border border-border rounded-xl p-5">
             <SectionHeader title="Points Deduction for Renewal (optional)" />
-            <CheckboxGroup options={RENEWAL_DEDUCTIONS} values={deductions} onChange={setDeductions} />
+            <CheckboxGroup
+              options={RENEWAL_DEDUCTIONS}
+              values={deductions}
+              onChange={setDeductions}
+            />
           </div>
 
           {/* Character References (not SBL) */}
           {!isSbl && (
             <div className="bg-surface border border-border rounded-xl p-5">
-              <h4 className="text-white font-semibold text-sm mb-4">Character / Trade References</h4>
+              <h4 className="text-white font-semibold text-sm mb-4">
+                Character / Trade References
+              </h4>
               {[
-                { n: 1, name: ref1Name, setName: setRef1Name, phone: ref1Phone, setPhone: setRef1Phone },
-                { n: 2, name: ref2Name, setName: setRef2Name, phone: ref2Phone, setPhone: setRef2Phone },
-                { n: 3, name: ref3Name, setName: setRef3Name, phone: ref3Phone, setPhone: setRef3Phone },
+                {
+                  n: 1,
+                  name: ref1Name,
+                  setName: setRef1Name,
+                  phone: ref1Phone,
+                  setPhone: setRef1Phone,
+                },
+                {
+                  n: 2,
+                  name: ref2Name,
+                  setName: setRef2Name,
+                  phone: ref2Phone,
+                  setPhone: setRef2Phone,
+                },
+                {
+                  n: 3,
+                  name: ref3Name,
+                  setName: setRef3Name,
+                  phone: ref3Phone,
+                  setPhone: setRef3Phone,
+                },
               ].map(({ n, name, setName, phone, setPhone }) => (
                 <div key={n} className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                   <div>
                     <label className={labelCls}>Reference {n} — Name</label>
-                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Full name" />
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      className={inputCls}
+                      placeholder="Full name"
+                    />
                   </div>
                   <div>
                     <label className={labelCls}>Reference {n} — Contact</label>
-                    <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} placeholder="09XXXXXXXXX" />
+                    <input
+                      type="text"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      className={inputCls}
+                      placeholder="09XXXXXXXXX"
+                    />
                   </div>
                 </div>
               ))}
@@ -530,17 +729,36 @@ export default function CiAssessmentForm({ app, onBack }) {
               <h4 className="text-white font-semibold text-sm mb-4">SBL Approvals</h4>
               <div className="space-y-4">
                 {[
-                  { label: 'Barangay Chairman Approval', value: brgyChairman, set: setBrgyChairman, name: 'ciBrgyChairman' },
-                  { label: 'Barangay Treasurer Approval', value: brgyTreasurer, set: setBrgyTreasurer, name: 'ciBrgyTreasurer' },
+                  {
+                    label: 'Barangay Chairman Approval',
+                    value: brgyChairman,
+                    set: setBrgyChairman,
+                    name: 'ciBrgyChairman',
+                  },
+                  {
+                    label: 'Barangay Treasurer Approval',
+                    value: brgyTreasurer,
+                    set: setBrgyTreasurer,
+                    name: 'ciBrgyTreasurer',
+                  },
                 ].map(({ label, value, set, name }) => (
                   <div key={name}>
                     <label className={labelCls}>{label}</label>
                     <div className="flex gap-3 mt-1">
-                      {['yes', 'no'].map((v) => (
-                        <label key={v} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
-                          value === v ? 'bg-surface-alt border-green/40' : 'border-border/50'
-                        }`}>
-                          <input type="radio" name={name} checked={value === v} onChange={() => set(v)} className="accent-green w-4 h-4" />
+                      {['yes', 'no'].map(v => (
+                        <label
+                          key={v}
+                          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+                            value === v ? 'bg-surface-alt border-green/40' : 'border-border/50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={name}
+                            checked={value === v}
+                            onChange={() => set(v)}
+                            className="accent-green w-4 h-4"
+                          />
                           <span className="text-sm text-white capitalize">{v}</span>
                         </label>
                       ))}
@@ -555,25 +773,48 @@ export default function CiAssessmentForm({ app, onBack }) {
           <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
             <h4 className="text-white font-semibold text-sm">CI Recommendation</h4>
             <div className="flex gap-3">
-              {['approved', 'disapproved'].map((v) => (
-                <label key={v} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
-                  ciRecommendation === v
-                    ? (v === 'approved' ? 'bg-green/10 border-green/40' : 'bg-red-500/10 border-red-500/40')
-                    : 'border-border/50 hover:border-border'
-                }`}>
-                  <input type="radio" name="ciRec" checked={ciRecommendation === v} onChange={() => setCiRecommendation(v)} className="accent-green w-4 h-4" />
+              {['approved', 'disapproved'].map(v => (
+                <label
+                  key={v}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+                    ciRecommendation === v
+                      ? v === 'approved'
+                        ? 'bg-green/10 border-green/40'
+                        : 'bg-red-500/10 border-red-500/40'
+                      : 'border-border/50 hover:border-border'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="ciRec"
+                    checked={ciRecommendation === v}
+                    onChange={() => setCiRecommendation(v)}
+                    className="accent-green w-4 h-4"
+                  />
                   <span className="text-sm text-white capitalize">{v}</span>
                 </label>
               ))}
             </div>
             <div>
               <label className={labelCls}>Overall Assessment / Remarks *</label>
-              <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} rows={4} className={`${inputCls} resize-none`} placeholder="Required — provide assessment details..." />
+              <textarea
+                value={remarks}
+                onChange={e => setRemarks(e.target.value)}
+                rows={4}
+                className={`${inputCls} resize-none`}
+                placeholder="Required — provide assessment details..."
+              />
             </div>
             {ciRecommendation === 'approved' && (
               <div>
                 <label className={labelCls}>Recommended Loan Amount (₱)</label>
-                <input type="number" value={recommendedAmount} onChange={(e) => setRecommendedAmount(e.target.value)} className={inputCls} placeholder="e.g. 25000" />
+                <input
+                  type="number"
+                  value={recommendedAmount}
+                  onChange={e => setRecommendedAmount(e.target.value)}
+                  className={inputCls}
+                  placeholder="e.g. 25000"
+                />
               </div>
             )}
           </div>
@@ -599,16 +840,24 @@ export default function CiAssessmentForm({ app, onBack }) {
                 <ScoreLine label="Q3 Work Stability" value={q3} max={10} />
                 <ScoreLine label="Q4 Residency" value={q4} max={10} />
                 {bonus > 0 && (
-                  <div className="flex justify-between text-green"><span>Renewal Bonus</span><span>+{bonus}</span></div>
+                  <div className="flex justify-between text-green">
+                    <span>Renewal Bonus</span>
+                    <span>+{bonus}</span>
+                  </div>
                 )}
                 {totalDeductions < 0 && (
-                  <div className="flex justify-between text-red-400"><span>Renewal Deduction</span><span>{totalDeductions}</span></div>
+                  <div className="flex justify-between text-red-400">
+                    <span>Renewal Deduction</span>
+                    <span>{totalDeductions}</span>
+                  </div>
                 )}
               </div>
               <div className="border-t border-border/50 pt-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">CI Total</span>
-                  <span className="text-white font-bold">{anyScored ? ciTotal : '—'} <span className="text-muted font-normal">/ 50</span></span>
+                  <span className="text-white font-bold">
+                    {anyScored ? ciTotal : '—'} <span className="text-muted font-normal">/ 50</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -620,7 +869,9 @@ export default function CiAssessmentForm({ app, onBack }) {
           <div className="flex items-center justify-between max-w-5xl mx-auto">
             <div>
               <span className="text-muted text-[10px] block">CI Total</span>
-              <span className="text-white text-sm font-bold">{anyScored ? `${ciTotal} / 50` : '— / 50'}</span>
+              <span className="text-white text-sm font-bold">
+                {anyScored ? `${ciTotal} / 50` : '— / 50'}
+              </span>
             </div>
             <button
               onClick={handleSubmitClick}
@@ -640,7 +891,9 @@ function ScoreLine({ label, value, max }) {
   return (
     <div className="flex justify-between">
       <span className="text-muted">{label}</span>
-      <span className={value != null ? 'text-white' : 'text-muted/50'}>{value ?? '—'} / {max}</span>
+      <span className={value != null ? 'text-white' : 'text-muted/50'}>
+        {value ?? '—'} / {max}
+      </span>
     </div>
   )
 }

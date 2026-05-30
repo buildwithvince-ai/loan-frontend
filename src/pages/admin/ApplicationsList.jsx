@@ -54,7 +54,14 @@ function escapeCsvField(val) {
 }
 
 function exportConsentCsv(apps) {
-  const headers = ['Full Name', 'Phone Number', 'Loan Type', 'Reference ID', 'Consent Timestamp', 'Consent Status']
+  const headers = [
+    'Full Name',
+    'Phone Number',
+    'Loan Type',
+    'Reference ID',
+    'Consent Timestamp',
+    'Consent Status',
+  ]
   const rows = apps.map(app => [
     `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.trim(),
     app.mobile || app.phone || '',
@@ -106,9 +113,10 @@ export default function ApplicationsList({ onReview }) {
   // Unique SO names for filter dropdown
   const soNames = [...new Set(apps.map(a => a.assigned_sales_officer_name).filter(Boolean))].sort()
 
-  const filtered = apps.filter((app) => {
+  const filtered = apps.filter(app => {
     if (statusFilter === 'sa_rejected') {
-      if (!(app.status === 'pending' && app.stage === 'approver' && app.sa_rejection_note)) return false
+      if (!(app.status === 'pending' && app.stage === 'approver' && app.sa_rejection_note))
+        return false
     } else if (statusFilter !== 'all' && app.status !== statusFilter) return false
     if (typeFilter !== 'all' && app.loan_type !== typeFilter) return false
     if (soFilter !== 'all') {
@@ -117,10 +125,17 @@ export default function ApplicationsList({ onReview }) {
     }
     if (search) {
       const q = search.toLowerCase()
-      const name = `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.toLowerCase()
+      const name =
+        `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.toLowerCase()
       const phone = (app.mobile || app.phone || '').toLowerCase()
       const so = (app.assigned_sales_officer_name || '').toLowerCase()
-      if (!name.includes(q) && !phone.includes(q) && !(app.reference_id || '').toLowerCase().includes(q) && !so.includes(q)) return false
+      if (
+        !name.includes(q) &&
+        !phone.includes(q) &&
+        !(app.reference_id || '').toLowerCase().includes(q) &&
+        !so.includes(q)
+      )
+        return false
     }
     return true
   })
@@ -152,12 +167,12 @@ export default function ApplicationsList({ onReview }) {
           type="text"
           placeholder="Search by name, phone, or ref ID..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={e => setSearch(e.target.value)}
           className="flex-1 bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-muted focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none"
         />
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={e => setStatusFilter(e.target.value)}
           className="bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-sm text-white outline-none focus:border-green/50"
         >
           <option value="all">All Status</option>
@@ -169,7 +184,7 @@ export default function ApplicationsList({ onReview }) {
         </select>
         <select
           value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
+          onChange={e => setTypeFilter(e.target.value)}
           className="bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-sm text-white outline-none focus:border-green/50"
         >
           <option value="all">All Types</option>
@@ -181,13 +196,15 @@ export default function ApplicationsList({ onReview }) {
         </select>
         <select
           value={soFilter}
-          onChange={(e) => setSoFilter(e.target.value)}
+          onChange={e => setSoFilter(e.target.value)}
           className="bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-sm text-white outline-none focus:border-green/50"
         >
           <option value="all">All Sales Officers</option>
           <option value="none">No SO Assigned</option>
           {soNames.map(name => (
-            <option key={name} value={name}>{name}</option>
+            <option key={name} value={name}>
+              {name}
+            </option>
           ))}
         </select>
       </div>
@@ -220,20 +237,24 @@ export default function ApplicationsList({ onReview }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((app) => {
+              {filtered.map(app => {
                 const hasCi = app.ci_score != null
                 const raw = Number(app.finscore_raw || app.finscore || 0)
                 const norm = normalizeFinScore(raw)
-                const final = hasCi ? (app.final_score ?? computeFinalFromCiTotal(norm, app.ci_score)) : null
-                const tier = final != null ? (app.tier || getTier(final)) : null
-                const tierCfg = tier ? (TIER_CONFIG[tier] || TIER_CONFIG.declined) : null
+                const final = hasCi
+                  ? (app.final_score ?? computeFinalFromCiTotal(norm, app.ci_score))
+                  : null
+                const tier = final != null ? app.tier || getTier(final) : null
+                const tierCfg = tier ? TIER_CONFIG[tier] || TIER_CONFIG.declined : null
 
                 return (
                   <tr
                     key={app.id || app.reference_id}
                     className="border-b border-border/50 hover:bg-surface-alt/50 transition-colors"
                   >
-                    <td className="px-4 py-3 text-blue/60 font-mono text-xs">{app.reference_id || '—'}</td>
+                    <td className="px-4 py-3 text-blue/60 font-mono text-xs">
+                      {app.reference_id || '—'}
+                    </td>
                     <td className="px-4 py-3 text-white font-medium">
                       {app.firstName || app.first_name} {app.lastName || app.last_name}
                     </td>
@@ -248,31 +269,45 @@ export default function ApplicationsList({ onReview }) {
                     <td className="px-4 py-3">
                       <Badge
                         label={app.loan_type || '—'}
-                        colorClass={LOAN_TYPE_COLORS[app.loan_type] || 'bg-gray-500/20 text-gray-400'}
+                        colorClass={
+                          LOAN_TYPE_COLORS[app.loan_type] || 'bg-gray-500/20 text-gray-400'
+                        }
                       />
                     </td>
-                    <td className="px-4 py-3 text-white">{formatCurrency(app.loan_amount || app.amount)}</td>
-                    <td className="px-4 py-3 text-muted text-xs">{formatDate(app.submitted_at || app.created_at)}</td>
+                    <td className="px-4 py-3 text-white">
+                      {formatCurrency(app.loan_amount || app.amount)}
+                    </td>
+                    <td className="px-4 py-3 text-muted text-xs">
+                      {formatDate(app.submitted_at || app.created_at)}
+                    </td>
                     <td className="px-4 py-3">
                       <Badge
                         label={hasCi ? 'CI Done' : 'Awaiting CI'}
-                        colorClass={hasCi ? 'bg-blue/12 text-blue/60' : 'bg-gray-500/20 text-gray-400'}
+                        colorClass={
+                          hasCi ? 'bg-blue/12 text-blue/60' : 'bg-gray-500/20 text-gray-400'
+                        }
                       />
                     </td>
                     <td className="px-4 py-3">
                       {raw ? (
                         <span className="text-white font-medium">{raw}</span>
-                      ) : <span className="text-muted">—</span>}
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {final != null ? (
                         <span className="text-white font-medium">{final}</span>
-                      ) : <span className="text-muted">—</span>}
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {tierCfg ? (
                         <Badge label={tierCfg.label} colorClass={tierCfg.badgeClass} />
-                      ) : <span className="text-muted">—</span>}
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-1">
@@ -281,7 +316,9 @@ export default function ApplicationsList({ onReview }) {
                           colorClass={STATUS_COLORS[app.status] || STATUS_COLORS.pending}
                         />
                         {app.sa_rejection_note && app.status === 'pending' && (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/14 text-red-400/70">SA Rejected</span>
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/14 text-red-400/70">
+                            SA Rejected
+                          </span>
                         )}
                       </div>
                     </td>
@@ -313,13 +350,15 @@ export default function ApplicationsList({ onReview }) {
 
       {/* Mobile Cards */}
       <div className="lg:hidden flex flex-col gap-3">
-        {filtered.map((app) => {
+        {filtered.map(app => {
           const hasCi = app.ci_score != null
           const raw = Number(app.finscore_raw || app.finscore || 0)
           const norm = normalizeFinScore(raw)
-          const final = hasCi ? (app.final_score ?? computeFinalFromCiTotal(norm, app.ci_score)) : null
-          const tier = final != null ? (app.tier || getTier(final)) : null
-          const tierCfg = tier ? (TIER_CONFIG[tier] || TIER_CONFIG.declined) : null
+          const final = hasCi
+            ? (app.final_score ?? computeFinalFromCiTotal(norm, app.ci_score))
+            : null
+          const tier = final != null ? app.tier || getTier(final) : null
+          const tierCfg = tier ? TIER_CONFIG[tier] || TIER_CONFIG.declined : null
 
           return (
             <div
@@ -345,7 +384,9 @@ export default function ApplicationsList({ onReview }) {
                     colorClass={STATUS_COLORS[app.status] || STATUS_COLORS.pending}
                   />
                   {app.sa_rejection_note && app.status === 'pending' && (
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/14 text-red-400/70">SA Rejected</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/14 text-red-400/70">
+                      SA Rejected
+                    </span>
                   )}
                   <Badge
                     label={hasCi ? 'CI Done' : 'Awaiting CI'}
@@ -380,7 +421,9 @@ export default function ApplicationsList({ onReview }) {
                   <div className="mt-0.5">
                     {tierCfg ? (
                       <Badge label={tierCfg.label} colorClass={tierCfg.badgeClass} />
-                    ) : <span className="text-muted text-sm">—</span>}
+                    ) : (
+                      <span className="text-muted text-sm">—</span>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -389,7 +432,9 @@ export default function ApplicationsList({ onReview }) {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted text-xs">{formatDate(app.submitted_at || app.created_at)}</span>
+                <span className="text-muted text-xs">
+                  {formatDate(app.submitted_at || app.created_at)}
+                </span>
                 <button
                   onClick={() => onReview(app.id || app.reference_id)}
                   className="px-3 py-1.5 bg-green/6 text-green/60 rounded-lg text-xs font-medium hover:bg-green/12 hover:text-green transition-colors"
@@ -412,15 +457,26 @@ export default function ApplicationsList({ onReview }) {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-lg bg-green/6 flex items-center justify-center shrink-0 mt-0.5">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 text-green/60">
-                    <path d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" strokeLinecap="round" strokeLinejoin="round" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="w-5 h-5 text-green/60"
+                  >
+                    <path
+                      d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </div>
                 <div>
                   <h3 className="text-white font-semibold text-sm">Export Consent Agreement</h3>
                   <p className="text-muted text-xs mt-1 leading-relaxed max-w-md">
-                    Export applicant names, phone numbers, and consent proof for FinScore compliance reporting.
-                    All applicants agreed to the Terms &amp; Conditions and Data Privacy Policy upon submission.
+                    Export applicant names, phone numbers, and consent proof for FinScore compliance
+                    reporting. All applicants agreed to the Terms &amp; Conditions and Data Privacy
+                    Policy upon submission.
                   </p>
                 </div>
               </div>
@@ -428,8 +484,18 @@ export default function ApplicationsList({ onReview }) {
                 onClick={() => exportConsentCsv(filtered)}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-green/6 hover:bg-green/12 text-green/60 hover:text-green border border-green/12 rounded-lg text-sm font-medium transition-colors shrink-0"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
-                  <path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" strokeLinecap="round" strokeLinejoin="round" />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="w-4 h-4"
+                >
+                  <path
+                    d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
                 Export CSV ({filtered.length})
               </button>

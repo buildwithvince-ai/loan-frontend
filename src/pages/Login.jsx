@@ -33,7 +33,7 @@ export default function Login() {
     return null
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault()
     setError('')
     setSubmitting(true)
@@ -53,7 +53,11 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="bg-surface border border-border rounded-2xl p-8">
           <div className="text-center mb-8">
-            <img src="/gr8logo.png" alt="GR8 Lending" className="w-16 h-16 mx-auto mb-4 opacity-80" />
+            <img
+              src="/gr8logo.png"
+              alt="GR8 Lending"
+              className="w-16 h-16 mx-auto mb-4 opacity-80"
+            />
             <h1 className="text-2xl font-bold text-white">GR8 Lending</h1>
             <p className="text-muted text-sm mt-1">Staff Portal</p>
           </div>
@@ -63,7 +67,10 @@ export default function Login() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setError('') }}
+                onChange={e => {
+                  setEmail(e.target.value)
+                  setError('')
+                }}
                 className="w-full bg-surface-alt border border-border rounded-lg px-4 py-3 text-white focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none"
                 placeholder="you@company.com"
                 autoFocus
@@ -75,7 +82,10 @@ export default function Login() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => { setPassword(e.target.value); setError('') }}
+                onChange={e => {
+                  setPassword(e.target.value)
+                  setError('')
+                }}
                 className="w-full bg-surface-alt border border-border rounded-lg px-4 py-3 text-white focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none"
                 placeholder="••••••••"
                 required

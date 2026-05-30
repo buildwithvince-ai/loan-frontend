@@ -26,7 +26,7 @@ export default function BorrowerLookup({ value, onChange }) {
       setError(null)
       try {
         const res = await fetch(
-          `${BACKEND_URL}/api/borrowers/search?q=${encodeURIComponent(query)}`
+          `${BACKEND_URL}/api/borrowers/search?q=${encodeURIComponent(query)}`,
         )
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data.message || 'Search failed')
@@ -45,7 +45,7 @@ export default function BorrowerLookup({ value, onChange }) {
   }, [query])
 
   useEffect(() => {
-    const handler = (e) => {
+    const handler = e => {
       if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false)
     }
     document.addEventListener('mousedown', handler)
@@ -86,7 +86,7 @@ export default function BorrowerLookup({ value, onChange }) {
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={e => setQuery(e.target.value)}
           placeholder="Search by name or phone (min 2 characters)..."
           className="w-full px-4 py-3 rounded-xl bg-surface-alt border border-border text-white text-sm placeholder:text-muted/50 focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
         />

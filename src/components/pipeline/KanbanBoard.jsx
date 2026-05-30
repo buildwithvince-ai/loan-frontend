@@ -72,10 +72,17 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
   }, [fetchApps])
 
   // Apply client-side filters
-  const filteredApps = apps.filter((app) => {
+  const filteredApps = apps.filter(app => {
     // Sales-officer-only users see only their own applications
-    const elevatedRoles = ['super_admin', 'admin', 'approver', 'verifier', 'ci_officer', 'loan_processing_officer']
-    if (hasRole('sales_officer') && !roles.some((r) => elevatedRoles.includes(r)) && user?.id) {
+    const elevatedRoles = [
+      'super_admin',
+      'admin',
+      'approver',
+      'verifier',
+      'ci_officer',
+      'loan_processing_officer',
+    ]
+    if (hasRole('sales_officer') && !roles.some(r => elevatedRoles.includes(r)) && user?.id) {
       if (app.assigned_sales_officer !== user.id) return false
     }
 
@@ -83,10 +90,9 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
 
     if (searchFilter) {
       const q = searchFilter.toLowerCase()
-      const name = [
-        app.firstName || app.first_name || '',
-        app.lastName || app.last_name || '',
-      ].join(' ').toLowerCase()
+      const name = [app.firstName || app.first_name || '', app.lastName || app.last_name || '']
+        .join(' ')
+        .toLowerCase()
       const phone = (app.mobile || app.phone || '').toLowerCase()
       const ref = (app.reference_id || '').toLowerCase()
       if (!name.includes(q) && !phone.includes(q) && !ref.includes(q)) return false
@@ -101,12 +107,12 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
-    })
+    }),
   )
 
   function findAppStage(appId) {
     for (const stage of PIPELINE_STAGES) {
-      if (grouped[stage]?.some((a) => String(a.id || a._id || a.reference_id) === String(appId))) {
+      if (grouped[stage]?.some(a => String(a.id || a._id || a.reference_id) === String(appId))) {
         return stage
       }
     }
@@ -115,7 +121,7 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
 
   function handleDragStart({ active }) {
     const dragged = filteredApps.find(
-      (a) => String(a.id || a._id || a.reference_id) === String(active.id)
+      a => String(a.id || a._id || a.reference_id) === String(active.id),
     )
     setActiveApp(dragged || null)
   }
@@ -135,7 +141,7 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
     if (toStage === 'loan_processing_officer' && fromStage !== 'approver') return
 
     const app = filteredApps.find(
-      (a) => String(a.id || a._id || a.reference_id) === String(active.id)
+      a => String(a.id || a._id || a.reference_id) === String(active.id),
     )
     if (!app) return
 
@@ -149,17 +155,15 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
     // Only optimistically update when server confirmed (updatedApp is truthy).
     // Timeout path passes null → rely solely on fetchApps to resolve state.
     if (updatedApp) {
-      setApps((prev) =>
-        prev.map((a) => {
+      setApps(prev =>
+        prev.map(a => {
           const id = a.id || a._id || a.reference_id
           const targetId = app.id || app._id || app.reference_id
           if (String(id) === String(targetId)) {
-            return updatedApp.stage
-              ? { ...a, ...updatedApp }
-              : { ...a, stage: toStage }
+            return updatedApp.stage ? { ...a, ...updatedApp } : { ...a, stage: toStage }
           }
           return a
-        })
+        }),
       )
     }
     setPendingTransition(null)
@@ -193,12 +197,14 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
         const data = await res.json().catch(() => ({}))
         throw new Error(data.message || 'Failed to send confirmation')
       }
-      setApps(prev => prev.map(a => {
-        if (String(a.id || a._id) === String(appId)) {
-          return { ...a, so_confirmation_sent_at: new Date().toISOString() }
-        }
-        return a
-      }))
+      setApps(prev =>
+        prev.map(a => {
+          if (String(a.id || a._id) === String(appId)) {
+            return { ...a, so_confirmation_sent_at: new Date().toISOString() }
+          }
+          return a
+        }),
+      )
     } catch (err) {
       alert(err.message)
     } finally {
@@ -208,14 +214,16 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
 
   function handleReturnConfirm(updatedApp) {
     if (!returnApp) return
-    setApps(prev => prev.map(a => {
-      if (String(a.id || a._id) === String(returnApp.id || returnApp._id)) {
-        return updatedApp?.stage
-          ? { ...a, ...updatedApp }
-          : { ...a, stage: 'sales_officer', so_confirmation_sent_at: new Date().toISOString() }
-      }
-      return a
-    }))
+    setApps(prev =>
+      prev.map(a => {
+        if (String(a.id || a._id) === String(returnApp.id || returnApp._id)) {
+          return updatedApp?.stage
+            ? { ...a, ...updatedApp }
+            : { ...a, stage: 'sales_officer', so_confirmation_sent_at: new Date().toISOString() }
+        }
+        return a
+      }),
+    )
     setReturnApp(null)
     fetchApps()
   }
@@ -233,14 +241,21 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.message || data.error || 'Failed to record decision')
-      setApps(prev => prev.map(a => {
-        if (String(a.id || a._id) === String(appId)) {
-          return data?.stage
-            ? { ...a, ...data }
-            : { ...a, stage: 'approver', so_decision: decision, so_decision_at: new Date().toISOString() }
-        }
-        return a
-      }))
+      setApps(prev =>
+        prev.map(a => {
+          if (String(a.id || a._id) === String(appId)) {
+            return data?.stage
+              ? { ...a, ...data }
+              : {
+                  ...a,
+                  stage: 'approver',
+                  so_decision: decision,
+                  so_decision_at: new Date().toISOString(),
+                }
+          }
+          return a
+        }),
+      )
       fetchApps()
     } catch (err) {
       alert(err.message)
@@ -282,7 +297,7 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
         {/* Horizontal scrolling board */}
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-4 min-w-max">
-            {PIPELINE_STAGES.map((stage) => (
+            {PIPELINE_STAGES.map(stage => (
               <KanbanColumn
                 key={stage}
                 stage={stage}
@@ -302,11 +317,7 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
         <DragOverlay dropAnimation={null}>
           {activeApp ? (
             <div className="rotate-2 scale-105">
-              <KanbanCard
-                app={activeApp}
-                onCardClick={() => {}}
-                isLocked={false}
-              />
+              <KanbanCard app={activeApp} onCardClick={() => {}} isLocked={false} />
             </div>
           ) : null}
         </DragOverlay>

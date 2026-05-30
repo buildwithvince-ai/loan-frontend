@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
 
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Admin' },
@@ -23,14 +24,12 @@ export default function EditRoleModal({ user, getToken, onSuccess, onClose }) {
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const toggleRole = (value) => {
+  const toggleRole = value => {
     setError(null)
-    setRoles((prev) =>
-      prev.includes(value) ? prev.filter((r) => r !== value) : [...prev, value]
-    )
+    setRoles(prev => (prev.includes(value) ? prev.filter(r => r !== value) : [...prev, value]))
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault()
     if (!fullName.trim()) {
       setError('Full name is required.')
@@ -69,7 +68,9 @@ export default function EditRoleModal({ user, getToken, onSuccess, onClose }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onClick={e => {
+        if (e.target === e.currentTarget) onClose()
+      }}
     >
       <div className="w-full max-w-sm bg-surface border border-border rounded-xl p-6 shadow-2xl">
         <h2 className="text-white font-bold text-lg mb-1">Edit User</h2>
@@ -81,7 +82,10 @@ export default function EditRoleModal({ user, getToken, onSuccess, onClose }) {
             <input
               type="text"
               value={fullName}
-              onChange={(e) => { setFullName(e.target.value); setError(null) }}
+              onChange={e => {
+                setFullName(e.target.value)
+                setError(null)
+              }}
               className="w-full bg-surface-alt border border-border rounded-lg px-4 py-3 text-white focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none"
               placeholder="Enter full name"
             />
@@ -90,11 +94,8 @@ export default function EditRoleModal({ user, getToken, onSuccess, onClose }) {
           <div>
             <label className="block text-sm text-muted mb-1.5">Roles</label>
             <div className="bg-surface-alt border border-border rounded-lg p-3 flex flex-col gap-2">
-              {ROLE_OPTIONS.map((opt) => (
-                <label
-                  key={opt.value}
-                  className="flex items-center gap-3 cursor-pointer group"
-                >
+              {ROLE_OPTIONS.map(opt => (
+                <label key={opt.value} className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={roles.includes(opt.value)}

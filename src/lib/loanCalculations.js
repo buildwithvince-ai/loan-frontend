@@ -58,9 +58,21 @@ export function calcLoanSummary(principal, durationMonths, ratePercent, schemeId
   const numRepayments = calcNumRepayments(d, schemeId, loanType)
   const repaymentAmount = numRepayments > 0 ? totalRepayment / numRepayments : 0
   const isAkapCapped = loanType === 'akap' && schemeId === 4 && d * 4 > 24
-  return { serviceFee, insuranceFee, netDisbursement, totalInterest, totalRepayment, numRepayments, repaymentAmount, isAkapCapped }
+  return {
+    serviceFee,
+    insuranceFee,
+    netDisbursement,
+    totalInterest,
+    totalRepayment,
+    numRepayments,
+    repaymentAmount,
+    isAkapCapped,
+  }
 }
 
 export function fmtCurrency(n) {
-  return '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return (
+    '₱' +
+    Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  )
 }
