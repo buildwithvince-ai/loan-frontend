@@ -132,9 +132,11 @@ https://gr8lendingcorporation.com
 - `formatPeso(n)`, `getAge(dob)`, `validMobile(v)`, `validEmail(v)`
 
 ### API Pattern
-- `adminFetch(path)` — prepends admin base URL + secret header
-- `ciFetch(path)` — prepends CI base URL + secret header
-- Public forms: direct `fetch()` to backend URL
+- `adminFetch(path)` — prepends admin base URL + attaches `Authorization: Bearer <JWT>`
+- `ciFetch(path)` — prepends CI base URL + attaches `Authorization: Bearer <JWT>`
+- `pipelineFetch(path)` — prepends `/api/pipeline` base URL + attaches `Authorization: Bearer <JWT>`
+- Token comes from `AuthContext` (`useAuth().getToken`); all three are built by `buildFetch` in `AdminDashboard.jsx`
+- Public forms: direct `fetch()` to backend URL (no auth)
 
 ### Scoring System
 - FinScore: raw 300–999 normalized to 0–100
