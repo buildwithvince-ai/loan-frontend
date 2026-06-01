@@ -127,3 +127,12 @@ Chronological record of major architectural decisions, pivots, and trade-offs ma
 **Decision:** Frontend on Cloudflare Pages (client's account, custom domain with SSL). Backend on Railway.
 **Why:** Cloudflare Pages gives free, fast global CDN with automatic deploys. Railway provides simple container hosting for the Node.js backend with easy env var management.
 **Trade-off:** Two separate hosting providers to manage. SPA routing handled via `_redirects` file.
+
+## 15. Manual Override for Missing-FinScore Declines (Approver-level)
+
+**Date:** June 2026
+**Decision:** Added an Override flow on already-declined applications in the admin ApplicationDetail view. Shows only when `status === 'declined'` AND `finscore_raw` is null/0 AND role ∈ {approver, admin, super_admin}. Opens a modal requiring an override reason (min 10 chars), then `PATCH /api/admin/applications/:id/override { override_reason }` to send the app back to the Approver stage for manual review. A 403 surfaces inline ("Override is only available for applications with missing FinScore."); other errors toast.
+**Why:** Applications with no FinScore auto-land in the `declined` tier with no recoverable path. Approvers need a manual route to re-review legitimately scorable borrowers.
+**[ASSUMPTION]:** Backend endpoint `PATCH /api/admin/applications/:id/override` is assumed to exist with the specified 403 behavior and to move the application to the Approver stage. Frontend built to spec; **verify backend before shipping to prod.**
+**Also:** Loan amount/terms are now editable in the pending `declined` tier (`LoanTermsFields` rendered there), and the existing "Override Approve" button now carries the edited terms via `handleApprove(true)` → `/approve { ...adjusted_*, override: true }` (union of two contracts `/approve` already accepts). The pre-existing pending-declined Override Approve was kept, not replaced.
+**Trade-off:** Two distinct override concepts coexist — pending "Override Approve" (straight to Loandisk) vs. declined "Override" (back to Approver). Named differently to reduce confusion.

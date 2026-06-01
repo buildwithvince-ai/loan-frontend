@@ -9,6 +9,7 @@ import {
 } from './scoring'
 import CiScoringForm, { CiFormReadOnly } from './CiScoringForm'
 import { useAuth } from '../../context/AuthContext'
+import { getApplicantName } from '../../lib/applicantName'
 import useSalesOfficers from '../../hooks/useSalesOfficers'
 import {
   calcLoanSummary,
@@ -130,6 +131,72 @@ function ConfirmModal({
               </span>
             ) : (
               confirmLabel
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Manual override for applications declined due to missing FinScore.
+// Approver-level action: sends the application back to the Approver stage for manual review.
+function OverrideModal({ fullName, loading, inlineError, onConfirm, onCancel }) {
+  const [reason, setReason] = useState('')
+  const MIN_REASON = 10
+  const reasonValid = reason.trim().length >= MIN_REASON
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/60" onClick={loading ? undefined : onCancel} />
+      <div className="relative bg-surface border border-border rounded-xl p-6 max-w-md w-full">
+        <h3 className="text-white font-bold text-lg mb-2">Manual Override</h3>
+        <p className="text-muted text-sm mb-4">
+          This application was declined due to missing FinScore. Override to send back to Approver
+          stage for manual review?
+        </p>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-white mb-2">
+            Override Reason <span className="text-red-400">*</span>
+          </label>
+          <textarea
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            rows={4}
+            disabled={loading}
+            placeholder="Explain why this application warrants manual review (min 10 characters)…"
+            className="w-full px-3 py-2 bg-surface-alt border border-border rounded-lg text-white text-sm placeholder:text-muted/60 focus:outline-none focus:border-blue disabled:opacity-50 resize-none"
+          />
+          <div className="flex justify-end mt-1">
+            <span className={`text-xs ${reasonValid ? 'text-muted' : 'text-amber-400/70'}`}>
+              {reason.trim().length}/{MIN_REASON} characters
+            </span>
+          </div>
+        </div>
+        {inlineError && (
+          <p className="mb-4 text-sm text-red-400 bg-red-500/7 border border-red-500/21 rounded-lg px-3 py-2">
+            {inlineError}
+          </p>
+        )}
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="px-4 py-2 text-sm text-muted hover:text-white border border-border rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(reason.trim())}
+            disabled={loading || !reasonValid}
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-blue hover:bg-blue/80 text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                Overriding…
+              </span>
+            ) : (
+              'Override & Send to Approver'
             )}
           </button>
         </div>
@@ -363,14 +430,7 @@ function ApplicationSummary({ app, appId, onViewDocuments, onRefresh }) {
             Personal Information
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            <FieldCard
-              label="Full Name"
-              value={
-                [getField(app, 'firstName', 'first_name'), getField(app, 'lastName', 'last_name')]
-                  .filter(Boolean)
-                  .join(' ') || null
-              }
-            />
+            <FieldCard label="Full Name" value={getApplicantName(app) || null} />
             <FieldCard label="Age" value={age != null ? `${age} years old` : null} />
             <FieldCard
               label="Date of Birth"
@@ -551,7 +611,7 @@ function ApplicationSummary({ app, appId, onViewDocuments, onRefresh }) {
               {members.map((member, idx) => (
                 <Section
                   key={idx}
-                  title={`Member ${idx + 1}: ${member.first_name || member.firstName || ''} ${member.last_name || member.lastName || ''}`}
+                  title={`Member ${idx + 1}: ${getApplicantName(member)}`}
                   collapsible
                   defaultOpen={false}
                 >
@@ -896,11 +956,45 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
   const [fieldErrors, setFieldErrors] = useState({})
   const [actionLoading, setActionLoading] = useState(false)
   const [confirmModal, setConfirmModal] = useState(null)
+  const [overrideModal, setOverrideModal] = useState(false)
+  const [overrideLoading, setOverrideLoading] = useState(false)
+  const [overrideError, setOverrideError] = useState('')
   const addToast = useToast()
-  const fullName =
-    `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.trim()
+  const { hasAnyRole } = useAuth()
+  const fullName = getApplicantName(app)
   const isDecided = app.status !== 'pending'
   const isAkap = loanType === 'akap'
+
+  // Manual override: only for apps declined due to a missing/zero FinScore, approver-level roles.
+  const finscoreRaw = Number(app.finscore_raw || app.finscore || 0)
+  const finUnavailable = !finscoreRaw || finscoreRaw <= 0
+  const canOverride =
+    app.status === 'declined' && finUnavailable && hasAnyRole(['approver', 'admin', 'super_admin'])
+
+  const handleOverride = async overrideReason => {
+    if (overrideLoading) return
+    setOverrideLoading(true)
+    setOverrideError('')
+    try {
+      const res = await adminFetch(`/applications/${id}/override`, {
+        method: 'PATCH',
+        body: JSON.stringify({ override_reason: overrideReason }),
+      })
+      if (res.status === 403) {
+        setOverrideError('Override is only available for applications with missing FinScore.')
+        return
+      }
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.message || data.error || 'Failed to override')
+      setOverrideModal(false)
+      addToast('Application sent back to Approver for manual review')
+      await onRefresh()
+    } catch (err) {
+      addToast(err.message || 'Failed to override', 'error')
+    } finally {
+      setOverrideLoading(false)
+    }
+  }
 
   const availableSchemes = isAkap
     ? PAYMENT_SCHEMES.filter(s => s.id === 4)
@@ -1004,7 +1098,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
     setConfirmModal(null)
   }
 
-  const handleApprove = () => {
+  const handleApprove = (isOverride = false) => {
     const errs = validateFields()
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs)
@@ -1017,6 +1111,19 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
       interest_rate: interestRate,
       payment_scheme_id: schemeId,
       discount_reason: interestRate < defRate ? discountReason.trim() : null,
+    }
+    // Override path (declined recommendation): carry the edited terms + override flag.
+    // Sends the union of two contracts /approve already accepts: adjusted_* and { override: true }.
+    if (isOverride) {
+      confirmAction(
+        'Override: Approve',
+        `Override approval for ${fullName}? This requires supervisor approval.`,
+        'Override Approve',
+        'bg-gray-500 hover:bg-gray-600 text-white',
+        () => executeAction('approve', { ...approveBody, override: true }),
+        'Approving… up to a minute',
+      )
+      return
     }
     if (hasDiff()) {
       const parts = []
@@ -1200,6 +1307,19 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
           />
         )}
 
+        {overrideModal && (
+          <OverrideModal
+            fullName={fullName}
+            loading={overrideLoading}
+            inlineError={overrideError}
+            onConfirm={handleOverride}
+            onCancel={() => {
+              setOverrideModal(false)
+              setOverrideError('')
+            }}
+          />
+        )}
+
         {/* Already decided */}
         {isDecided ? (
           <div className="space-y-4">
@@ -1271,6 +1391,24 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
                 <Field label="Proposed Term" value={`${app.approver_proposed_term} months`} />
               )}
             </div>
+
+            {/* Manual override — declined due to missing FinScore (approver-level) */}
+            {canOverride && (
+              <div className="flex flex-col items-start gap-1 pt-2 border-t border-border/50">
+                <button
+                  onClick={() => {
+                    setOverrideError('')
+                    setOverrideModal(true)
+                  }}
+                  className="bg-blue hover:bg-blue/80 text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors"
+                >
+                  Override
+                </button>
+                <span className="text-xs text-muted">
+                  Declined due to missing FinScore — send back to Approver for manual review.
+                </span>
+              </div>
+            )}
           </div>
         ) : (
           <div>
@@ -1336,7 +1474,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
 
                 <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={handleApprove}
+                    onClick={() => handleApprove()}
                     disabled={actionLoading}
                     className={`font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       hasDiff()
@@ -1381,7 +1519,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
                 <LoanTermsFields requireAmount />
                 <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={handleApprove}
+                    onClick={() => handleApprove()}
                     disabled={actionLoading}
                     className="bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
                   >
@@ -1416,44 +1554,39 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
             )}
 
             {effectiveTier === 'declined' && (
-              <div className="flex flex-wrap gap-3 items-start">
-                <button
-                  onClick={() =>
-                    confirmAction(
-                      'Decline Application',
-                      `Are you sure you want to decline this application for ${fullName}?`,
-                      'Decline',
-                      'bg-red-500 hover:bg-red-600 text-white',
-                      reason => executeAction('decline', { decline_reason: reason }),
-                      undefined,
-                      true,
-                    )
-                  }
-                  disabled={actionLoading}
-                  className="bg-red-500 hover:bg-red-600 text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  Decline
-                </button>
-                <div className="flex flex-col items-start gap-1">
+              <div className="space-y-5">
+                {/* Editable terms — always available regardless of FinScore */}
+                <LoanTermsFields requireAmount />
+                <div className="flex flex-wrap gap-3 items-start">
                   <button
                     onClick={() =>
                       confirmAction(
-                        'Override: Approve',
-                        `Override approval for ${fullName}? This requires supervisor approval.`,
-                        'Override Approve',
-                        'bg-gray-500 hover:bg-gray-600 text-white',
-                        () => executeAction('approve', { override: true }),
-                        'Approving… up to a minute',
+                        'Decline Application',
+                        `Are you sure you want to decline this application for ${fullName}?`,
+                        'Decline',
+                        'bg-red-500 hover:bg-red-600 text-white',
+                        reason => executeAction('decline', { decline_reason: reason }),
+                        undefined,
+                        true,
                       )
                     }
                     disabled={actionLoading}
-                    className="border border-gray-500 text-gray-400 hover:bg-gray-500/10 font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-red-500 hover:bg-red-600 text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
                   >
-                    Override Approve
+                    Decline
                   </button>
-                  <span className="text-xs text-amber-400/70">
-                    Override requires supervisor approval
-                  </span>
+                  <div className="flex flex-col items-start gap-1">
+                    <button
+                      onClick={() => handleApprove(true)}
+                      disabled={actionLoading}
+                      className="border border-gray-500 text-gray-400 hover:bg-gray-500/10 font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Override Approve
+                    </button>
+                    <span className="text-xs text-amber-400/70">
+                      Override requires supervisor approval
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
