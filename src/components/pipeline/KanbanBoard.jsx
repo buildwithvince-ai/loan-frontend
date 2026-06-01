@@ -138,6 +138,10 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
     if (LOCKED_STAGES.includes(fromStage)) return
     // Locked columns — cannot drag into loan_processing_officer directly
     if (toStage === 'loan_processing_officer' && fromStage !== 'approver') return
+    // Sales Officer can only advance to the Verifier — never skip ahead to
+    // approver/CI/etc. Client-confirmation (→ approver) goes through the
+    // Confirm/Decline buttons, not a drag.
+    if (fromStage === 'sales_officer' && toStage !== 'verifier') return
 
     const app = filteredApps.find(
       a => String(a.id || a._id || a.reference_id) === String(active.id),
