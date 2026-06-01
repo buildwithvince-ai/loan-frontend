@@ -7,6 +7,7 @@ import {
   getNextTierHint,
   TIER_CONFIG,
 } from './scoring'
+import { getApplicantName } from '../../lib/applicantName'
 
 const INTERVIEWERS = [
   'Angelo Bradly Danganan',
@@ -184,7 +185,7 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
   const isSme = app.loan_type === 'sme'
   const isSbl = app.loan_type === 'sbl'
   const age = calcAge(app.date_of_birth || app.dob || app.birthdate)
-  const fullName = `${app.first_name || ''} ${app.last_name || ''}`.trim()
+  const fullName = getApplicantName(app)
   const address =
     [
       app.present_address,

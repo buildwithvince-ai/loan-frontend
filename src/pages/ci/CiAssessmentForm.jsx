@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ciFetch, useCiToast } from './CiPortal'
+import { getApplicantName } from '../../lib/applicantName'
 
 const INTERVIEWERS = [
   'Angelo Bradly Danganan',
@@ -177,9 +178,7 @@ function formatDate(dateStr) {
 export default function CiAssessmentForm({ app, onBack }) {
   const isSme = app.loan_type === 'sme'
   const isSbl = app.loan_type === 'sbl'
-  const fullName =
-    app.full_name ||
-    `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.trim()
+  const fullName = getApplicantName(app)
   const age = calcAge(
     app.date_of_birth ||
       app.dob ||
