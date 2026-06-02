@@ -953,6 +953,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
   const [interestRate, setInterestRate] = useState(originalInterestRate)
   const [schemeId, setSchemeId] = useState(defaultSchemeId(loanType))
   const [discountReason, setDiscountReason] = useState('')
+  const [loanReleaseDate, setLoanReleaseDate] = useState(app.loan_release_date || '')
   const [fieldErrors, setFieldErrors] = useState({})
   const [actionLoading, setActionLoading] = useState(false)
   const [confirmModal, setConfirmModal] = useState(null)
@@ -964,6 +965,10 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
   const fullName = getApplicantName(app)
   const isDecided = app.status !== 'pending'
   const isAkap = loanType === 'akap'
+
+  // Loan Release Date — required before approving in the Approver stage (Part 5).
+  const isApproverStage = app.stage === 'approver'
+  const releaseDateValid = !isApproverStage || !!loanReleaseDate
 
   // Manual override: only for apps declined due to a missing/zero FinScore, approver-level roles.
   const finscoreRaw = Number(app.finscore_raw || app.finscore || 0)
@@ -1100,6 +1105,9 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
 
   const handleApprove = (isOverride = false) => {
     const errs = validateFields()
+    if (isApproverStage && !loanReleaseDate) {
+      errs.releaseDate = 'Loan Release Date is required before approving.'
+    }
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs)
       return
@@ -1111,6 +1119,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
       interest_rate: interestRate,
       payment_scheme_id: schemeId,
       discount_reason: interestRate < defRate ? discountReason.trim() : null,
+      loan_release_date: loanReleaseDate || null,
     }
     // Override path (declined recommendation): carry the edited terms + override flag.
     // Sends the union of two contracts /approve already accepts: adjusted_* and { override: true }.
@@ -1276,6 +1285,27 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
             )}
             <p className="text-muted text-xs">{discountReason.length}/500</p>
           </div>
+        </div>
+      )}
+
+      {/* Loan Release Date — required in Approver stage (Part 5) */}
+      {isApproverStage && (
+        <div>
+          <label className="text-muted text-xs block mb-1.5">
+            Loan Release Date <span className="text-red-400">*</span>
+          </label>
+          <input
+            type="date"
+            value={loanReleaseDate}
+            onChange={e => {
+              setLoanReleaseDate(e.target.value)
+              setFieldErrors(prev => ({ ...prev, releaseDate: undefined }))
+            }}
+            className={`${fieldErrors.releaseDate ? inputErrCls : inputCls} [color-scheme:dark]`}
+          />
+          {fieldErrors.releaseDate && (
+            <p className="text-red-400 text-xs mt-1">{fieldErrors.releaseDate}</p>
+          )}
         </div>
       )}
 
@@ -1475,7 +1505,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
                 <div className="flex flex-wrap gap-3">
                   <button
                     onClick={() => handleApprove()}
-                    disabled={actionLoading}
+                    disabled={actionLoading || !releaseDateValid}
                     className={`font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       hasDiff()
                         ? 'bg-amber-500 hover:bg-amber-600 text-white'
@@ -1520,7 +1550,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
                 <div className="flex flex-wrap gap-3">
                   <button
                     onClick={() => handleApprove()}
-                    disabled={actionLoading}
+                    disabled={actionLoading || !releaseDateValid}
                     className="bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
                   >
                     {actionLoading ? (
@@ -1578,7 +1608,7 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
                   <div className="flex flex-col items-start gap-1">
                     <button
                       onClick={() => handleApprove(true)}
-                      disabled={actionLoading}
+                      disabled={actionLoading || !releaseDateValid}
                       className="border border-gray-500 text-gray-400 hover:bg-gray-500/10 font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Override Approve
@@ -1880,8 +1910,10 @@ export default function ApplicationDetail({ id, onBack }) {
   const [error, setError] = useState(null)
   const [showFileViewer, setShowFileViewer] = useState(false)
   const addToast = useToast()
-  const { hasRole } = useAuth()
+  const { hasRole, hasAnyRole } = useAuth()
   const isCiRole = hasRole('ci_officer')
+  // CI scoring is editable only by CI Officer, Approver, and Super Admin (Part 7).
+  const canScoreCi = hasAnyRole(['ci_officer', 'approver', 'super_admin'])
 
   const fetchApp = async () => {
     try {
@@ -1978,20 +2010,32 @@ export default function ApplicationDetail({ id, onBack }) {
         {/* SECTION 2 — FinScore Result */}
         <FinScoreSection finscoreRaw={finscoreRaw} finscoreNorm={finscoreNorm} />
 
-        {/* SECTION 3 — CI Assessment Form */}
-        {showCiForm && (
-          <Section title="Section 3 — CI Assessment Form" collapsible defaultOpen={isCiRole}>
-            <div className="pt-4">
-              <CiScoringForm
-                app={app}
-                appId={id}
-                finscoreRaw={finscoreRaw}
-                finscoreNorm={finscoreNorm}
-                onSubmitSuccess={fetchApp}
-              />
-            </div>
-          </Section>
-        )}
+        {/* SECTION 3 — CI Assessment Form (editable only by CI Officer / Approver / Super Admin) */}
+        {showCiForm &&
+          (canScoreCi ? (
+            <Section title="Section 3 — CI Assessment Form" collapsible defaultOpen={isCiRole}>
+              <div className="pt-4">
+                <CiScoringForm
+                  app={app}
+                  appId={id}
+                  finscoreRaw={finscoreRaw}
+                  finscoreNorm={finscoreNorm}
+                  onSubmitSuccess={fetchApp}
+                />
+              </div>
+            </Section>
+          ) : (
+            <Section title="Section 3 — CI Assessment Form">
+              <div className="pt-4">
+                <div className="bg-surface-alt rounded-lg p-6 text-center">
+                  <p className="text-muted text-sm">Awaiting CI Assessment</p>
+                  <p className="text-muted/60 text-xs mt-1">
+                    Only the CI Officer, Approver, or Super Admin can complete this form.
+                  </p>
+                </div>
+              </div>
+            </Section>
+          ))}
 
         {/* CI Form Read-Only (after submission) */}
         {hasCiScore && (app.ci_form_data || app.ci_form) && (

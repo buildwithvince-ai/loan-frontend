@@ -4,3 +4,8 @@ dist
 .env.*
 *.local
 .DS_Store
+
+# Playwright E2E generated output
+test-results
+e2e/.report
+e2e/.artifacts

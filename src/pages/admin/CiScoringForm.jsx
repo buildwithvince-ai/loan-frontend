@@ -8,6 +8,8 @@ import {
   TIER_CONFIG,
 } from './scoring'
 import { getApplicantName } from '../../lib/applicantName'
+import SalaryPayoutPicker from '../../components/ci/SalaryPayoutPicker'
+import { deriveRepaymentCycle } from '../../lib/repaymentCycle'
 
 const INTERVIEWERS = [
   'Angelo Bradly Danganan',
@@ -209,6 +211,13 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
   const [relativeWho, setRelativeWho] = useState('')
   const [interviewer, setInterviewer] = useState('')
 
+  // Address (required), payment frequency + salary payout dates
+  const [houseNumber, setHouseNumber] = useState('')
+  const [streetName, setStreetName] = useState('')
+  const [paymentFrequency, setPaymentFrequency] = useState('')
+  const [payoutDates, setPayoutDates] = useState([])
+  const [fieldErrors, setFieldErrors] = useState({})
+
   // Scoring fields
   const [q1, setQ1] = useState(null)
   const [q2, setQ2] = useState(null)
@@ -262,6 +271,21 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
   const q2Options = isSme ? SME_Q2 : STANDARD_Q2
 
   const validate = () => {
+    // Inline-validated fields (address, payment frequency, payout dates)
+    const errs = {}
+    if (!houseNumber.trim()) errs.houseNumber = 'House / Unit Number is required'
+    if (!streetName.trim()) errs.streetName = 'Street Name / Number is required'
+    if (!paymentFrequency) errs.paymentFrequency = 'Select a payment frequency'
+    const requiredDates = paymentFrequency === 'two_times' ? 2 : 1
+    if (paymentFrequency && payoutDates.length !== requiredDates) {
+      errs.payoutDates =
+        requiredDates === 2 ? 'Select exactly 2 payout dates' : 'Select exactly 1 payout date'
+    }
+    setFieldErrors(errs)
+    if (Object.keys(errs).length > 0) {
+      addToast('Fix the highlighted fields', 'error')
+      return false
+    }
     if (!interviewer) {
       addToast('Select an interviewer', 'error')
       return false
@@ -301,10 +325,16 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
     if (!validate()) return
     setSubmitting(true)
     try {
+      const repaymentCycle = deriveRepaymentCycle(payoutDates)
       const ciFormData = {
         client_name: clientName,
         age,
         complete_address: completeAddress,
+        house_number: houseNumber.trim(),
+        street_name: streetName.trim(),
+        payment_frequency: paymentFrequency,
+        salary_payout_dates: payoutDates,
+        repayment_cycle: repaymentCycle,
         contact_number: contactNumber,
         contact_status: contactStatus,
         loan_product: app.loan_type,
@@ -347,6 +377,9 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
           ci_recommended_amount: ciRecommendation === 'approved' ? recommendedAmount : null,
           reviewed_by: interviewer,
           notes: remarks,
+          payment_frequency: paymentFrequency,
+          salary_payout_dates: payoutDates,
+          repayment_cycle: repaymentCycle,
         }),
       })
       if (!res.ok) {
@@ -407,6 +440,38 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
                 onChange={e => setCompleteAddress(e.target.value)}
                 className={inputCls}
               />
+            </div>
+            <div>
+              <label className={labelCls}>House / Unit Number *</label>
+              <input
+                type="text"
+                value={houseNumber}
+                onChange={e => {
+                  setHouseNumber(e.target.value)
+                  setFieldErrors(prev => ({ ...prev, houseNumber: undefined }))
+                }}
+                className={inputCls}
+                placeholder="e.g. Blk 5 Lot 12 / Unit 3B"
+              />
+              {fieldErrors.houseNumber && (
+                <p className="text-red-400 text-xs mt-1">{fieldErrors.houseNumber}</p>
+              )}
+            </div>
+            <div>
+              <label className={labelCls}>Street Name / Number *</label>
+              <input
+                type="text"
+                value={streetName}
+                onChange={e => {
+                  setStreetName(e.target.value)
+                  setFieldErrors(prev => ({ ...prev, streetName: undefined }))
+                }}
+                className={inputCls}
+                placeholder="e.g. Rizal St. / 14th Ave."
+              />
+              {fieldErrors.streetName && (
+                <p className="text-red-400 text-xs mt-1">{fieldErrors.streetName}</p>
+              )}
             </div>
             <div>
               <label className={labelCls}>Contact Number</label>
@@ -525,6 +590,46 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
                 ))}
               </select>
             </div>
+          </div>
+        </div>
+
+        {/* Payment Frequency + Salary Payout Dates */}
+        <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+          <h4 className="text-white font-semibold text-sm">Salary / Honorarium Payout</h4>
+          <div>
+            <label className={labelCls}>Payment Frequency *</label>
+            <select
+              value={paymentFrequency}
+              onChange={e => {
+                setPaymentFrequency(e.target.value)
+                setPayoutDates([])
+                setFieldErrors(prev => ({
+                  ...prev,
+                  paymentFrequency: undefined,
+                  payoutDates: undefined,
+                }))
+              }}
+              className={inputCls}
+            >
+              <option value="">Select frequency</option>
+              <option value="one_time">One-time per month</option>
+              <option value="two_times">Two-times per month</option>
+            </select>
+            {fieldErrors.paymentFrequency && (
+              <p className="text-red-400 text-xs mt-1">{fieldErrors.paymentFrequency}</p>
+            )}
+          </div>
+          <div>
+            <label className={labelCls}>Salary Payout Date *</label>
+            <SalaryPayoutPicker
+              frequency={paymentFrequency}
+              value={payoutDates}
+              onChange={dates => {
+                setPayoutDates(dates)
+                setFieldErrors(prev => ({ ...prev, payoutDates: undefined }))
+              }}
+              error={fieldErrors.payoutDates}
+            />
           </div>
         </div>
 
@@ -936,10 +1041,27 @@ export function CiFormReadOnly({ ciFormData }) {
     return opt ? `${opt.label} (${pts})` : `${pts} pts`
   })
 
+  const FREQUENCY_LABELS = {
+    one_time: 'One-time per month',
+    two_times: 'Two-times per month',
+  }
+  const payoutDatesLabel =
+    Array.isArray(ciFormData.salary_payout_dates) && ciFormData.salary_payout_dates.length
+      ? ciFormData.salary_payout_dates.join(', ')
+      : null
+
   const fields = [
     ['Client Name', ciFormData.client_name],
     ['Age', ciFormData.age],
     ['Address', ciFormData.complete_address],
+    ['House / Unit Number', ciFormData.house_number],
+    ['Street Name / Number', ciFormData.street_name],
+    [
+      'Payment Frequency',
+      FREQUENCY_LABELS[ciFormData.payment_frequency] || ciFormData.payment_frequency,
+    ],
+    ['Salary Payout Date(s)', payoutDatesLabel],
+    ['Repayment Cycle', ciFormData.repayment_cycle],
     ['Contact', ciFormData.contact_number],
     ['Contact Status', ciFormData.contact_status],
     ['Loan Product', ciFormData.loan_product?.toUpperCase()],

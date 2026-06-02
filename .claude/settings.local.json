@@ -42,7 +42,23 @@
       "Bash(awk '{print $5, $9}')",
       "Bash(EMAIL='ask@builtwithvince.com' PASSWORD='gr8gr8' node *)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); apps=d if isinstance\\(d,list\\) else d.get\\('applications'\\) or d.get\\('data'\\) or []; print\\('TOTAL',len\\(apps\\)\\); [print\\(a.get\\('id'\\), a.get\\('loan_type'\\), a.get\\('status'\\), 'scheme=',a.get\\('payment_scheme_id'\\),'rate=',a.get\\('interest_rate'\\),'|',a.get\\('groupName'\\) or a.get\\('group_name'\\) or '', a.get\\('reference_id'\\) or a.get\\('referenceId'\\) or ''\\) for a in apps[:40]]\")",
-      "Bash(python3 -c \"import sys,json; a=json.load\\(sys.stdin\\); a=a.get\\('application',a\\); [print\\(k,'=',v\\) for k,v in a.items\\(\\) if 'scheme' in k.lower\\(\\) or 'rate' in k.lower\\(\\) or 'proposed' in k.lower\\(\\) or 'interest' in k.lower\\(\\) or k in \\('loan_type','status','loan_term','approver_proposed_term'\\)]\")"
+      "Bash(python3 -c \"import sys,json; a=json.load\\(sys.stdin\\); a=a.get\\('application',a\\); [print\\(k,'=',v\\) for k,v in a.items\\(\\) if 'scheme' in k.lower\\(\\) or 'rate' in k.lower\\(\\) or 'proposed' in k.lower\\(\\) or 'interest' in k.lower\\(\\) or k in \\('loan_type','status','loan_term','approver_proposed_term'\\)]\")",
+      "Skill(update-config)",
+      "Bash(echo \"SCHEMA OK \\(exit $?\\)\")",
+      "Bash(awk '{ if \\(length > max\\) max=length } END { print max }' src/pages/*.jsx)",
+      "Bash(awk 'BEGIN{t=0;o80=0;o100=0} {t++; if\\(length>80\\)o80++; if\\(length>100\\)o100++} END{printf \"total=%d  >80=%d\\(%.0f%%\\)  >100=%d\\(%.0f%%\\)\\\\n\",t,o80,100*o80/t,o100,100*o100/t}' src/pages/*.jsx src/components/*.jsx)",
+      "Bash(npx prettier *)",
+      "Bash(xargs ./node_modules/.bin/prettier --write)",
+      "Bash(gh auth *)",
+      "Bash(gh pr create --base main --head chore/claude-automation-setup --title 'chore: Claude Code automation setup + prettier formatting' --body ' *)",
+      "Bash(grep -rli \"pipeline\\\\|kanban\\\\|@dnd-kit\" .)",
+      "Bash(grep -rln -i \"approve\" .)",
+      "Bash(sed -n '/function groupByStage/,/^}/p' src/components/pipeline/KanbanBoard.jsx)",
+      "Bash(sed -n '1,30p' src/components/pipeline/KanbanCard.jsx)",
+      "Bash(file e2e/fixtures/*)",
+      "Bash(awk -F= '/^APPROVER_\\(EMAIL|PASSWORD\\)=/{ *)",
+      "Bash(awk -F= '/^APPROVER_EMAIL=/{v=substr\\($0,index\\($0,\"=\"\\)+1\\); n=index\\(v,\"@\"\\); if\\(n>0\\) print \"domain:\", substr\\(v,n\\)}' e2e/.env.e2e)",
+      "Bash(npx eslint *)"
     ]
   }
 }
