@@ -186,6 +186,14 @@ function SectionHeader({ number, title, maxPts, currentPts }) {
 export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, onSubmitSuccess }) {
   const isSme = app.loan_type === 'sme'
   const isSbl = app.loan_type === 'sbl'
+  const isAkap = app.loan_type === 'akap'
+  // AKAP & SME are not salary/honorarium-based — they skip the salary payout block
+  // (payment frequency, payout dates, repayment cycle). SBL is honorarium-based: it
+  // also skips the salary block but collects a single required `honorarium_date`
+  // (day-of-month) instead. So all three hide the salary block; only SBL shows honorarium.
+  // [ASSUMPTION] honorarium_date is a day-of-month int (1–31) under key `honorarium_date`
+  // (relayed from backend, unverified until first real SBL submit).
+  const hidePayout = isAkap || isSme || isSbl
   const age = calcAge(app.date_of_birth || app.dob || app.birthdate)
   const fullName = getApplicantName(app)
   const address =
@@ -216,6 +224,7 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
   const [streetName, setStreetName] = useState('')
   const [paymentFrequency, setPaymentFrequency] = useState('')
   const [payoutDates, setPayoutDates] = useState([])
+  const [honorariumDate, setHonorariumDate] = useState(null) // SBL only: day-of-month int
   const [fieldErrors, setFieldErrors] = useState({})
 
   // Scoring fields
@@ -275,11 +284,16 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
     const errs = {}
     if (!houseNumber.trim()) errs.houseNumber = 'House / Unit Number is required'
     if (!streetName.trim()) errs.streetName = 'Street Name / Number is required'
-    if (!paymentFrequency) errs.paymentFrequency = 'Select a payment frequency'
-    const requiredDates = paymentFrequency === 'two_times' ? 2 : 1
-    if (paymentFrequency && payoutDates.length !== requiredDates) {
-      errs.payoutDates =
-        requiredDates === 2 ? 'Select exactly 2 payout dates' : 'Select exactly 1 payout date'
+    if (!hidePayout) {
+      if (!paymentFrequency) errs.paymentFrequency = 'Select a payment frequency'
+      const requiredDates = paymentFrequency === 'two_times' ? 2 : 1
+      if (paymentFrequency && payoutDates.length !== requiredDates) {
+        errs.payoutDates =
+          requiredDates === 2 ? 'Select exactly 2 payout dates' : 'Select exactly 1 payout date'
+      }
+    }
+    if (isSbl && honorariumDate == null) {
+      errs.honorariumDate = 'Select the honorarium date'
     }
     setFieldErrors(errs)
     if (Object.keys(errs).length > 0) {
@@ -332,9 +346,14 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
         complete_address: completeAddress,
         house_number: houseNumber.trim(),
         street_name: streetName.trim(),
-        payment_frequency: paymentFrequency,
-        salary_payout_dates: payoutDates,
-        repayment_cycle: repaymentCycle,
+        ...(hidePayout
+          ? {}
+          : {
+              payment_frequency: paymentFrequency,
+              salary_payout_dates: payoutDates,
+              repayment_cycle: repaymentCycle,
+            }),
+        ...(isSbl ? { honorarium_date: honorariumDate } : {}),
         contact_number: contactNumber,
         contact_status: contactStatus,
         loan_product: app.loan_type,
@@ -377,9 +396,14 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
           ci_recommended_amount: ciRecommendation === 'approved' ? recommendedAmount : null,
           reviewed_by: interviewer,
           notes: remarks,
-          payment_frequency: paymentFrequency,
-          salary_payout_dates: payoutDates,
-          repayment_cycle: repaymentCycle,
+          ...(isSbl ? { honorarium_date: honorariumDate } : {}),
+          ...(hidePayout
+            ? {}
+            : {
+                payment_frequency: paymentFrequency,
+                salary_payout_dates: payoutDates,
+                repayment_cycle: repaymentCycle,
+              }),
         }),
       })
       if (!res.ok) {
@@ -593,45 +617,68 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
           </div>
         </div>
 
-        {/* Payment Frequency + Salary Payout Dates */}
-        <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
-          <h4 className="text-white font-semibold text-sm">Salary / Honorarium Payout</h4>
-          <div>
-            <label className={labelCls}>Payment Frequency *</label>
-            <select
-              value={paymentFrequency}
-              onChange={e => {
-                setPaymentFrequency(e.target.value)
-                setPayoutDates([])
-                setFieldErrors(prev => ({
-                  ...prev,
-                  paymentFrequency: undefined,
-                  payoutDates: undefined,
-                }))
-              }}
-              className={inputCls}
-            >
-              <option value="">Select frequency</option>
-              <option value="one_time">One-time per month</option>
-              <option value="two_times">Two-times per month</option>
-            </select>
-            {fieldErrors.paymentFrequency && (
-              <p className="text-red-400 text-xs mt-1">{fieldErrors.paymentFrequency}</p>
-            )}
+        {/* Payment Frequency + Salary Payout Dates — hidden for AKAP & SME */}
+        {!hidePayout && (
+          <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+            <h4 className="text-white font-semibold text-sm">Salary / Honorarium Payout</h4>
+            <div>
+              <label className={labelCls}>Payment Frequency *</label>
+              <select
+                value={paymentFrequency}
+                onChange={e => {
+                  setPaymentFrequency(e.target.value)
+                  setPayoutDates([])
+                  setFieldErrors(prev => ({
+                    ...prev,
+                    paymentFrequency: undefined,
+                    payoutDates: undefined,
+                  }))
+                }}
+                className={inputCls}
+              >
+                <option value="">Select frequency</option>
+                <option value="one_time">One-time per month</option>
+                <option value="two_times">Two-times per month</option>
+              </select>
+              {fieldErrors.paymentFrequency && (
+                <p className="text-red-400 text-xs mt-1">{fieldErrors.paymentFrequency}</p>
+              )}
+            </div>
+            <div>
+              <label className={labelCls}>Salary Payout Date *</label>
+              <SalaryPayoutPicker
+                frequency={paymentFrequency}
+                value={payoutDates}
+                onChange={dates => {
+                  setPayoutDates(dates)
+                  setFieldErrors(prev => ({ ...prev, payoutDates: undefined }))
+                }}
+                error={fieldErrors.payoutDates}
+              />
+            </div>
           </div>
-          <div>
-            <label className={labelCls}>Salary Payout Date *</label>
-            <SalaryPayoutPicker
-              frequency={paymentFrequency}
-              value={payoutDates}
-              onChange={dates => {
-                setPayoutDates(dates)
-                setFieldErrors(prev => ({ ...prev, payoutDates: undefined }))
-              }}
-              error={fieldErrors.payoutDates}
-            />
+        )}
+
+        {/* Honorarium Date — SBL only (replaces the salary payout block) */}
+        {isSbl && (
+          <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+            <h4 className="text-white font-semibold text-sm">Honorarium</h4>
+            <div>
+              <label className={labelCls}>Honorarium Date *</label>
+              <SalaryPayoutPicker
+                frequency="one_time"
+                hideCycle
+                helperText="Select the honorarium release date (day of month)."
+                value={honorariumDate ? [honorariumDate] : []}
+                onChange={dates => {
+                  setHonorariumDate(dates[0] ?? null)
+                  setFieldErrors(prev => ({ ...prev, honorariumDate: undefined }))
+                }}
+                error={fieldErrors.honorariumDate}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Q1 */}
         <div className="bg-surface border border-border rounded-xl p-5">
@@ -1049,6 +1096,11 @@ export function CiFormReadOnly({ ciFormData }) {
     Array.isArray(ciFormData.salary_payout_dates) && ciFormData.salary_payout_dates.length
       ? ciFormData.salary_payout_dates.join(', ')
       : null
+  // AKAP & SME never collect payout fields; SBL collects honorarium_date instead of
+  // the salary block — omit the salary rows for all three in the read-only summary.
+  const isSblRO = ciFormData.loan_product === 'sbl'
+  const hidePayoutRO =
+    ciFormData.loan_product === 'akap' || ciFormData.loan_product === 'sme' || isSblRO
 
   const fields = [
     ['Client Name', ciFormData.client_name],
@@ -1056,12 +1108,15 @@ export function CiFormReadOnly({ ciFormData }) {
     ['Address', ciFormData.complete_address],
     ['House / Unit Number', ciFormData.house_number],
     ['Street Name / Number', ciFormData.street_name],
-    [
-      'Payment Frequency',
-      FREQUENCY_LABELS[ciFormData.payment_frequency] || ciFormData.payment_frequency,
-    ],
-    ['Salary Payout Date(s)', payoutDatesLabel],
-    ['Repayment Cycle', ciFormData.repayment_cycle],
+    hidePayoutRO
+      ? null
+      : [
+          'Payment Frequency',
+          FREQUENCY_LABELS[ciFormData.payment_frequency] || ciFormData.payment_frequency,
+        ],
+    hidePayoutRO ? null : ['Salary Payout Date(s)', payoutDatesLabel],
+    hidePayoutRO ? null : ['Repayment Cycle', ciFormData.repayment_cycle],
+    isSblRO ? ['Honorarium Date', ciFormData.honorarium_date] : null,
     ['Contact', ciFormData.contact_number],
     ['Contact Status', ciFormData.contact_status],
     ['Loan Product', ciFormData.loan_product?.toUpperCase()],

@@ -12,7 +12,18 @@ import { deriveRepaymentCycle } from '../../lib/repaymentCycle'
 // @param {(dates:number[])=>void} onChange - receives the next selection
 // @param {string} [error] - inline validation message
 // @param {boolean} [disabled] - renders the grid non-interactive
-export default function SalaryPayoutPicker({ frequency, value = [], onChange, error, disabled }) {
+// @param {boolean} [hideCycle] - suppress the derived Repayment Cycle box (used by the
+//   SBL honorarium-date picker, which is a single day with no repayment-cycle concept)
+// @param {string} [helperText] - override the default frequency-driven helper text
+export default function SalaryPayoutPicker({
+  frequency,
+  value = [],
+  onChange,
+  error,
+  disabled,
+  hideCycle,
+  helperText,
+}) {
   const max = frequency === 'two_times' ? 2 : 1
   const days = Array.from({ length: 31 }, (_, i) => i + 1)
   const cycle = deriveRepaymentCycle(value)
@@ -33,12 +44,13 @@ export default function SalaryPayoutPicker({ frequency, value = [], onChange, er
     }
   }
 
-  const helperText =
-    frequency === 'two_times'
+  const helper =
+    helperText ??
+    (frequency === 'two_times'
       ? 'Select exactly 2 payout dates.'
       : frequency === 'one_time'
         ? 'Select 1 payout date.'
-        : 'Select a payment frequency first.'
+        : 'Select a payment frequency first.')
 
   return (
     <div>
@@ -74,23 +86,25 @@ export default function SalaryPayoutPicker({ frequency, value = [], onChange, er
       </div>
 
       <div className="flex items-center justify-between mt-2">
-        <span className="text-muted text-xs">{helperText}</span>
+        <span className="text-muted text-xs">{helper}</span>
         <span className="text-muted text-xs">
           {value.length}/{max} selected
         </span>
       </div>
 
       {/* Repayment Cycle — read-only, derived live from selected dates */}
-      <div className="mt-3">
-        <label className="text-muted text-xs block mb-1.5">Repayment Cycle</label>
-        <input
-          type="text"
-          value={cycle}
-          readOnly
-          placeholder="—"
-          className="w-full bg-canvas border border-border rounded-lg px-4 py-2.5 text-white text-sm opacity-70 cursor-default outline-none"
-        />
-      </div>
+      {!hideCycle && (
+        <div className="mt-3">
+          <label className="text-muted text-xs block mb-1.5">Repayment Cycle</label>
+          <input
+            type="text"
+            value={cycle}
+            readOnly
+            placeholder="—"
+            className="w-full bg-canvas border border-border rounded-lg px-4 py-2.5 text-white text-sm opacity-70 cursor-default outline-none"
+          />
+        </div>
+      )}
 
       {error && <p className="text-red-400 text-xs mt-1.5">{error}</p>}
     </div>

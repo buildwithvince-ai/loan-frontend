@@ -58,7 +58,8 @@
       "Bash(file e2e/fixtures/*)",
       "Bash(awk -F= '/^APPROVER_\\(EMAIL|PASSWORD\\)=/{ *)",
       "Bash(awk -F= '/^APPROVER_EMAIL=/{v=substr\\($0,index\\($0,\"=\"\\)+1\\); n=index\\(v,\"@\"\\); if\\(n>0\\) print \"domain:\", substr\\(v,n\\)}' e2e/.env.e2e)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(gh pr *)"
     ]
   }
 }

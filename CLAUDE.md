@@ -191,3 +191,49 @@ Read and strictly follow all instructions in these files before writing any code
     covers the ApplicationDetail approve.
 - Open items / next session: Verify backend persists the 4 new keys (may silently drop unknown
   keys). Manual UAT of picker on 375px mobile.
+
+## Session Log — 2026-06-03
+- Built: AKAP/SME gating for the salary-payout feature (Parts 2–4). Added `isAkap` +
+  `hidePayout = isAkap || isSme` to both editable CI surfaces (`CiAssessmentForm`, `CiScoringForm`).
+  When hidePayout: the Payment Frequency + Salary Payout Date Picker block is hidden, its
+  validation is skipped, and `payment_frequency`/`salary_payout_dates`/`repayment_cycle` are
+  omitted from BOTH `ci_form_data` and the flat PATCH body (conditional spread). CiScoringForm
+  read-only summary (`CiFormReadOnly`) drops the 3 payout rows when `loan_product` is akap/sme
+  (gated on `hidePayoutRO`).
+- Verified (FOUND, no change): Parts 1–6 + Loan Release Date all pre-existed from 2026-06-02.
+  Address fields required+inline-validated on both CI surfaces. Part 7 role gate intact —
+  `canScoreCi = hasAnyRole(['ci_officer','approver','super_admin'])` (ApplicationDetail.jsx:1916)
+  wraps editable CiScoringForm vs read-only CiFormReadOnly. Loan Release Date required for ALL
+  types incl. AKAP/SME at approver stage (correctly NOT gated). Grep confirmed the kanban board /
+  transition modals render none of these fields, so they need no gating.
+- Decisions made: Payload omits the 3 keys entirely for AKAP/SME (vs sending nulls) — matches
+  Part 6 "skip" wording. Read-only rows null-filtered out (existing `.filter(f => f !== null)`).
+- Assumptions introduced: none beyond 2026-06-02's. Backend persistence of the keys still UNVERIFIED.
+- Open items / next session: Manual UAT — confirm AKAP & SME apps show no payout UI and still
+  submit; confirm Personal/Group/SBL unchanged. Backend key persistence still unverified.
+
+## Session Log — 2026-06-03 (SBL honorarium date)
+- Built: SBL now skips the salary payout block (payment frequency + multi-date picker) and shows a
+  single **required** Honorarium Date field (day-of-month 1–31). Applied to both editable CI
+  surfaces (`CiAssessmentForm`, `CiScoringForm`) and the admin read-only summary (`CiFormReadOnly`).
+  Folded SBL into `hidePayout` (`isAkap || isSme || isSbl`) so the salary block + its 3 payload keys
+  (`payment_frequency`/`salary_payout_dates`/`repayment_cycle`) are dropped for SBL; added
+  `honorarium_date` (int) sent nested in `ci_form_data` AND flat in the `/ci-score` PATCH body, gated
+  on `isSbl`. Read-only drops the 3 salary rows for SBL (`hidePayoutRO` now includes sbl) and adds an
+  "Honorarium Date" row.
+- Reused the shared `SalaryPayoutPicker` with two new additive props: `hideCycle` (suppress the
+  derived Repayment Cycle box) and `helperText` (override). SBL honorarium passes `frequency="one_time"`
+  + `hideCycle`. Defaults preserve existing salary-block behavior (verified: build green, 2 salary
+  callers unchanged).
+- Decisions made: `repayment_cycle` is intentionally dropped for SBL (SBL is monthly-fixed; backend
+  ignores SBL salary fields). Honorarium stored as a single day-of-month int, not an ISO date — matches
+  SBL monthly honorarium cycle and reuses existing picker infra (operator-confirmed).
+- Assumptions introduced:
+  - [ASSUMPTION] Honorarium key is `honorarium_date`, value = day-of-month int (1–31). Relayed from
+    backend, operator-confirmed; UNVERIFIED until first real SBL submit (wrong key = silent drop +
+    server-side required failure). Commented at the `hidePayout` definition in both forms.
+- Scope candidates deferred: none. Backend confirmed SBL may keep sending salary fields (ignored), so
+  no public `SblLoanForm` change needed — this is CI-surface only.
+- Open items / next session: Verify backend persists `honorarium_date` on first real SBL CI submit.
+  Manual UAT on 375px — SBL shows Honorarium block (no freq dropdown, no Repayment Cycle box), required
+  gate fires when unset; confirm Personal/Group still show full salary block unchanged.

@@ -180,6 +180,14 @@ function formatDate(dateStr) {
 export default function CiAssessmentForm({ app, onBack }) {
   const isSme = app.loan_type === 'sme'
   const isSbl = app.loan_type === 'sbl'
+  const isAkap = app.loan_type === 'akap'
+  // AKAP & SME are not salary/honorarium-based — they skip the salary payout block
+  // (payment frequency, payout dates, repayment cycle). SBL is honorarium-based: it
+  // also skips the salary block but collects a single required `honorarium_date`
+  // (day-of-month) instead. So all three hide the salary block; only SBL shows honorarium.
+  // [ASSUMPTION] honorarium_date is a day-of-month int (1–31) under key `honorarium_date`
+  // (relayed from backend, unverified until first real SBL submit).
+  const hidePayout = isAkap || isSme || isSbl
   const fullName = getApplicantName(app)
   const age = calcAge(
     app.date_of_birth ||
@@ -217,6 +225,7 @@ export default function CiAssessmentForm({ app, onBack }) {
   const [streetName, setStreetName] = useState('')
   const [paymentFrequency, setPaymentFrequency] = useState('')
   const [payoutDates, setPayoutDates] = useState([])
+  const [honorariumDate, setHonorariumDate] = useState(null) // SBL only: day-of-month int
   const [fieldErrors, setFieldErrors] = useState({})
 
   const [q1, setQ1] = useState(null)
@@ -274,11 +283,16 @@ export default function CiAssessmentForm({ app, onBack }) {
     const errs = {}
     if (!houseNumber.trim()) errs.houseNumber = 'House / Unit Number is required'
     if (!streetName.trim()) errs.streetName = 'Street Name / Number is required'
-    if (!paymentFrequency) errs.paymentFrequency = 'Select a payment frequency'
-    const requiredDates = paymentFrequency === 'two_times' ? 2 : 1
-    if (paymentFrequency && payoutDates.length !== requiredDates) {
-      errs.payoutDates =
-        requiredDates === 2 ? 'Select exactly 2 payout dates' : 'Select exactly 1 payout date'
+    if (!hidePayout) {
+      if (!paymentFrequency) errs.paymentFrequency = 'Select a payment frequency'
+      const requiredDates = paymentFrequency === 'two_times' ? 2 : 1
+      if (paymentFrequency && payoutDates.length !== requiredDates) {
+        errs.payoutDates =
+          requiredDates === 2 ? 'Select exactly 2 payout dates' : 'Select exactly 1 payout date'
+      }
+    }
+    if (isSbl && honorariumDate == null) {
+      errs.honorariumDate = 'Select the honorarium date'
     }
     setFieldErrors(errs)
     if (Object.keys(errs).length > 0) {
@@ -336,9 +350,14 @@ export default function CiAssessmentForm({ app, onBack }) {
         complete_address: address,
         house_number: houseNumber.trim(),
         street_name: streetName.trim(),
-        payment_frequency: paymentFrequency,
-        salary_payout_dates: payoutDates,
-        repayment_cycle: repaymentCycle,
+        ...(hidePayout
+          ? {}
+          : {
+              payment_frequency: paymentFrequency,
+              salary_payout_dates: payoutDates,
+              repayment_cycle: repaymentCycle,
+            }),
+        ...(isSbl ? { honorarium_date: honorariumDate } : {}),
         contact_number: app.phone || app.mobile || '',
         contact_status: contactStatus,
         loan_product: app.loan_type,
@@ -381,9 +400,14 @@ export default function CiAssessmentForm({ app, onBack }) {
           ci_recommended_amount: ciRecommendation === 'approved' ? recommendedAmount : null,
           reviewed_by: interviewer,
           notes: remarks,
-          payment_frequency: paymentFrequency,
-          salary_payout_dates: payoutDates,
-          repayment_cycle: repaymentCycle,
+          ...(isSbl ? { honorarium_date: honorariumDate } : {}),
+          ...(hidePayout
+            ? {}
+            : {
+                payment_frequency: paymentFrequency,
+                salary_payout_dates: payoutDates,
+                repayment_cycle: repaymentCycle,
+              }),
         }),
       })
       if (!res.ok) {
@@ -666,45 +690,68 @@ export default function CiAssessmentForm({ app, onBack }) {
             </div>
           </div>
 
-          {/* Payment Frequency + Salary Payout Dates */}
-          <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
-            <h4 className="text-white font-semibold text-sm">Salary / Honorarium Payout</h4>
-            <div>
-              <label className={labelCls}>Payment Frequency *</label>
-              <select
-                value={paymentFrequency}
-                onChange={e => {
-                  setPaymentFrequency(e.target.value)
-                  setPayoutDates([])
-                  setFieldErrors(prev => ({
-                    ...prev,
-                    paymentFrequency: undefined,
-                    payoutDates: undefined,
-                  }))
-                }}
-                className={inputCls}
-              >
-                <option value="">Select frequency</option>
-                <option value="one_time">One-time per month</option>
-                <option value="two_times">Two-times per month</option>
-              </select>
-              {fieldErrors.paymentFrequency && (
-                <p className="text-red-400 text-xs mt-1">{fieldErrors.paymentFrequency}</p>
-              )}
+          {/* Payment Frequency + Salary Payout Dates — hidden for AKAP & SME */}
+          {!hidePayout && (
+            <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+              <h4 className="text-white font-semibold text-sm">Salary / Honorarium Payout</h4>
+              <div>
+                <label className={labelCls}>Payment Frequency *</label>
+                <select
+                  value={paymentFrequency}
+                  onChange={e => {
+                    setPaymentFrequency(e.target.value)
+                    setPayoutDates([])
+                    setFieldErrors(prev => ({
+                      ...prev,
+                      paymentFrequency: undefined,
+                      payoutDates: undefined,
+                    }))
+                  }}
+                  className={inputCls}
+                >
+                  <option value="">Select frequency</option>
+                  <option value="one_time">One-time per month</option>
+                  <option value="two_times">Two-times per month</option>
+                </select>
+                {fieldErrors.paymentFrequency && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.paymentFrequency}</p>
+                )}
+              </div>
+              <div>
+                <label className={labelCls}>Salary Payout Date *</label>
+                <SalaryPayoutPicker
+                  frequency={paymentFrequency}
+                  value={payoutDates}
+                  onChange={dates => {
+                    setPayoutDates(dates)
+                    setFieldErrors(prev => ({ ...prev, payoutDates: undefined }))
+                  }}
+                  error={fieldErrors.payoutDates}
+                />
+              </div>
             </div>
-            <div>
-              <label className={labelCls}>Salary Payout Date *</label>
-              <SalaryPayoutPicker
-                frequency={paymentFrequency}
-                value={payoutDates}
-                onChange={dates => {
-                  setPayoutDates(dates)
-                  setFieldErrors(prev => ({ ...prev, payoutDates: undefined }))
-                }}
-                error={fieldErrors.payoutDates}
-              />
+          )}
+
+          {/* Honorarium Date — SBL only (replaces the salary payout block) */}
+          {isSbl && (
+            <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+              <h4 className="text-white font-semibold text-sm">Honorarium</h4>
+              <div>
+                <label className={labelCls}>Honorarium Date *</label>
+                <SalaryPayoutPicker
+                  frequency="one_time"
+                  hideCycle
+                  helperText="Select the honorarium release date (day of month)."
+                  value={honorariumDate ? [honorariumDate] : []}
+                  onChange={dates => {
+                    setHonorariumDate(dates[0] ?? null)
+                    setFieldErrors(prev => ({ ...prev, honorariumDate: undefined }))
+                  }}
+                  error={fieldErrors.honorariumDate}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Q1 */}
           <div className="bg-surface border border-border rounded-xl p-5">
