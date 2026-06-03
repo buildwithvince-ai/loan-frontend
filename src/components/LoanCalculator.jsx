@@ -15,7 +15,7 @@ export default function LoanCalculator() {
   const [term, setTerm] = useState(product.terms[0])
   const [inputValue, setInputValue] = useState(String(product.min))
 
-  const handleProductChange = (idx) => {
+  const handleProductChange = idx => {
     setProductIndex(idx)
     const p = PRODUCTS[idx]
     setAmount(p.min)
@@ -23,12 +23,12 @@ export default function LoanCalculator() {
     setTerm(p.terms[0])
   }
 
-  const handleSliderChange = (val) => {
+  const handleSliderChange = val => {
     setAmount(val)
     setInputValue(String(val))
   }
 
-  const handleInputChange = (raw) => {
+  const handleInputChange = raw => {
     setInputValue(raw)
     const num = parseInt(raw.replace(/[^0-9]/g, ''), 10)
     if (!isNaN(num)) {
@@ -52,16 +52,24 @@ export default function LoanCalculator() {
   const totalPayment = monthlyPayment * term
   const totalInterest = totalPayment - amount
 
-  const formatPeso = (n) => '₱' + n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const formatPeso = n =>
+    '₱' + n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const amountPercent = ((amount - product.min) / (product.max - product.min)) * 100
 
   return (
     <section id="calculator" className="relative py-24 md:py-32">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-16">
-          <span className="text-blue text-xs font-semibold tracking-[0.2em] uppercase">Loan Calculator</span>
-          <h2 className="text-3xl md:text-5xl text-green mt-3 font-bold">Estimate Your Monthly Payment</h2>
-          <p className="text-muted mt-4 max-w-lg mx-auto">Choose your loan type, set your desired amount, and see your estimated monthly payment instantly.</p>
+          <span className="text-blue text-xs font-semibold tracking-[0.2em] uppercase">
+            Loan Calculator
+          </span>
+          <h2 className="text-3xl md:text-5xl text-green mt-3 font-bold">
+            Estimate Your Monthly Payment
+          </h2>
+          <p className="text-muted mt-4 max-w-lg mx-auto">
+            Choose your loan type, set your desired amount, and see your estimated monthly payment
+            instantly.
+          </p>
         </div>
 
         <div className="max-w-4xl mx-auto">
@@ -88,12 +96,14 @@ export default function LoanCalculator() {
               <div className="flex justify-between items-center mb-4">
                 <label className="text-white text-sm font-medium">Loan Amount</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">₱</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">
+                    ₱
+                  </span>
                   <input
                     type="text"
                     inputMode="numeric"
                     value={inputValue}
-                    onChange={(e) => handleInputChange(e.target.value)}
+                    onChange={e => handleInputChange(e.target.value)}
                     onBlur={handleInputBlur}
                     className="w-40 pl-8 pr-3 py-2 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
                   />
@@ -105,10 +115,10 @@ export default function LoanCalculator() {
                 max={product.max}
                 step={1000}
                 value={amount}
-                onChange={(e) => handleSliderChange(Number(e.target.value))}
+                onChange={e => handleSliderChange(Number(e.target.value))}
                 className="w-full"
                 style={{
-                  background: `linear-gradient(to right, #5CB85C 0%, #5CB85C ${amountPercent}%, #1A2235 ${amountPercent}%, #1A2235 100%)`
+                  background: `linear-gradient(to right, #5CB85C 0%, #5CB85C ${amountPercent}%, #1A2235 ${amountPercent}%, #1A2235 100%)`,
                 }}
               />
               <div className="flex justify-between mt-2">
@@ -121,7 +131,7 @@ export default function LoanCalculator() {
             <div className="mb-10">
               <label className="text-white text-sm font-medium block mb-4">Payment Term</label>
               <div className="flex gap-3">
-                {product.terms.map((t) => (
+                {product.terms.map(t => (
                   <button
                     key={t}
                     onClick={() => setTerm(t)}
@@ -143,15 +153,23 @@ export default function LoanCalculator() {
             {/* Results — Monthly Payment center and prominent */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-end">
               <div className="bg-surface-alt/40 rounded-xl p-5 text-center order-2 sm:order-1">
-                <div className="text-muted text-xs uppercase tracking-wider mb-2">Total Interest</div>
+                <div className="text-muted text-xs uppercase tracking-wider mb-2">
+                  Total Interest
+                </div>
                 <div className="text-muted text-xl font-medium">{formatPeso(totalInterest)}</div>
               </div>
               <div className="bg-surface-alt/40 rounded-xl p-6 text-center border border-green/20 order-1 sm:order-2 overflow-hidden min-w-0">
-                <div className="text-muted text-xs uppercase tracking-wider mb-2">Monthly Payment</div>
-                <div className="text-green text-2xl md:text-4xl font-bold">{formatPeso(monthlyPayment)}</div>
+                <div className="text-muted text-xs uppercase tracking-wider mb-2">
+                  Monthly Payment
+                </div>
+                <div className="text-green text-2xl md:text-4xl font-bold">
+                  {formatPeso(monthlyPayment)}
+                </div>
               </div>
               <div className="bg-surface-alt/40 rounded-xl p-5 text-center order-3">
-                <div className="text-muted text-xs uppercase tracking-wider mb-2">Total Payment</div>
+                <div className="text-muted text-xs uppercase tracking-wider mb-2">
+                  Total Payment
+                </div>
                 <div className="text-muted text-xl font-medium">{formatPeso(totalPayment)}</div>
               </div>
             </div>

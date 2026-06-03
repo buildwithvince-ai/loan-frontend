@@ -2,12 +2,18 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 
 const AuthContext = createContext(null)
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
 
 // Priority order for redirect after login — first match wins
 const ROLE_PRIORITY = [
-  'super_admin', 'admin', 'approver', 'verifier',
-  'ci_officer', 'loan_processing_officer', 'sales_officer',
+  'super_admin',
+  'admin',
+  'approver',
+  'verifier',
+  'ci_officer',
+  'loan_processing_officer',
+  'sales_officer',
 ]
 
 function normalizeRoles(userData) {
@@ -26,7 +32,10 @@ export function AuthProvider({ children }) {
   // On mount, restore session from sessionStorage if available
   useEffect(() => {
     const stored = sessionStorage.getItem('gr8_token')
-    if (!stored) { setIsLoading(false); return }
+    if (!stored) {
+      setIsLoading(false)
+      return
+    }
 
     fetch(`${API_BASE}/api/auth/me`, {
       headers: { Authorization: `Bearer ${stored}` },
@@ -91,14 +100,14 @@ export function AuthProvider({ children }) {
   const getToken = useCallback(() => token, [token])
 
   // Convenience: primary role = highest priority role the user holds
-  const primaryRole = ROLE_PRIORITY.find((r) => roles.includes(r)) || roles[0] || null
+  const primaryRole = ROLE_PRIORITY.find(r => roles.includes(r)) || roles[0] || null
 
   const value = {
     user,
     roles,
     primaryRole,
-    hasRole: (r) => roles.includes(r),
-    hasAnyRole: (list) => list.some((r) => roles.includes(r)),
+    hasRole: r => roles.includes(r),
+    hasAnyRole: list => list.some(r => roles.includes(r)),
     fullName,
     isLoading,
     isAuthenticated: !!token && !!user,

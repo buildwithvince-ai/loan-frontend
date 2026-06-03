@@ -24,12 +24,15 @@ https://gr8lendingcorporation.com
 - Base URL: `https://loan-backend-production-cd45.up.railway.app`
 - Public: `POST /api/application/submit` (multipart/form-data)
   - Response: `{ status: 'success'|'declined'|'error', referenceId?, reasons?, message? }`
-- Admin: `GET/POST /api/admin/applications[/:id]` — requires `x-admin-secret` header
-- CI: `GET/POST /api/ci/applications[/:id]` — requires `x-ci-secret` header
+- Admin: `GET/POST /api/admin/applications[/:id]` — requires `Authorization: Bearer <JWT>` header
+- CI: `GET/POST /api/ci/applications[/:id]` — requires `Authorization: Bearer <JWT>` header
+- Auth: JWT-based via `AuthContext` (`useAuth().getToken`), multi-role (`hasRole`/`hasAnyRole`).
+  `adminFetch`/`ciFetch`/`pipelineFetch` attach the Bearer token automatically.
 
 ## Environment Variables
-- `VITE_ADMIN_SECRET` — Admin dashboard password
-- `VITE_CI_SECRET` — CI portal password
+- `VITE_API_BASE_URL` — Backend base URL (falls back to Railway URL if unset)
+- `VITE_SUPABASE_URL` — Supabase project URL (file storage / signed URLs)
+- `VITE_SUPABASE_ANON_KEY` — Supabase anon key
 
 ## Pages & Routes
 
@@ -42,10 +45,10 @@ https://gr8lendingcorporation.com
 - `/apply/group` — Group Loan form (3 steps)
 - `/apply/sbl` — SBL form (3 steps)
 
-### Admin (no navbar/footer, password-protected)
+### Admin (no navbar/footer, JWT-protected via AuthContext)
 - `/admin` — AdminDashboard → ApplicationsList + ApplicationDetail
 
-### CI Portal (no navbar/footer, password-protected)
+### CI Portal (no navbar/footer, JWT-protected via AuthContext)
 - `/ci` — CiPortal → CiApplicationsList + CiAssessmentForm
 
 ## Key File Paths

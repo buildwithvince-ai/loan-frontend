@@ -7,10 +7,15 @@ export default function ReturnModal({ application, onConfirm, onCancel }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const fullName = [
-    application?.firstName || application?.first_name || '',
-    application?.lastName || application?.last_name || '',
-  ].filter(Boolean).join(' ') || application?.full_name || 'this applicant'
+  const fullName =
+    [
+      application?.firstName || application?.first_name || '',
+      application?.lastName || application?.last_name || '',
+    ]
+      .filter(Boolean)
+      .join(' ') ||
+    application?.full_name ||
+    'this applicant'
 
   const appId = application?.id || application?._id
 
@@ -52,8 +57,18 @@ export default function ReturnModal({ application, onConfirm, onCancel }) {
             <span className="px-3 py-1 rounded-lg text-sm font-semibold bg-surface-alt text-white border border-border">
               {STAGE_LABELS['verifier']}
             </span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-muted">
-              <path d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" strokeLinecap="round" strokeLinejoin="round" />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="w-5 h-5 text-muted"
+            >
+              <path
+                d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
             <span className="px-3 py-1 rounded-lg text-sm font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
               {STAGE_LABELS['sales_officer']}
@@ -61,7 +76,8 @@ export default function ReturnModal({ application, onConfirm, onCancel }) {
           </div>
 
           <p className="text-muted text-sm">
-            This will send the application to the Sales Officer for client confirmation. The SO will need to confirm or decline before it proceeds to the Approver.
+            This will send the application to the Sales Officer for client confirmation. The SO will
+            need to confirm or decline before it proceeds to the Approver.
           </p>
 
           <div>
@@ -70,7 +86,7 @@ export default function ReturnModal({ application, onConfirm, onCancel }) {
             </label>
             <textarea
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={e => setReason(e.target.value)}
               rows={3}
               placeholder="Explain why this application is being returned to the Sales Officer..."
               className="w-full bg-canvas border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-muted/50 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/20 outline-none resize-none transition-colors"
@@ -102,7 +118,9 @@ export default function ReturnModal({ application, onConfirm, onCancel }) {
                 <span className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" />
                 Sending...
               </span>
-            ) : 'Send to SO'}
+            ) : (
+              'Send to SO'
+            )}
           </button>
         </div>
       </div>

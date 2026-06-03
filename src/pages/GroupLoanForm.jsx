@@ -74,7 +74,9 @@ function validEmail(v) {
 }
 
 function formatPeso(n) {
-  return '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  return (
+    '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  )
 }
 
 // ── Shared UI ──
@@ -105,13 +107,24 @@ function Select({ value, onChange, options, placeholder, ...props }) {
       value={value}
       onChange={onChange}
       className="w-full px-4 py-3 rounded-xl bg-surface-alt border border-border text-white text-sm focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors appearance-none"
-      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}
+      style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 14px center',
+      }}
       {...props}
     >
       {placeholder && <option value="">{placeholder}</option>}
-      {options.map(o => typeof o === 'string'
-        ? <option key={o} value={o}>{o}</option>
-        : <option key={o.value} value={o.value}>{o.label}</option>
+      {options.map(o =>
+        typeof o === 'string' ? (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ) : (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ),
       )}
     </select>
   )
@@ -172,7 +185,7 @@ export default function GroupLoanForm() {
   }, [memberCount])
 
   const updateMember = (index, key, value) => {
-    setMembers(prev => prev.map((m, i) => i === index ? { ...m, [key]: value } : m))
+    setMembers(prev => prev.map((m, i) => (i === index ? { ...m, [key]: value } : m)))
     setErrors(prev => ({ ...prev, [`member_${index}_${key}`]: undefined }))
   }
 
@@ -187,20 +200,22 @@ export default function GroupLoanForm() {
       setErrors(prev => ({ ...prev, [errorKey]: 'File must be under 10MB' }))
       return
     }
-    setMemberDocs(prev => prev.map((d, i) => i === memberIndex ? { ...d, [docKey]: file } : d))
+    setMemberDocs(prev => prev.map((d, i) => (i === memberIndex ? { ...d, [docKey]: file } : d)))
     setErrors(prev => ({ ...prev, [errorKey]: undefined }))
   }
 
   const removeFile = (memberIndex, docKey) => {
-    setMemberDocs(prev => prev.map((d, i) => {
-      if (i !== memberIndex) return d
-      const next = { ...d }
-      delete next[docKey]
-      return next
-    }))
+    setMemberDocs(prev =>
+      prev.map((d, i) => {
+        if (i !== memberIndex) return d
+        const next = { ...d }
+        delete next[docKey]
+        return next
+      }),
+    )
   }
 
-  const toggleMember = (index) => {
+  const toggleMember = index => {
     setExpandedMembers(prev => ({ ...prev, [index]: !prev[index] }))
   }
 
@@ -209,7 +224,8 @@ export default function GroupLoanForm() {
     const e = {}
 
     if (step === 1) {
-      if (applicationCategory === 'renewal' && !linkedBorrower) e.linked_borrower = 'Select an existing borrower to link this renewal'
+      if (applicationCategory === 'renewal' && !linkedBorrower)
+        e.linked_borrower = 'Select an existing borrower to link this renewal'
       if (!salesOfficerId) e.salesOfficerId = 'Please select your Sales Officer'
       if (memberCount < 5) e.memberCount = 'Minimum 5 members required'
     }
@@ -270,7 +286,9 @@ export default function GroupLoanForm() {
         })
         setExpandedMembers(prev => {
           const next = { ...prev }
-          membersWithErrors.forEach(i => { next[i] = true })
+          membersWithErrors.forEach(i => {
+            next[i] = true
+          })
           return next
         })
       }
@@ -330,10 +348,13 @@ export default function GroupLoanForm() {
         console.log('[group submit]', k, v instanceof File ? `File(${v.name})` : v)
       }
 
-      const res = await fetch('https://loan-backend-production-cd45.up.railway.app/api/application/submit-group', {
-        method: 'POST',
-        body: fd,
-      })
+      const res = await fetch(
+        'https://loan-backend-production-cd45.up.railway.app/api/application/submit-group',
+        {
+          method: 'POST',
+          body: fd,
+        },
+      )
       const data = await res.json()
       console.log('[group submit] response', res.status, data)
       setResult(data)
@@ -352,7 +373,13 @@ export default function GroupLoanForm() {
         <div className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
           <div className="max-w-lg w-full text-center">
             <div className="w-20 h-20 rounded-full bg-green/10 border border-green/30 flex items-center justify-center mx-auto mb-6">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-10 h-10 text-green">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="w-10 h-10 text-green"
+              >
                 <path d="M4.5 12.75l6 6 9-13.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
@@ -361,12 +388,17 @@ export default function GroupLoanForm() {
               Reference ID: <span className="text-green font-bold">{result.referenceId}</span>
             </p>
             <p className="text-muted mb-2">
-              Total members processed: <span className="text-white font-semibold">{memberCount}</span>
+              Total members processed:{' '}
+              <span className="text-white font-semibold">{memberCount}</span>
             </p>
             <p className="text-muted mb-8">
-              Your group loan application has been received. Our team will review it within 2–3 business days.
+              Your group loan application has been received. Our team will review it within 2–3
+              business days.
             </p>
-            <Link to="/" className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all">
+            <Link
+              to="/"
+              className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all"
+            >
               Back to Home
             </Link>
           </div>
@@ -379,7 +411,13 @@ export default function GroupLoanForm() {
         <div className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
           <div className="max-w-lg w-full text-center">
             <div className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-6">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-10 h-10 text-red-400">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="w-10 h-10 text-red-400"
+              >
                 <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
@@ -391,7 +429,10 @@ export default function GroupLoanForm() {
                 </li>
               ))}
             </ul>
-            <Link to="/" className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all">
+            <Link
+              to="/"
+              className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all"
+            >
               Back to Home
             </Link>
           </div>
@@ -404,18 +445,34 @@ export default function GroupLoanForm() {
       <div className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
         <div className="max-w-lg w-full text-center">
           <div className="w-20 h-20 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center mx-auto mb-6">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-10 h-10 text-yellow-400">
-              <path d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" strokeLinecap="round" strokeLinejoin="round" />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="w-10 h-10 text-yellow-400"
+            >
+              <path
+                d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-yellow-400 mb-4">Something Went Wrong</h2>
           <p className="text-muted mb-8">{result.message || 'An unexpected error occurred.'}</p>
           {result.failedMember !== undefined && (
             <p className="text-red-400 text-sm mb-4">
-              Issue with Member {result.failedMember + 1}{result.failedMember === 0 ? ' (Leader)' : ''}
+              Issue with Member {result.failedMember + 1}
+              {result.failedMember === 0 ? ' (Leader)' : ''}
             </p>
           )}
-          <button onClick={() => { setResult(null) }} className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all">
+          <button
+            onClick={() => {
+              setResult(null)
+            }}
+            className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all"
+          >
             Try Again
           </button>
         </div>
@@ -434,12 +491,23 @@ export default function GroupLoanForm() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <Link to="/" className="text-muted hover:text-white text-sm transition-colors inline-flex items-center gap-1 mb-4">
-            <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" /></svg>
+          <Link
+            to="/"
+            className="text-muted hover:text-white text-sm transition-colors inline-flex items-center gap-1 mb-4"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path
+                fillRule="evenodd"
+                d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z"
+                clipRule="evenodd"
+              />
+            </svg>
             Back to Home
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-green">Group Loan Application</h1>
-          <p className="text-muted text-sm mt-1">Step {step} of {TOTAL_STEPS} — {stepLabels[step - 1]}</p>
+          <p className="text-muted text-sm mt-1">
+            Step {step} of {TOTAL_STEPS} — {stepLabels[step - 1]}
+          </p>
         </div>
 
         {/* Progress bar */}
@@ -452,7 +520,6 @@ export default function GroupLoanForm() {
 
         {/* Form card */}
         <div className="bg-surface/60 backdrop-blur-sm border border-border rounded-2xl p-6 sm:p-8">
-
           {/* ══ STEP 1: Group Details ══ */}
           {step === 1 && (
             <div className="space-y-6">
@@ -461,13 +528,21 @@ export default function GroupLoanForm() {
 
               {/* Application Type */}
               <div>
-                <label className="block text-sm font-medium text-white mb-2">Application Type</label>
+                <label className="block text-sm font-medium text-white mb-2">
+                  Application Type
+                </label>
                 <div className="flex rounded-xl border border-border overflow-hidden">
-                  {[['new', 'New Loan'], ['renewal', 'Renewal']].map(([val, label]) => (
+                  {[
+                    ['new', 'New Loan'],
+                    ['renewal', 'Renewal'],
+                  ].map(([val, label]) => (
                     <button
                       key={val}
                       type="button"
-                      onClick={() => { setApplicationCategory(val); setErrors(prev => ({ ...prev, linked_borrower: undefined })) }}
+                      onClick={() => {
+                        setApplicationCategory(val)
+                        setErrors(prev => ({ ...prev, linked_borrower: undefined }))
+                      }}
                       className={`flex-1 py-3 text-sm font-medium transition-colors ${
                         applicationCategory === val
                           ? 'bg-green text-white'
@@ -486,9 +561,13 @@ export default function GroupLoanForm() {
                   <label className="block text-sm font-medium text-white mb-1.5">
                     Link Existing Borrower <span className="text-red-400">*</span>
                   </label>
-                  <p className="text-muted text-xs mb-2">Search for the borrower's existing record to avoid duplicate entries.</p>
+                  <p className="text-muted text-xs mb-2">
+                    Search for the borrower's existing record to avoid duplicate entries.
+                  </p>
                   <BorrowerLookup value={linkedBorrower} onChange={setLinkedBorrower} />
-                  {errors.linked_borrower && <p className="text-red-400 text-xs mt-1">{errors.linked_borrower}</p>}
+                  {errors.linked_borrower && (
+                    <p className="text-red-400 text-xs mt-1">{errors.linked_borrower}</p>
+                  )}
                 </div>
               )}
 
@@ -499,7 +578,9 @@ export default function GroupLoanForm() {
                 </label>
                 {soError ? (
                   <div className="flex items-center gap-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                    <p className="text-red-400 text-sm flex-1">Unable to load officers, please refresh</p>
+                    <p className="text-red-400 text-sm flex-1">
+                      Unable to load officers, please refresh
+                    </p>
                     <button
                       type="button"
                       onClick={soRetry}
@@ -511,7 +592,10 @@ export default function GroupLoanForm() {
                 ) : (
                   <select
                     value={salesOfficerId}
-                    onChange={e => { setSalesOfficerId(e.target.value); setErrors(prev => ({ ...prev, salesOfficerId: undefined })) }}
+                    onChange={e => {
+                      setSalesOfficerId(e.target.value)
+                      setErrors(prev => ({ ...prev, salesOfficerId: undefined }))
+                    }}
                     disabled={soLoading}
                     className="w-full bg-surface-alt border border-border rounded-lg px-4 py-3 text-white focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none disabled:opacity-50 appearance-none"
                   >
@@ -519,7 +603,9 @@ export default function GroupLoanForm() {
                       {soLoading ? 'Loading sales officers…' : 'Select your Sales Officer'}
                     </option>
                     {officers.map(o => (
-                      <option key={o.id} value={o.id}>{o.full_name}</option>
+                      <option key={o.id} value={o.id}>
+                        {o.full_name}
+                      </option>
                     ))}
                   </select>
                 )}
@@ -529,7 +615,10 @@ export default function GroupLoanForm() {
               </div>
 
               <div className="bg-surface-alt/30 border border-border rounded-xl p-4">
-                <p className="text-muted text-xs">Group name will be auto-generated from Member 1's last name (e.g. "Dela Cruz Group"). Each member sets their own desired loan amount.</p>
+                <p className="text-muted text-xs">
+                  Group name will be auto-generated from Member 1's last name (e.g. "Dela Cruz
+                  Group"). Each member sets their own desired loan amount.
+                </p>
               </div>
 
               {/* Term */}
@@ -584,7 +673,9 @@ export default function GroupLoanForm() {
           {step === 2 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-green mb-1">Member Information</h2>
-              <p className="text-muted text-sm mb-4">Fill in details for all {memberCount} members. Member 1 is the group leader.</p>
+              <p className="text-muted text-sm mb-4">
+                Fill in details for all {memberCount} members. Member 1 is the group leader.
+              </p>
 
               {members.map((member, i) => {
                 const isLeader = i === 0
@@ -596,7 +687,10 @@ export default function GroupLoanForm() {
                 const memberName = [member.firstName, member.lastName].filter(Boolean).join(' ')
 
                 return (
-                  <div key={i} className={`border rounded-2xl overflow-hidden transition-all ${hasErrors ? 'border-red-400/50' : 'border-border'}`}>
+                  <div
+                    key={i}
+                    className={`border rounded-2xl overflow-hidden transition-all ${hasErrors ? 'border-red-400/50' : 'border-border'}`}
+                  >
                     {/* Collapsible header */}
                     <button
                       type="button"
@@ -604,12 +698,15 @@ export default function GroupLoanForm() {
                       className="w-full flex items-center justify-between p-4 sm:p-5 bg-surface-alt/30 hover:bg-surface-alt/50 transition-colors text-left"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${isLeader ? 'bg-green/20 text-green' : 'bg-blue/20 text-blue'}`}>
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${isLeader ? 'bg-green/20 text-green' : 'bg-blue/20 text-blue'}`}
+                        >
                           {i + 1}
                         </div>
                         <div>
                           <span className="text-white text-sm font-semibold">
-                            Member {i + 1}{isLeader ? ' (Leader)' : ''}
+                            Member {i + 1}
+                            {isLeader ? ' (Leader)' : ''}
                           </span>
                           {memberName && (
                             <span className="text-muted text-xs block">{memberName}</span>
@@ -622,31 +719,48 @@ export default function GroupLoanForm() {
                         fill="currentColor"
                         className={`w-5 h-5 text-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                       >
-                        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                        <path
+                          fillRule="evenodd"
+                          d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     </button>
 
                     {/* Expanded content */}
                     {isExpanded && (
                       <div className="p-4 sm:p-6 space-y-6 border-t border-border">
-
                         {/* Personal Information */}
                         <div className="space-y-4">
-                          <h3 className="text-blue text-xs font-semibold uppercase tracking-wider">Personal Information</h3>
+                          <h3 className="text-blue text-xs font-semibold uppercase tracking-wider">
+                            Personal Information
+                          </h3>
 
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                               <Label required>First Name</Label>
-                              <Input value={member.firstName} onChange={e => updateMember(i, 'firstName', e.target.value)} placeholder="Juan" />
+                              <Input
+                                value={member.firstName}
+                                onChange={e => updateMember(i, 'firstName', e.target.value)}
+                                placeholder="Juan"
+                              />
                               <FieldError message={errors[`${prefix}firstName`]} />
                             </div>
                             <div>
                               <Label>Middle Name</Label>
-                              <Input value={member.middleName} onChange={e => updateMember(i, 'middleName', e.target.value)} placeholder="Santos" />
+                              <Input
+                                value={member.middleName}
+                                onChange={e => updateMember(i, 'middleName', e.target.value)}
+                                placeholder="Santos"
+                              />
                             </div>
                             <div>
                               <Label required>Last Name</Label>
-                              <Input value={member.lastName} onChange={e => updateMember(i, 'lastName', e.target.value)} placeholder="Dela Cruz" />
+                              <Input
+                                value={member.lastName}
+                                onChange={e => updateMember(i, 'lastName', e.target.value)}
+                                placeholder="Dela Cruz"
+                              />
                               <FieldError message={errors[`${prefix}lastName`]} />
                             </div>
                           </div>
@@ -654,12 +768,21 @@ export default function GroupLoanForm() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <Label required>Date of Birth</Label>
-                              <Input type="date" value={member.dateOfBirth} onChange={e => updateMember(i, 'dateOfBirth', e.target.value)} />
+                              <Input
+                                type="date"
+                                value={member.dateOfBirth}
+                                onChange={e => updateMember(i, 'dateOfBirth', e.target.value)}
+                              />
                               <FieldError message={errors[`${prefix}dateOfBirth`]} />
                             </div>
                             <div>
                               <Label required>Civil Status</Label>
-                              <Select value={member.civilStatus} onChange={e => updateMember(i, 'civilStatus', e.target.value)} options={CIVIL_STATUSES} placeholder="Select status" />
+                              <Select
+                                value={member.civilStatus}
+                                onChange={e => updateMember(i, 'civilStatus', e.target.value)}
+                                options={CIVIL_STATUSES}
+                                placeholder="Select status"
+                              />
                               <FieldError message={errors[`${prefix}civilStatus`]} />
                             </div>
                           </div>
@@ -667,12 +790,22 @@ export default function GroupLoanForm() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <Label required>Mobile Number</Label>
-                              <Input value={member.mobile} onChange={e => updateMember(i, 'mobile', e.target.value)} placeholder="09XXXXXXXXX" maxLength={11} />
+                              <Input
+                                value={member.mobile}
+                                onChange={e => updateMember(i, 'mobile', e.target.value)}
+                                placeholder="09XXXXXXXXX"
+                                maxLength={11}
+                              />
                               <FieldError message={errors[`${prefix}mobile`]} />
                             </div>
                             <div>
                               <Label>Email Address</Label>
-                              <Input type="email" value={member.email} onChange={e => updateMember(i, 'email', e.target.value)} placeholder="juan@email.com" />
+                              <Input
+                                type="email"
+                                value={member.email}
+                                onChange={e => updateMember(i, 'email', e.target.value)}
+                                placeholder="juan@email.com"
+                              />
                               <FieldError message={errors[`${prefix}email`]} />
                             </div>
                           </div>
@@ -680,12 +813,23 @@ export default function GroupLoanForm() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <Label required>Employment Status</Label>
-                              <Select value={member.employmentStatus} onChange={e => updateMember(i, 'employmentStatus', e.target.value)} options={EMPLOYMENT_STATUSES} placeholder="Select status" />
+                              <Select
+                                value={member.employmentStatus}
+                                onChange={e => updateMember(i, 'employmentStatus', e.target.value)}
+                                options={EMPLOYMENT_STATUSES}
+                                placeholder="Select status"
+                              />
                               <FieldError message={errors[`${prefix}employmentStatus`]} />
                             </div>
                             <div>
                               <Label required>Monthly Income (₱)</Label>
-                              <Input type="number" value={member.monthlyIncome} onChange={e => updateMember(i, 'monthlyIncome', e.target.value)} placeholder="5000" min={0} />
+                              <Input
+                                type="number"
+                                value={member.monthlyIncome}
+                                onChange={e => updateMember(i, 'monthlyIncome', e.target.value)}
+                                placeholder="5000"
+                                min={0}
+                              />
                               <FieldError message={errors[`${prefix}monthlyIncome`]} />
                             </div>
                           </div>
@@ -693,11 +837,19 @@ export default function GroupLoanForm() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <Label>Employer Name</Label>
-                              <Input value={member.employerName} onChange={e => updateMember(i, 'employerName', e.target.value)} placeholder="Company / Employer" />
+                              <Input
+                                value={member.employerName}
+                                onChange={e => updateMember(i, 'employerName', e.target.value)}
+                                placeholder="Company / Employer"
+                              />
                             </div>
                             <div>
                               <Label>Position</Label>
-                              <Input value={member.position} onChange={e => updateMember(i, 'position', e.target.value)} placeholder="Job title" />
+                              <Input
+                                value={member.position}
+                                onChange={e => updateMember(i, 'position', e.target.value)}
+                                placeholder="Job title"
+                              />
                             </div>
                           </div>
 
@@ -706,7 +858,9 @@ export default function GroupLoanForm() {
                             <Label required>Desired Loan Amount (₱)</Label>
                             <p className="text-muted text-xs mb-2">₱10,000 – ₱50,000</p>
                             <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">₱</span>
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">
+                                ₱
+                              </span>
                               <input
                                 type="text"
                                 inputMode="numeric"
@@ -714,11 +868,18 @@ export default function GroupLoanForm() {
                                 onChange={e => {
                                   const raw = e.target.value.replace(/[^0-9]/g, '')
                                   const num = parseInt(raw, 10)
-                                  if (raw === '') { updateMember(i, 'loanAmount', 0); return }
+                                  if (raw === '') {
+                                    updateMember(i, 'loanAmount', 0)
+                                    return
+                                  }
                                   if (!isNaN(num)) updateMember(i, 'loanAmount', num)
                                 }}
                                 onBlur={() => {
-                                  updateMember(i, 'loanAmount', Math.min(Math.max(Number(member.loanAmount), 10000), 50000))
+                                  updateMember(
+                                    i,
+                                    'loanAmount',
+                                    Math.min(Math.max(Number(member.loanAmount), 10000), 50000),
+                                  )
                                 }}
                                 className="w-full pl-8 pr-3 py-3 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
                               />
@@ -729,23 +890,37 @@ export default function GroupLoanForm() {
 
                         {/* Address */}
                         <div className="space-y-4">
-                          <h3 className="text-blue text-xs font-semibold uppercase tracking-wider">Address</h3>
+                          <h3 className="text-blue text-xs font-semibold uppercase tracking-wider">
+                            Address
+                          </h3>
 
                           <div>
                             <Label required>House No. / Street</Label>
-                            <Input value={member.houseStreet} onChange={e => updateMember(i, 'houseStreet', e.target.value)} placeholder="123 Rizal St." />
+                            <Input
+                              value={member.houseStreet}
+                              onChange={e => updateMember(i, 'houseStreet', e.target.value)}
+                              placeholder="123 Rizal St."
+                            />
                             <FieldError message={errors[`${prefix}houseStreet`]} />
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <Label required>Barangay</Label>
-                              <Input value={member.barangay} onChange={e => updateMember(i, 'barangay', e.target.value)} placeholder="Brgy. San Pablo" />
+                              <Input
+                                value={member.barangay}
+                                onChange={e => updateMember(i, 'barangay', e.target.value)}
+                                placeholder="Brgy. San Pablo"
+                              />
                               <FieldError message={errors[`${prefix}barangay`]} />
                             </div>
                             <div>
                               <Label required>City / Municipality</Label>
-                              <Input value={member.city} onChange={e => updateMember(i, 'city', e.target.value)} placeholder="Malolos" />
+                              <Input
+                                value={member.city}
+                                onChange={e => updateMember(i, 'city', e.target.value)}
+                                placeholder="Malolos"
+                              />
                               <FieldError message={errors[`${prefix}city`]} />
                             </div>
                           </div>
@@ -753,12 +928,21 @@ export default function GroupLoanForm() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <Label required>Province</Label>
-                              <Input value={member.province} onChange={e => updateMember(i, 'province', e.target.value)} placeholder="Bulacan" />
+                              <Input
+                                value={member.province}
+                                onChange={e => updateMember(i, 'province', e.target.value)}
+                                placeholder="Bulacan"
+                              />
                               <FieldError message={errors[`${prefix}province`]} />
                             </div>
                             <div>
                               <Label required>ZIP Code</Label>
-                              <Input value={member.zip} onChange={e => updateMember(i, 'zip', e.target.value)} placeholder="3000" maxLength={4} />
+                              <Input
+                                value={member.zip}
+                                onChange={e => updateMember(i, 'zip', e.target.value)}
+                                placeholder="3000"
+                                maxLength={4}
+                              />
                               <FieldError message={errors[`${prefix}zip`]} />
                             </div>
                           </div>
@@ -766,15 +950,22 @@ export default function GroupLoanForm() {
 
                         {/* Document Upload */}
                         <div className="space-y-3">
-                          <h3 className="text-blue text-xs font-semibold uppercase tracking-wider">Document Upload</h3>
-                          <p className="text-muted text-xs">JPG, PNG, or PDF only. Max 10MB per file.</p>
+                          <h3 className="text-blue text-xs font-semibold uppercase tracking-wider">
+                            Document Upload
+                          </h3>
+                          <p className="text-muted text-xs">
+                            JPG, PNG, or PDF only. Max 10MB per file.
+                          </p>
 
                           {requiredDocList.map(doc => {
                             const file = docs[doc.key]
                             const errorKey = `member_${i}_${doc.key}`
                             const refKey = `${i}_${doc.key}`
                             return (
-                              <div key={doc.key} className="bg-surface-alt/20 border border-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                              <div
+                                key={doc.key}
+                                className="bg-surface-alt/20 border border-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3"
+                              >
                                 <div className="flex-1 min-w-0">
                                   <div className="text-white text-sm font-medium">
                                     {doc.label}
@@ -782,9 +973,26 @@ export default function GroupLoanForm() {
                                   </div>
                                   {file ? (
                                     <div className="flex items-center gap-2 mt-1">
-                                      <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-green shrink-0"><path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" /></svg>
-                                      <span className="text-muted text-xs truncate">{file.name}</span>
-                                      <button onClick={() => removeFile(i, doc.key)} className="text-red-400 hover:text-red-300 text-xs shrink-0 ml-1">Remove</button>
+                                      <svg
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                        className="w-4 h-4 text-green shrink-0"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                      <span className="text-muted text-xs truncate">
+                                        {file.name}
+                                      </span>
+                                      <button
+                                        onClick={() => removeFile(i, doc.key)}
+                                        className="text-red-400 hover:text-red-300 text-xs shrink-0 ml-1"
+                                      >
+                                        Remove
+                                      </button>
                                     </div>
                                   ) : (
                                     <FieldError message={errors[errorKey]} />
@@ -792,10 +1000,13 @@ export default function GroupLoanForm() {
                                 </div>
                                 <div className="shrink-0">
                                   <input
-                                    ref={el => fileInputRefs.current[refKey] = el}
+                                    ref={el => (fileInputRefs.current[refKey] = el)}
                                     type="file"
                                     accept=".jpg,.jpeg,.png,.pdf"
-                                    onChange={e => { handleFile(i, doc.key, e.target.files[0]); e.target.value = '' }}
+                                    onChange={e => {
+                                      handleFile(i, doc.key, e.target.files[0])
+                                      e.target.value = ''
+                                    }}
                                     className="hidden"
                                   />
                                   <button
@@ -809,7 +1020,6 @@ export default function GroupLoanForm() {
                             )
                           })}
                         </div>
-
                       </div>
                     )}
                   </div>
@@ -822,11 +1032,15 @@ export default function GroupLoanForm() {
           {step === 3 && (
             <div className="space-y-5">
               <h2 className="text-xl font-bold text-green mb-1">Review Your Application</h2>
-              <p className="text-muted text-sm mb-4">Please review all information before submitting.</p>
+              <p className="text-muted text-sm mb-4">
+                Please review all information before submitting.
+              </p>
 
               {/* Group summary */}
               <div className="bg-surface-alt/20 border border-border rounded-xl p-5">
-                <h3 className="text-blue text-xs font-semibold uppercase tracking-wider mb-3">Group Details</h3>
+                <h3 className="text-blue text-xs font-semibold uppercase tracking-wider mb-3">
+                  Group Details
+                </h3>
                 <div className="space-y-2">
                   <div className="flex justify-between gap-4 text-sm">
                     <span className="text-muted shrink-0">Group Name</span>
@@ -858,7 +1072,8 @@ export default function GroupLoanForm() {
                 return (
                   <div key={i} className="bg-surface-alt/20 border border-border rounded-xl p-5">
                     <h3 className="text-blue text-xs font-semibold uppercase tracking-wider mb-3">
-                      Member {i + 1}{i === 0 ? ' (Leader)' : ''}
+                      Member {i + 1}
+                      {i === 0 ? ' (Leader)' : ''}
                     </h3>
                     <div className="space-y-2">
                       <div className="flex justify-between gap-4 text-sm">
@@ -867,7 +1082,9 @@ export default function GroupLoanForm() {
                       </div>
                       <div className="flex justify-between gap-4 text-sm">
                         <span className="text-muted shrink-0">Loan Amount</span>
-                        <span className="text-green text-right font-semibold">{formatPeso(m.loanAmount)}</span>
+                        <span className="text-green text-right font-semibold">
+                          {formatPeso(m.loanAmount)}
+                        </span>
                       </div>
                       <div className="flex justify-between gap-4 text-sm">
                         <span className="text-muted shrink-0">Mobile</span>
@@ -883,7 +1100,9 @@ export default function GroupLoanForm() {
                       </div>
                       <div className="flex justify-between gap-4 text-sm">
                         <span className="text-muted shrink-0">Address</span>
-                        <span className="text-white text-right break-all">{m.houseStreet}, Brgy. {m.barangay}, {m.city}, {m.province} {m.zip}</span>
+                        <span className="text-white text-right break-all">
+                          {m.houseStreet}, Brgy. {m.barangay}, {m.city}, {m.province} {m.zip}
+                        </span>
                       </div>
                       <div className="flex justify-between gap-4 text-sm">
                         <span className="text-muted shrink-0">Documents</span>
@@ -898,11 +1117,15 @@ export default function GroupLoanForm() {
                 <input
                   type="checkbox"
                   checked={confirmAccurate}
-                  onChange={e => { setConfirmAccurate(e.target.checked); setErrors(prev => ({ ...prev, confirmAccurate: undefined })) }}
+                  onChange={e => {
+                    setConfirmAccurate(e.target.checked)
+                    setErrors(prev => ({ ...prev, confirmAccurate: undefined }))
+                  }}
                   className="w-5 h-5 rounded border-border bg-surface-alt text-green focus:ring-green/30 accent-green mt-0.5"
                 />
                 <span className="text-white text-sm leading-relaxed group-hover:text-green transition-colors">
-                  I confirm that all information provided is true and accurate to the best of my knowledge.
+                  I confirm that all information provided is true and accurate to the best of my
+                  knowledge.
                 </span>
               </label>
               <FieldError message={errors.confirmAccurate} />
@@ -911,13 +1134,23 @@ export default function GroupLoanForm() {
                 <input
                   type="checkbox"
                   checked={agreeTerms}
-                  onChange={e => { setAgreeTerms(e.target.checked); setErrors(prev => ({ ...prev, agreeTerms: undefined })) }}
+                  onChange={e => {
+                    setAgreeTerms(e.target.checked)
+                    setErrors(prev => ({ ...prev, agreeTerms: undefined }))
+                  }}
                   className="w-5 h-5 rounded border-border bg-surface-alt text-green focus:ring-green/30 accent-green mt-0.5"
                 />
                 <span className="text-white text-sm leading-relaxed group-hover:text-green transition-colors">
                   I have read and agree to the{' '}
-                  <a href="/termsandconditions" target="_blank" rel="noopener noreferrer" className="text-green underline hover:text-green-hover">Terms and Conditions</a>
-                  {' '}and Data Privacy Policy of GR8 Lending Corporation.
+                  <a
+                    href="/termsandconditions"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-green underline hover:text-green-hover"
+                  >
+                    Terms and Conditions
+                  </a>{' '}
+                  and Data Privacy Policy of GR8 Lending Corporation.
                 </span>
               </label>
               <FieldError message={errors.agreeTerms} />
@@ -927,13 +1160,21 @@ export default function GroupLoanForm() {
           {/* Navigation */}
           <div className="flex justify-between items-center mt-8 pt-6 border-t border-border">
             {step > 1 ? (
-              <button onClick={back} className="px-6 py-3 border border-border text-muted hover:text-white hover:border-muted/50 font-medium text-sm rounded-xl transition-all">
+              <button
+                onClick={back}
+                className="px-6 py-3 border border-border text-muted hover:text-white hover:border-muted/50 font-medium text-sm rounded-xl transition-all"
+              >
                 Back
               </button>
-            ) : <div />}
+            ) : (
+              <div />
+            )}
 
             {step < TOTAL_STEPS ? (
-              <button onClick={next} className="px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold text-sm rounded-xl transition-all hover:shadow-lg hover:shadow-green/20">
+              <button
+                onClick={next}
+                className="px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold text-sm rounded-xl transition-all hover:shadow-lg hover:shadow-green/20"
+              >
                 Continue
               </button>
             ) : (

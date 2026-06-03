@@ -1,6 +1,12 @@
 import { useState, useMemo } from 'react'
 import { adminFetch, useToast } from './AdminDashboard'
-import { normalizeFinScore, computeFinalFromCiTotal, getTier, getNextTierHint, TIER_CONFIG } from './scoring'
+import {
+  normalizeFinScore,
+  computeFinalFromCiTotal,
+  getTier,
+  getNextTierHint,
+  TIER_CONFIG,
+} from './scoring'
 
 const INTERVIEWERS = [
   'Angelo Bradly Danganan',
@@ -78,7 +84,8 @@ function calcAge(dob) {
 }
 
 // Shared input styling
-const inputCls = 'w-full bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-white text-sm focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none'
+const inputCls =
+  'w-full bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-white text-sm focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none'
 const labelCls = 'text-muted text-xs block mb-1.5'
 
 function RadioGroup({ name, options, value, onChange, disabled }) {
@@ -102,9 +109,11 @@ function RadioGroup({ name, options, value, onChange, disabled }) {
             className="accent-green w-4 h-4 shrink-0"
           />
           <span className="text-sm text-white flex-1">{opt.label}</span>
-          <span className={`text-xs font-mono shrink-0 ${
-            value === opt.pts ? 'text-green/60' : 'text-muted'
-          }`}>
+          <span
+            className={`text-xs font-mono shrink-0 ${
+              value === opt.pts ? 'text-green/60' : 'text-muted'
+            }`}
+          >
             {opt.pts >= 0 ? `${opt.pts} pts` : `${opt.pts} pts`}
           </span>
         </label>
@@ -114,9 +123,9 @@ function RadioGroup({ name, options, value, onChange, disabled }) {
 }
 
 function CheckboxGroup({ options, values, onChange, disabled }) {
-  const toggle = (pts) => {
+  const toggle = pts => {
     if (values.includes(pts)) {
-      onChange(values.filter((v) => v !== pts))
+      onChange(values.filter(v => v !== pts))
     } else {
       onChange([...values, pts])
     }
@@ -140,9 +149,11 @@ function CheckboxGroup({ options, values, onChange, disabled }) {
             className="accent-red-500 w-4 h-4 shrink-0"
           />
           <span className="text-sm text-white flex-1">{opt.label}</span>
-          <span className={`text-xs font-mono shrink-0 ${
-            values.includes(opt.pts) ? 'text-red-400/70' : 'text-muted'
-          }`}>
+          <span
+            className={`text-xs font-mono shrink-0 ${
+              values.includes(opt.pts) ? 'text-red-400/70' : 'text-muted'
+            }`}
+          >
             {opt.pts} pts
           </span>
         </label>
@@ -161,7 +172,8 @@ function SectionHeader({ number, title, maxPts, currentPts }) {
       {maxPts != null && (
         <span className="text-xs font-mono text-muted">
           <span className={currentPts != null ? 'text-white' : ''}>{currentPts ?? '—'}</span>
-          {' / '}{maxPts} pts
+          {' / '}
+          {maxPts} pts
         </span>
       )}
     </div>
@@ -173,8 +185,17 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
   const isSbl = app.loan_type === 'sbl'
   const age = calcAge(app.date_of_birth || app.dob || app.birthdate)
   const fullName = `${app.first_name || ''} ${app.last_name || ''}`.trim()
-  const address = [app.present_address, app.presentBarangay || app.barangay, app.present_city, app.present_province]
-    .filter(Boolean).join(', ') || app.address || ''
+  const address =
+    [
+      app.present_address,
+      app.presentBarangay || app.barangay,
+      app.present_city,
+      app.present_province,
+    ]
+      .filter(Boolean)
+      .join(', ') ||
+    app.address ||
+    ''
 
   // Header fields
   const [clientName, setClientName] = useState(fullName)
@@ -225,7 +246,7 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
 
   const finalScore = useMemo(
     () => computeFinalFromCiTotal(finscoreNorm, ciTotal),
-    [finscoreNorm, ciTotal]
+    [finscoreNorm, ciTotal],
   )
   const tier = getTier(finalScore)
   const tierConfig = TIER_CONFIG[tier]
@@ -240,14 +261,38 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
   const q2Options = isSme ? SME_Q2 : STANDARD_Q2
 
   const validate = () => {
-    if (!interviewer) { addToast('Select an interviewer', 'error'); return false }
-    if (contactStatus == null) { addToast('Select contact status', 'error'); return false }
-    if (q1 == null) { addToast('Answer Q1: Declared Net Income', 'error'); return false }
-    if (q2 == null) { addToast('Answer Q2: Verified Net Income', 'error'); return false }
-    if (q3 == null) { addToast('Answer Q3: Work/Business Stability', 'error'); return false }
-    if (q4 == null) { addToast('Answer Q4: Residency', 'error'); return false }
-    if (ciRecommendation == null) { addToast('Select CI recommendation', 'error'); return false }
-    if (!remarks.trim()) { addToast('Remarks are required', 'error'); return false }
+    if (!interviewer) {
+      addToast('Select an interviewer', 'error')
+      return false
+    }
+    if (contactStatus == null) {
+      addToast('Select contact status', 'error')
+      return false
+    }
+    if (q1 == null) {
+      addToast('Answer Q1: Declared Net Income', 'error')
+      return false
+    }
+    if (q2 == null) {
+      addToast('Answer Q2: Verified Net Income', 'error')
+      return false
+    }
+    if (q3 == null) {
+      addToast('Answer Q3: Work/Business Stability', 'error')
+      return false
+    }
+    if (q4 == null) {
+      addToast('Answer Q4: Residency', 'error')
+      return false
+    }
+    if (ciRecommendation == null) {
+      addToast('Select CI recommendation', 'error')
+      return false
+    }
+    if (!remarks.trim()) {
+      addToast('Remarks are required', 'error')
+      return false
+    }
     return true
   }
 
@@ -276,11 +321,13 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
         total_deductions: totalDeductions,
         base_score: baseScore,
         ci_total: ciTotal,
-        references: isSbl ? null : [
-          { name: ref1Name, phone: ref1Phone },
-          { name: ref2Name, phone: ref2Phone },
-          { name: ref3Name, phone: ref3Phone },
-        ],
+        references: isSbl
+          ? null
+          : [
+              { name: ref1Name, phone: ref1Phone },
+              { name: ref2Name, phone: ref2Phone },
+              { name: ref3Name, phone: ref3Phone },
+            ],
         sbl_brgy_chairman: isSbl ? brgyChairman : null,
         sbl_brgy_treasurer: isSbl ? brgyTreasurer : null,
         ci_recommendation: ciRecommendation,
@@ -333,28 +380,61 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Client Name</label>
-              <input type="text" value={clientName} onChange={(e) => setClientName(e.target.value)} className={inputCls} />
+              <input
+                type="text"
+                value={clientName}
+                onChange={e => setClientName(e.target.value)}
+                className={inputCls}
+              />
             </div>
             <div>
-              <label className={labelCls}>Age {age != null && <span className="text-white ml-1">({age} years old)</span>}</label>
-              <input type="text" value={age ?? 'N/A'} readOnly className={`${inputCls} opacity-60`} />
+              <label className={labelCls}>
+                Age {age != null && <span className="text-white ml-1">({age} years old)</span>}
+              </label>
+              <input
+                type="text"
+                value={age ?? 'N/A'}
+                readOnly
+                className={`${inputCls} opacity-60`}
+              />
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Complete Address</label>
-              <input type="text" value={completeAddress} onChange={(e) => setCompleteAddress(e.target.value)} className={inputCls} />
+              <input
+                type="text"
+                value={completeAddress}
+                onChange={e => setCompleteAddress(e.target.value)}
+                className={inputCls}
+              />
             </div>
             <div>
               <label className={labelCls}>Contact Number</label>
-              <input type="text" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} className={inputCls} />
+              <input
+                type="text"
+                value={contactNumber}
+                onChange={e => setContactNumber(e.target.value)}
+                className={inputCls}
+              />
             </div>
             <div>
               <label className={labelCls}>Contact Status *</label>
               <div className="flex gap-3 mt-1">
-                {['contacted', 'uncontacted'].map((v) => (
-                  <label key={v} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
-                    contactStatus === v ? 'bg-surface-alt border-green/40' : 'border-border/50 hover:border-border'
-                  }`}>
-                    <input type="radio" name="contactStatus" checked={contactStatus === v} onChange={() => setContactStatus(v)} className="accent-green w-4 h-4" />
+                {['contacted', 'uncontacted'].map(v => (
+                  <label
+                    key={v}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+                      contactStatus === v
+                        ? 'bg-surface-alt border-green/40'
+                        : 'border-border/50 hover:border-border'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="contactStatus"
+                      checked={contactStatus === v}
+                      onChange={() => setContactStatus(v)}
+                      className="accent-green w-4 h-4"
+                    />
                     <span className="text-sm text-white capitalize">{v}</span>
                   </label>
                 ))}
@@ -362,24 +442,52 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
             </div>
             <div>
               <label className={labelCls}>Loan Product</label>
-              <input type="text" value={(app.loan_type || '').toUpperCase()} readOnly className={`${inputCls} opacity-60`} />
+              <input
+                type="text"
+                value={(app.loan_type || '').toUpperCase()}
+                readOnly
+                className={`${inputCls} opacity-60`}
+              />
             </div>
             <div>
               <label className={labelCls}>Civil Status</label>
-              <input type="text" value={civilStatus} onChange={(e) => setCivilStatus(e.target.value)} className={inputCls} />
+              <input
+                type="text"
+                value={civilStatus}
+                onChange={e => setCivilStatus(e.target.value)}
+                className={inputCls}
+              />
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Loan Purpose</label>
-              <input type="text" value={loanPurpose} onChange={(e) => setLoanPurpose(e.target.value)} className={inputCls} />
+              <input
+                type="text"
+                value={loanPurpose}
+                onChange={e => setLoanPurpose(e.target.value)}
+                className={inputCls}
+              />
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Relative working at GR8 Lending?</label>
               <div className="flex gap-3 mt-1">
-                {['no', 'yes'].map((v) => (
-                  <label key={v} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
-                    relativeAtGr8 === v ? (v === 'yes' ? 'bg-amber-500/10 border-amber-500/40' : 'bg-surface-alt border-green/40') : 'border-border/50 hover:border-border'
-                  }`}>
-                    <input type="radio" name="relativeGr8" checked={relativeAtGr8 === v} onChange={() => setRelativeAtGr8(v)} className="accent-green w-4 h-4" />
+                {['no', 'yes'].map(v => (
+                  <label
+                    key={v}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+                      relativeAtGr8 === v
+                        ? v === 'yes'
+                          ? 'bg-amber-500/10 border-amber-500/40'
+                          : 'bg-surface-alt border-green/40'
+                        : 'border-border/50 hover:border-border'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="relativeGr8"
+                      checked={relativeAtGr8 === v}
+                      onChange={() => setRelativeAtGr8(v)}
+                      className="accent-green w-4 h-4"
+                    />
                     <span className="text-sm text-white capitalize">{v}</span>
                   </label>
                 ))}
@@ -387,12 +495,14 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
               {relativeAtGr8 === 'yes' && (
                 <div className="mt-3 space-y-2">
                   <div className="bg-amber-500/7 border border-amber-500/21 rounded-lg p-3">
-                    <p className="text-amber-400/70 text-xs font-medium">Immediately call the office</p>
+                    <p className="text-amber-400/70 text-xs font-medium">
+                      Immediately call the office
+                    </p>
                   </div>
                   <input
                     type="text"
                     value={relativeWho}
-                    onChange={(e) => setRelativeWho(e.target.value)}
+                    onChange={e => setRelativeWho(e.target.value)}
                     className={inputCls}
                     placeholder="Please specify who"
                   />
@@ -401,10 +511,16 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Interviewer *</label>
-              <select value={interviewer} onChange={(e) => setInterviewer(e.target.value)} className={inputCls}>
+              <select
+                value={interviewer}
+                onChange={e => setInterviewer(e.target.value)}
+                className={inputCls}
+              >
                 <option value="">Select interviewer</option>
-                {INTERVIEWERS.map((name) => (
-                  <option key={name} value={name}>{name}</option>
+                {INTERVIEWERS.map(name => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -413,14 +529,24 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
 
         {/* Q1 */}
         <div className="bg-surface border border-border rounded-xl p-5">
-          <SectionHeader number="1" title="Capacity to Pay — Declared Net Income" maxPts={20} currentPts={q1} />
+          <SectionHeader
+            number="1"
+            title="Capacity to Pay — Declared Net Income"
+            maxPts={20}
+            currentPts={q1}
+          />
           <p className="text-muted text-xs mb-3">{isSme ? 'SME brackets' : 'Standard brackets'}</p>
           <RadioGroup name="q1" options={q1Options} value={q1} onChange={setQ1} />
         </div>
 
         {/* Q2 */}
         <div className="bg-surface border border-border rounded-xl p-5">
-          <SectionHeader number="2" title="Capacity to Pay — Verified Net Income" maxPts={10} currentPts={q2} />
+          <SectionHeader
+            number="2"
+            title="Capacity to Pay — Verified Net Income"
+            maxPts={10}
+            currentPts={q2}
+          />
           <p className="text-muted text-xs mb-3">{isSme ? 'SME brackets' : 'Standard brackets'}</p>
           <RadioGroup name="q2" options={q2Options} value={q2} onChange={setQ2} />
         </div>
@@ -440,13 +566,22 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
         {/* Renewal Bonus */}
         <div className="bg-surface border border-border rounded-xl p-5">
           <SectionHeader title="Additional Points for Renewal (optional)" />
-          <RadioGroup name="renewalBonus" options={RENEWAL_BONUS} value={renewalBonus} onChange={setRenewalBonus} />
+          <RadioGroup
+            name="renewalBonus"
+            options={RENEWAL_BONUS}
+            value={renewalBonus}
+            onChange={setRenewalBonus}
+          />
         </div>
 
         {/* Renewal Deductions */}
         <div className="bg-surface border border-border rounded-xl p-5">
           <SectionHeader title="Points Deduction for Renewal (optional)" />
-          <CheckboxGroup options={RENEWAL_DEDUCTIONS} values={deductions} onChange={setDeductions} />
+          <CheckboxGroup
+            options={RENEWAL_DEDUCTIONS}
+            values={deductions}
+            onChange={setDeductions}
+          />
         </div>
 
         {/* Character References (not SBL) */}
@@ -454,18 +589,48 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
           <div className="bg-surface border border-border rounded-xl p-5">
             <h4 className="text-white font-semibold text-sm mb-4">Character / Trade References</h4>
             {[
-              { n: 1, name: ref1Name, setName: setRef1Name, phone: ref1Phone, setPhone: setRef1Phone },
-              { n: 2, name: ref2Name, setName: setRef2Name, phone: ref2Phone, setPhone: setRef2Phone },
-              { n: 3, name: ref3Name, setName: setRef3Name, phone: ref3Phone, setPhone: setRef3Phone },
+              {
+                n: 1,
+                name: ref1Name,
+                setName: setRef1Name,
+                phone: ref1Phone,
+                setPhone: setRef1Phone,
+              },
+              {
+                n: 2,
+                name: ref2Name,
+                setName: setRef2Name,
+                phone: ref2Phone,
+                setPhone: setRef2Phone,
+              },
+              {
+                n: 3,
+                name: ref3Name,
+                setName: setRef3Name,
+                phone: ref3Phone,
+                setPhone: setRef3Phone,
+              },
             ].map(({ n, name, setName, phone, setPhone }) => (
               <div key={n} className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <div>
                   <label className={labelCls}>Reference {n} — Name</label>
-                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Full name" />
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    className={inputCls}
+                    placeholder="Full name"
+                  />
                 </div>
                 <div>
                   <label className={labelCls}>Reference {n} — Contact</label>
-                  <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} placeholder="09XXXXXXXXX" />
+                  <input
+                    type="text"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    className={inputCls}
+                    placeholder="09XXXXXXXXX"
+                  />
                 </div>
               </div>
             ))}
@@ -480,11 +645,20 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
               <div>
                 <label className={labelCls}>Barangay Chairman Approval</label>
                 <div className="flex gap-3 mt-1">
-                  {['yes', 'no'].map((v) => (
-                    <label key={v} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
-                      brgyChairman === v ? 'bg-surface-alt border-green/40' : 'border-border/50'
-                    }`}>
-                      <input type="radio" name="brgyChairman" checked={brgyChairman === v} onChange={() => setBrgyChairman(v)} className="accent-green w-4 h-4" />
+                  {['yes', 'no'].map(v => (
+                    <label
+                      key={v}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+                        brgyChairman === v ? 'bg-surface-alt border-green/40' : 'border-border/50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="brgyChairman"
+                        checked={brgyChairman === v}
+                        onChange={() => setBrgyChairman(v)}
+                        className="accent-green w-4 h-4"
+                      />
                       <span className="text-sm text-white capitalize">{v}</span>
                     </label>
                   ))}
@@ -493,11 +667,20 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
               <div>
                 <label className={labelCls}>Barangay Treasurer Approval</label>
                 <div className="flex gap-3 mt-1">
-                  {['yes', 'no'].map((v) => (
-                    <label key={v} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
-                      brgyTreasurer === v ? 'bg-surface-alt border-green/40' : 'border-border/50'
-                    }`}>
-                      <input type="radio" name="brgyTreasurer" checked={brgyTreasurer === v} onChange={() => setBrgyTreasurer(v)} className="accent-green w-4 h-4" />
+                  {['yes', 'no'].map(v => (
+                    <label
+                      key={v}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+                        brgyTreasurer === v ? 'bg-surface-alt border-green/40' : 'border-border/50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="brgyTreasurer"
+                        checked={brgyTreasurer === v}
+                        onChange={() => setBrgyTreasurer(v)}
+                        className="accent-green w-4 h-4"
+                      />
                       <span className="text-sm text-white capitalize">{v}</span>
                     </label>
                   ))}
@@ -511,13 +694,24 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
         <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
           <h4 className="text-white font-semibold text-sm">CI Recommendation</h4>
           <div className="flex gap-3">
-            {['approved', 'disapproved'].map((v) => (
-              <label key={v} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
-                ciRecommendation === v
-                  ? (v === 'approved' ? 'bg-green/10 border-green/40' : 'bg-red-500/10 border-red-500/40')
-                  : 'border-border/50 hover:border-border'
-              }`}>
-                <input type="radio" name="ciRecommendation" checked={ciRecommendation === v} onChange={() => setCiRecommendation(v)} className="accent-green w-4 h-4" />
+            {['approved', 'disapproved'].map(v => (
+              <label
+                key={v}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+                  ciRecommendation === v
+                    ? v === 'approved'
+                      ? 'bg-green/10 border-green/40'
+                      : 'bg-red-500/10 border-red-500/40'
+                    : 'border-border/50 hover:border-border'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="ciRecommendation"
+                  checked={ciRecommendation === v}
+                  onChange={() => setCiRecommendation(v)}
+                  className="accent-green w-4 h-4"
+                />
                 <span className="text-sm text-white capitalize">{v}</span>
               </label>
             ))}
@@ -527,7 +721,7 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
             <label className={labelCls}>Overall Assessment / Remarks *</label>
             <textarea
               value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
+              onChange={e => setRemarks(e.target.value)}
               rows={4}
               className={`${inputCls} resize-none`}
               placeholder="Required — provide assessment details..."
@@ -540,7 +734,7 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
               <input
                 type="number"
                 value={recommendedAmount}
-                onChange={(e) => setRecommendedAmount(e.target.value)}
+                onChange={e => setRecommendedAmount(e.target.value)}
                 className={inputCls}
                 placeholder="e.g. 25000"
               />
@@ -562,13 +756,23 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
       <div className="hidden lg:block w-72 shrink-0">
         <div className="sticky top-20">
           <ScorePanel
-            q1={q1} q2={q2} q3={q3} q4={q4}
-            bonus={bonus} totalDeductions={totalDeductions}
-            baseScore={baseScore} ciTotal={ciTotal}
-            finscoreRaw={finscoreRaw} finscoreNorm={finscoreNorm}
-            finscoreContrib={finscoreContrib} ciContrib={ciContrib}
-            finalScore={finalScore} tier={tier} tierConfig={tierConfig}
-            hint={hint} anyScored={anyScored}
+            q1={q1}
+            q2={q2}
+            q3={q3}
+            q4={q4}
+            bonus={bonus}
+            totalDeductions={totalDeductions}
+            baseScore={baseScore}
+            ciTotal={ciTotal}
+            finscoreRaw={finscoreRaw}
+            finscoreNorm={finscoreNorm}
+            finscoreContrib={finscoreContrib}
+            ciContrib={ciContrib}
+            finalScore={finalScore}
+            tier={tier}
+            tierConfig={tierConfig}
+            hint={hint}
+            anyScored={anyScored}
           />
         </div>
       </div>
@@ -576,14 +780,36 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
       {/* Mobile score panel — fixed bottom */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-border p-3">
         <MobileScoreBar
-          ciTotal={ciTotal} finalScore={finalScore} tier={tier} tierConfig={tierConfig} anyScored={anyScored}
+          ciTotal={ciTotal}
+          finalScore={finalScore}
+          tier={tier}
+          tierConfig={tierConfig}
+          anyScored={anyScored}
         />
       </div>
     </div>
   )
 }
 
-function ScorePanel({ q1, q2, q3, q4, bonus, totalDeductions, baseScore, ciTotal, finscoreRaw, finscoreNorm, finscoreContrib, ciContrib, finalScore, tier, tierConfig, hint, anyScored }) {
+function ScorePanel({
+  q1,
+  q2,
+  q3,
+  q4,
+  bonus,
+  totalDeductions,
+  baseScore,
+  ciTotal,
+  finscoreRaw,
+  finscoreNorm,
+  finscoreContrib,
+  ciContrib,
+  finalScore,
+  tier,
+  tierConfig,
+  hint,
+  anyScored,
+}) {
   const finUnavailable = !finscoreRaw || Number(finscoreRaw) <= 0
   return (
     <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
@@ -611,7 +837,9 @@ function ScorePanel({ q1, q2, q3, q4, bonus, totalDeductions, baseScore, ciTotal
       <div className="border-t border-border/50 pt-2">
         <div className="flex justify-between text-sm">
           <span className="text-muted">CI Total</span>
-          <span className="text-white font-bold">{anyScored ? ciTotal : '—'} <span className="text-muted font-normal">/ 50</span></span>
+          <span className="text-white font-bold">
+            {anyScored ? ciTotal : '—'} <span className="text-muted font-normal">/ 50</span>
+          </span>
         </div>
       </div>
 
@@ -641,14 +869,14 @@ function ScorePanel({ q1, q2, q3, q4, bonus, totalDeductions, baseScore, ciTotal
         </div>
         {anyScored && (
           <div className="mt-2">
-            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${tierConfig.badgeClass}`}>
+            <span
+              className={`px-2.5 py-1 rounded-full text-xs font-medium ${tierConfig.badgeClass}`}
+            >
               {tierConfig.label} — {tierConfig.description}
             </span>
           </div>
         )}
-        {anyScored && hint && (
-          <p className="text-amber-400/70 text-xs mt-2">{hint}</p>
-        )}
+        {anyScored && hint && <p className="text-amber-400/70 text-xs mt-2">{hint}</p>}
       </div>
     </div>
   )
@@ -676,7 +904,9 @@ function MobileScoreBar({ ciTotal, finalScore, tier, tierConfig, anyScored }) {
         <div className="w-px h-6 bg-border" />
         <div>
           <span className="text-muted text-[10px] block">Final</span>
-          <span className="text-white text-sm font-bold">{anyScored ? `${finalScore}/100` : '—'}</span>
+          <span className="text-white text-sm font-bold">
+            {anyScored ? `${finalScore}/100` : '—'}
+          </span>
         </div>
       </div>
       {anyScored && (
@@ -696,12 +926,12 @@ export function CiFormReadOnly({ ciFormData }) {
   const q2Options = ciFormData.loan_product === 'sme' ? SME_Q2 : STANDARD_Q2
 
   const findLabel = (options, pts) => {
-    const opt = options.find((o) => o.pts === pts)
+    const opt = options.find(o => o.pts === pts)
     return opt ? `${opt.label} (${pts} pts)` : `${pts} pts`
   }
 
-  const deductionLabels = (ciFormData.renewal_deductions || []).map((pts) => {
-    const opt = RENEWAL_DEDUCTIONS.find((o) => o.pts === pts)
+  const deductionLabels = (ciFormData.renewal_deductions || []).map(pts => {
+    const opt = RENEWAL_DEDUCTIONS.find(o => o.pts === pts)
     return opt ? `${opt.label} (${pts})` : `${pts} pts`
   })
 
@@ -714,14 +944,20 @@ export function CiFormReadOnly({ ciFormData }) {
     ['Loan Product', ciFormData.loan_product?.toUpperCase()],
     ['Civil Status', ciFormData.civil_status],
     ['Loan Purpose', ciFormData.loan_purpose],
-    ['Relative at GR8', ciFormData.relative_at_gr8 === 'yes' ? `Yes — ${ciFormData.relative_who}` : 'No'],
+    [
+      'Relative at GR8',
+      ciFormData.relative_at_gr8 === 'yes' ? `Yes — ${ciFormData.relative_who}` : 'No',
+    ],
     ['Interviewer', ciFormData.interviewer],
     null, // divider
     ['Q1: Declared Income', findLabel(q1Options, ciFormData.q1_declared_income)],
     ['Q2: Verified Income', findLabel(q2Options, ciFormData.q2_verified_income)],
     ['Q3: Work Stability', findLabel(Q3_OPTIONS, ciFormData.q3_work_stability)],
     ['Q4: Residency', findLabel(Q4_OPTIONS, ciFormData.q4_residency)],
-    ['Renewal Bonus', ciFormData.renewal_bonus ? findLabel(RENEWAL_BONUS, ciFormData.renewal_bonus) : 'None'],
+    [
+      'Renewal Bonus',
+      ciFormData.renewal_bonus ? findLabel(RENEWAL_BONUS, ciFormData.renewal_bonus) : 'None',
+    ],
     ['Renewal Deductions', deductionLabels.length > 0 ? deductionLabels.join('; ') : 'None'],
     null,
     ['Base Score', `${ciFormData.base_score} / 50`],
@@ -729,18 +965,21 @@ export function CiFormReadOnly({ ciFormData }) {
     null,
     ['CI Recommendation', ciFormData.ci_recommendation?.toUpperCase()],
     ['Remarks', ciFormData.remarks],
-    ciFormData.recommended_amount ? ['Recommended Amount', `₱${Number(ciFormData.recommended_amount).toLocaleString()}`] : null,
-  ].filter((f) => f !== null && f !== undefined)
+    ciFormData.recommended_amount
+      ? ['Recommended Amount', `₱${Number(ciFormData.recommended_amount).toLocaleString()}`]
+      : null,
+  ].filter(f => f !== null && f !== undefined)
 
   // References
-  const refs = ciFormData.references?.filter((r) => r.name) || []
+  const refs = ciFormData.references?.filter(r => r.name) || []
   const isSbl = ciFormData.loan_product === 'sbl'
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {fields.map((field, i) => {
-          if (field === null) return <div key={i} className="sm:col-span-2 border-t border-border/30 my-1" />
+          if (field === null)
+            return <div key={i} className="sm:col-span-2 border-t border-border/30 my-1" />
           const [label, value] = field
           return (
             <div key={i} className="bg-surface-alt rounded-lg px-3 py-2">
@@ -757,7 +996,9 @@ export function CiFormReadOnly({ ciFormData }) {
             {refs.map((ref, i) => (
               <div key={i} className="bg-surface-alt rounded-lg px-3 py-2">
                 <span className="text-muted text-xs block">Reference {i + 1}</span>
-                <span className="text-white text-sm">{ref.name} — {ref.phone || 'N/A'}</span>
+                <span className="text-white text-sm">
+                  {ref.name} — {ref.phone || 'N/A'}
+                </span>
               </div>
             ))}
           </div>
@@ -767,11 +1008,15 @@ export function CiFormReadOnly({ ciFormData }) {
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-surface-alt rounded-lg px-3 py-2">
             <span className="text-muted text-xs block">Brgy Chairman Approval</span>
-            <span className="text-white text-sm capitalize">{ciFormData.sbl_brgy_chairman || '—'}</span>
+            <span className="text-white text-sm capitalize">
+              {ciFormData.sbl_brgy_chairman || '—'}
+            </span>
           </div>
           <div className="bg-surface-alt rounded-lg px-3 py-2">
             <span className="text-muted text-xs block">Brgy Treasurer Approval</span>
-            <span className="text-white text-sm capitalize">{ciFormData.sbl_brgy_treasurer || '—'}</span>
+            <span className="text-white text-sm capitalize">
+              {ciFormData.sbl_brgy_treasurer || '—'}
+            </span>
           </div>
         </div>
       )}

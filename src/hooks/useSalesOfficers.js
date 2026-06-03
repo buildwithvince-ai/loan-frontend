@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
 
 const FALLBACK_OFFICERS = [
   { id: '71dbd005-a56f-4e02-829b-ffec86293b55', full_name: 'Troy Laderas' },
@@ -29,7 +30,9 @@ export default function useSalesOfficers() {
     }
   }, [])
 
-  useEffect(() => { fetchOfficers() }, [fetchOfficers])
+  useEffect(() => {
+    fetchOfficers()
+  }, [fetchOfficers])
 
   return { officers, loading, error, retry: fetchOfficers }
 }

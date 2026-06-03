@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
 
 const ROLE_LABEL = {
   super_admin: 'Super Admin',
@@ -51,7 +52,7 @@ export default function MyAccount() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getToken()}`,
+          Authorization: `Bearer ${getToken()}`,
         },
         body: JSON.stringify({
           current_password: pwForm.current,
@@ -94,8 +95,11 @@ export default function MyAccount() {
           <div>
             <p className="text-white font-semibold">{fullName || '—'}</p>
             <div className="flex flex-wrap gap-1 mt-1">
-              {roles.map((r) => (
-                <span key={r} className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${ROLE_BADGE[r] || 'bg-surface-alt text-muted'}`}>
+              {roles.map(r => (
+                <span
+                  key={r}
+                  className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${ROLE_BADGE[r] || 'bg-surface-alt text-muted'}`}
+                >
                   {ROLE_LABEL[r] || r}
                 </span>
               ))}
@@ -108,7 +112,7 @@ export default function MyAccount() {
           <InfoRow label="Full Name" value={fullName} />
           <InfoRow label="Email" value={user?.email} />
           <InfoRow label="User ID" value={user?.id} />
-          <InfoRow label="Role(s)" value={roles.map((r) => ROLE_LABEL[r] || r).join(', ')} />
+          <InfoRow label="Role(s)" value={roles.map(r => ROLE_LABEL[r] || r).join(', ')} />
           {user?.created_at && (
             <InfoRow
               label="Account Created"
@@ -139,8 +143,18 @@ export default function MyAccount() {
             onClick={() => setShowPwModal(true)}
             className="flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
-              <path d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" strokeLinecap="round" strokeLinejoin="round" />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="w-4 h-4"
+            >
+              <path
+                d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
             Change Password
           </button>
@@ -150,7 +164,10 @@ export default function MyAccount() {
       {/* Change Password Modal */}
       {showPwModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-surface border border-border rounded-xl w-full max-w-sm shadow-2xl shadow-black/60" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="bg-surface border border-border rounded-xl w-full max-w-sm shadow-2xl shadow-black/60"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="px-6 pt-6 pb-4 border-b border-border">
               <h2 className="text-white font-bold text-lg">Change Password</h2>
             </div>
@@ -167,7 +184,7 @@ export default function MyAccount() {
                     <input
                       type="password"
                       value={pwForm.current}
-                      onChange={(e) => setPwForm({ ...pwForm, current: e.target.value })}
+                      onChange={e => setPwForm({ ...pwForm, current: e.target.value })}
                       className="w-full bg-canvas border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-muted/50 focus:border-green/50 focus:ring-1 focus:ring-green/20 outline-none transition-colors"
                     />
                   </div>
@@ -176,7 +193,7 @@ export default function MyAccount() {
                     <input
                       type="password"
                       value={pwForm.new}
-                      onChange={(e) => setPwForm({ ...pwForm, new: e.target.value })}
+                      onChange={e => setPwForm({ ...pwForm, new: e.target.value })}
                       className="w-full bg-canvas border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-muted/50 focus:border-green/50 focus:ring-1 focus:ring-green/20 outline-none transition-colors"
                     />
                   </div>
@@ -185,7 +202,7 @@ export default function MyAccount() {
                     <input
                       type="password"
                       value={pwForm.confirm}
-                      onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })}
+                      onChange={e => setPwForm({ ...pwForm, confirm: e.target.value })}
                       className="w-full bg-canvas border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-muted/50 focus:border-green/50 focus:ring-1 focus:ring-green/20 outline-none transition-colors"
                     />
                   </div>
@@ -217,7 +234,9 @@ export default function MyAccount() {
                       <span className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" />
                       Updating...
                     </span>
-                  ) : 'Update Password'}
+                  ) : (
+                    'Update Password'
+                  )}
                 </button>
               )}
             </div>

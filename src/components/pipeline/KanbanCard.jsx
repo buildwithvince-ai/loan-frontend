@@ -30,12 +30,15 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
   }
 
   const fd = app.form_data || {}
-  const fullName = [
-    app.firstName || app.first_name || fd.firstName || fd.first_name || '',
-    app.lastName || app.last_name || fd.lastName || fd.last_name || '',
-  ]
-    .filter(Boolean)
-    .join(' ') || app.full_name || '—'
+  const fullName =
+    [
+      app.firstName || app.first_name || fd.firstName || fd.first_name || '',
+      app.lastName || app.last_name || fd.lastName || fd.last_name || '',
+    ]
+      .filter(Boolean)
+      .join(' ') ||
+    app.full_name ||
+    '—'
 
   const groupLabel = app.group_name || app.groupName || fd.groupName || null
 
@@ -44,8 +47,8 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
 
   // Tier resolution
   const finalScore = app.final_score != null ? Number(app.final_score) : null
-  const tier = finalScore != null ? (app.tier || getTier(finalScore)) : null
-  const tierCfg = tier ? (TIER_CONFIG[tier] || null) : null
+  const tier = finalScore != null ? app.tier || getTier(finalScore) : null
+  const tierCfg = tier ? TIER_CONFIG[tier] || null : null
 
   return (
     <div
@@ -57,9 +60,7 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
     >
       {/* Drag handle + ref row */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <span className="font-mono text-xs text-blue leading-tight">
-          {app.reference_id || '—'}
-        </span>
+        <span className="font-mono text-xs text-blue leading-tight">{app.reference_id || '—'}</span>
         <div className="flex items-center gap-1">
           {app.prior_decline_flag && (
             <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-400">
@@ -71,7 +72,7 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
               {...attributes}
               {...listeners}
               className="p-1 rounded text-muted hover:text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
               aria-label="Drag card"
             >
               <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
@@ -85,21 +86,17 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
       {/* Clickable body */}
       <div onClick={() => onCardClick(app)}>
         {/* Full name */}
-        <p className="text-white text-sm font-medium leading-snug mb-1 line-clamp-1">
-          {fullName}
-        </p>
-        {groupLabel && (
-          <p className="text-muted text-xs mb-2 line-clamp-1">{groupLabel}</p>
-        )}
+        <p className="text-white text-sm font-medium leading-snug mb-1 line-clamp-1">{fullName}</p>
+        {groupLabel && <p className="text-muted text-xs mb-2 line-clamp-1">{groupLabel}</p>}
 
         {/* Loan type + amount row */}
         <div className="flex items-center gap-2 mb-2">
-          <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${loanTypeColor}`}>
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${loanTypeColor}`}
+          >
             {loanType || '—'}
           </span>
-          <span className="text-muted text-xs">
-            {formatPeso(app.loan_amount || app.amount)}
-          </span>
+          <span className="text-muted text-xs">{formatPeso(app.loan_amount || app.amount)}</span>
         </div>
 
         {/* Tier badge */}
@@ -147,9 +144,7 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
 
         {/* Assigned sales officer */}
         {app.assigned_sales_officer_name && (
-          <p className="text-muted text-xs truncate">
-            SO: {app.assigned_sales_officer_name}
-          </p>
+          <p className="text-muted text-xs truncate">SO: {app.assigned_sales_officer_name}</p>
         )}
       </div>
     </div>
