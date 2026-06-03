@@ -132,9 +132,11 @@ https://gr8lendingcorporation.com
 - `formatPeso(n)`, `getAge(dob)`, `validMobile(v)`, `validEmail(v)`
 
 ### API Pattern
-- `adminFetch(path)` — prepends admin base URL + secret header
-- `ciFetch(path)` — prepends CI base URL + secret header
-- Public forms: direct `fetch()` to backend URL
+- `adminFetch(path)` — prepends admin base URL + attaches `Authorization: Bearer <JWT>`
+- `ciFetch(path)` — prepends CI base URL + attaches `Authorization: Bearer <JWT>`
+- `pipelineFetch(path)` — prepends `/api/pipeline` base URL + attaches `Authorization: Bearer <JWT>`
+- Token comes from `AuthContext` (`useAuth().getToken`); all three are built by `buildFetch` in `AdminDashboard.jsx`
+- Public forms: direct `fetch()` to backend URL (no auth)
 
 ### Scoring System
 - FinScore: raw 300–999 normalized to 0–100
@@ -163,3 +165,29 @@ Read and strictly follow all instructions in these files before writing any code
 - ~/Desktop/frontend-design/SKILL.md
 - ~/Desktop/frontend-patterns/SKILL.md
 - ~/Desktop/continuous-learning-v2/SKILL.md
+
+## Session Log — 2026-06-02
+- Built: CI address fields (House/Unit Number, Street Name/Number — required, inline-validated),
+  Payment Frequency dropdown (one_time/two_times), Salary Payout 1–31 calendar picker, read-only
+  Repayment Cycle (derived), and Approver-stage Loan Release Date (required, gates Approve button).
+  Added across all 3 CI surfaces (CI Portal form, admin CI scoring form, post-submit read-only view).
+- New files: `src/lib/repaymentCycle.js` (deriveRepaymentCycle), `src/components/ci/SalaryPayoutPicker.jsx`.
+- Payload: CI submit now sends `payment_frequency`, `salary_payout_dates` (int[]), `repayment_cycle`
+  (nested in `ci_form_data` + flat in PATCH body); approve sends `loan_release_date` (ISO string).
+- Decisions made: Extracted only the stateful payout picker to a shared component; kept Payment
+  Frequency select + address inputs inline per form. Loan Release Date wired to DecisionSection
+  `/approve` body (not the board TransitionModal). CI scoring form role-gated to
+  ci_officer/approver/super_admin in ApplicationDetail.
+- Assumptions introduced:
+  - [ASSUMPTION] Part 7 "editable by Approver/Super Admin" = editable while app sits in CI stage
+    (before CI submit). After submission the form is read-only by existing architecture.
+  - [ASSUMPTION] New CI fields stored nested in `ci_form_data` AND flat in PATCH body (mirrors
+    existing ci_recommendation dual-send) — backend support for these keys is UNVERIFIED.
+  - [ASSUMPTION] Extracting the payout picker deviates from "components defined per form, not
+    extracted" — justified because duplicating stateful selection logic is a correctness risk.
+- Scope candidates deferred:
+  - [SCOPE CANDIDATE] Board "Approve & Process" (TransitionModal approver→loan_processing) is a
+    SECOND path to Loandisk that does NOT collect/require Loan Release Date. Part 5's gate only
+    covers the ApplicationDetail approve.
+- Open items / next session: Verify backend persists the 4 new keys (may silently drop unknown
+  keys). Manual UAT of picker on 375px mobile.

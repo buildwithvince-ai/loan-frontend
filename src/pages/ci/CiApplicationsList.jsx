@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ciFetch } from './CiPortal'
+import { getApplicantName } from '../../lib/applicantName'
 
 const LOAN_TYPE_COLORS = {
   personal: 'bg-blue/20 text-blue',
@@ -63,10 +64,7 @@ export default function CiApplicationsList({ onStartAssessment }) {
   const filtered = ciRelevant.filter(app => {
     if (!search) return true
     const q = search.toLowerCase()
-    const name = (
-      app.full_name ||
-      `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`
-    ).toLowerCase()
+    const name = getApplicantName(app).toLowerCase()
     const phone = (app.phone || app.mobile || '').toLowerCase()
     return name.includes(q) || phone.includes(q)
   })
@@ -126,8 +124,7 @@ export default function CiApplicationsList({ onStartAssessment }) {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="text-white font-medium text-sm">
-                      {app.full_name ||
-                        `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.trim()}
+                      {getApplicantName(app) || '—'}
                     </p>
                     <p className="text-muted text-xs">{app.phone || app.mobile || '—'}</p>
                   </div>
@@ -176,8 +173,7 @@ export default function CiApplicationsList({ onStartAssessment }) {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="text-white font-medium text-sm">
-                      {app.full_name ||
-                        `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.trim()}
+                      {getApplicantName(app) || '—'}
                     </p>
                     <p className="text-muted text-xs">{app.phone || app.mobile || '—'}</p>
                   </div>

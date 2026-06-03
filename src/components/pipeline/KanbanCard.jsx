@@ -1,6 +1,8 @@
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { getTier, TIER_CONFIG } from '../../pages/admin/scoring'
+import { getApplicantName } from '../../lib/applicantName'
+import { getSoStageReason } from '../../constants/pipeline'
 
 const LOAN_TYPE_COLORS = {
   personal: 'bg-blue/20 text-blue',
@@ -30,15 +32,7 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
   }
 
   const fd = app.form_data || {}
-  const fullName =
-    [
-      app.firstName || app.first_name || fd.firstName || fd.first_name || '',
-      app.lastName || app.last_name || fd.lastName || fd.last_name || '',
-    ]
-      .filter(Boolean)
-      .join(' ') ||
-    app.full_name ||
-    '—'
+  const fullName = getApplicantName(app) || '—'
 
   const groupLabel = app.group_name || app.groupName || fd.groupName || null
 
@@ -116,6 +110,18 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
             </span>
           </div>
         )}
+
+        {/* Rework reason — shown to the SO so they know what to fix before re-endorsing */}
+        {app.stage === 'sales_officer' &&
+          getSoStageReason(app) === 'rework' &&
+          app.last_return_reason && (
+            <div className="mb-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-2 py-1.5">
+              <p className="text-[10px] uppercase tracking-wide text-amber-400/70 font-semibold mb-0.5">
+                Return reason
+              </p>
+              <p className="text-xs text-amber-200/90 leading-snug">{app.last_return_reason}</p>
+            </div>
+          )}
 
         {/* SO Decision badges */}
         {app.so_decision === 'confirm' && (

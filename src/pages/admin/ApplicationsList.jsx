@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { adminFetch } from './AdminDashboard'
 import { normalizeFinScore, computeFinalFromCiTotal, getTier, TIER_CONFIG } from './scoring'
+import { getApplicantName } from '../../lib/applicantName'
 
 const LOAN_TYPE_COLORS = {
   personal: 'bg-blue/12 text-blue/60',
@@ -63,7 +64,7 @@ function exportConsentCsv(apps) {
     'Consent Status',
   ]
   const rows = apps.map(app => [
-    `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.trim(),
+    getApplicantName(app),
     app.mobile || app.phone || '',
     (app.loan_type || '').toUpperCase(),
     app.reference_id || '',
@@ -125,8 +126,7 @@ export default function ApplicationsList({ onReview }) {
     }
     if (search) {
       const q = search.toLowerCase()
-      const name =
-        `${app.firstName || app.first_name || ''} ${app.lastName || app.last_name || ''}`.toLowerCase()
+      const name = getApplicantName(app).toLowerCase()
       const phone = (app.mobile || app.phone || '').toLowerCase()
       const so = (app.assigned_sales_officer_name || '').toLowerCase()
       if (
@@ -256,7 +256,7 @@ export default function ApplicationsList({ onReview }) {
                       {app.reference_id || '—'}
                     </td>
                     <td className="px-4 py-3 text-white font-medium">
-                      {app.firstName || app.first_name} {app.lastName || app.last_name}
+                      {getApplicantName(app) || '—'}
                     </td>
                     <td className="px-4 py-3">
                       <button
@@ -367,9 +367,7 @@ export default function ApplicationsList({ onReview }) {
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <p className="text-white font-medium">
-                    {app.firstName || app.first_name} {app.lastName || app.last_name}
-                  </p>
+                  <p className="text-white font-medium">{getApplicantName(app) || '—'}</p>
                   <button
                     onClick={() => onReview(app.id || app.reference_id)}
                     className="text-green hover:text-green-hover text-xs hover:underline transition-colors"

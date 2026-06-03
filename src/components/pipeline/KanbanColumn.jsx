@@ -1,5 +1,5 @@
 import { useDroppable } from '@dnd-kit/core'
-import { STAGE_LABELS } from '../../constants/pipeline'
+import { STAGE_LABELS, getSoStageReason } from '../../constants/pipeline'
 import KanbanCard from './KanbanCard'
 
 const LOCKED_STAGES = ['loan_processing_officer', 'declined']
@@ -29,6 +29,7 @@ export default function KanbanColumn({
   onVerifierAction,
   onRequestSOConfirmation,
   onSODecision,
+  onSendToVerifier,
   soDecisionLoading,
   userRoles = [],
 }) {
@@ -126,11 +127,13 @@ export default function KanbanColumn({
                 </div>
               )}
 
-            {/* Sales Officer confirmation actions */}
+            {/* Sales Officer actions — show exactly ONE set based on why the app is
+                at this stage. 'confirmation' → Confirm/Decline (→ approver); 'rework' →
+                Re-endorse (→ verifier); 'new' → Endorse (→ verifier). Re-endorse and
+                Confirm/Decline can never coexist, so client-confirm can't skip the verifier. */}
             {stage === 'sales_officer' &&
-              app.so_confirmation_sent_at &&
-              !app.so_decision &&
-              userRoles.some(r => ['sales_officer', 'admin', 'super_admin'].includes(r)) && (
+              userRoles.some(r => ['sales_officer', 'admin', 'super_admin'].includes(r)) &&
+              (getSoStageReason(app) === 'confirmation' ? (
                 <div className="flex items-center gap-1.5 px-1 pb-2 -mt-1">
                   <button
                     onClick={e => {
@@ -153,7 +156,21 @@ export default function KanbanColumn({
                     Decline
                   </button>
                 </div>
-              )}
+              ) : (
+                <div className="px-1 pb-2 -mt-1">
+                  <button
+                    onClick={e => {
+                      e.stopPropagation()
+                      onSendToVerifier(app)
+                    }}
+                    className="w-full text-xs px-2 py-1.5 rounded-md bg-green/10 text-green border border-green/20 hover:bg-green/20 transition-colors font-medium"
+                  >
+                    {getSoStageReason(app) === 'rework'
+                      ? 'Re-endorse to Verifier'
+                      : 'Endorse to Verifier'}
+                  </button>
+                </div>
+              ))}
 
             {/* Approver actions */}
             {stage === 'approver' &&

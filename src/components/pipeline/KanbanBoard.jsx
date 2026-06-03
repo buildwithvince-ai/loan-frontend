@@ -14,6 +14,7 @@ import KanbanColumn from './KanbanColumn'
 import KanbanCard from './KanbanCard'
 import TransitionModal from './TransitionModal'
 import ReturnModal from './ReturnModal'
+import { getApplicantName } from '../../lib/applicantName'
 
 const LOCKED_STAGES = ['loan_processing_officer', 'declined']
 
@@ -90,9 +91,7 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
 
     if (searchFilter) {
       const q = searchFilter.toLowerCase()
-      const name = [app.firstName || app.first_name || '', app.lastName || app.last_name || '']
-        .join(' ')
-        .toLowerCase()
+      const name = getApplicantName(app).toLowerCase()
       const phone = (app.mobile || app.phone || '').toLowerCase()
       const ref = (app.reference_id || '').toLowerCase()
       if (!name.includes(q) && !phone.includes(q) && !ref.includes(q)) return false
@@ -139,6 +138,10 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
     if (LOCKED_STAGES.includes(fromStage)) return
     // Locked columns — cannot drag into loan_processing_officer directly
     if (toStage === 'loan_processing_officer' && fromStage !== 'approver') return
+    // Sales Officer can only advance to the Verifier — never skip ahead to
+    // approver/CI/etc. Client-confirmation (→ approver) goes through the
+    // Confirm/Decline buttons, not a drag.
+    if (fromStage === 'sales_officer' && toStage !== 'verifier') return
 
     const app = filteredApps.find(
       a => String(a.id || a._id || a.reference_id) === String(active.id),
@@ -219,13 +222,23 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
         if (String(a.id || a._id) === String(returnApp.id || returnApp._id)) {
           return updatedApp?.stage
             ? { ...a, ...updatedApp }
-            : { ...a, stage: 'sales_officer', so_confirmation_sent_at: new Date().toISOString() }
+            : {
+                ...a,
+                stage: 'sales_officer',
+                last_returned_at: new Date().toISOString(),
+                returned_count: (a.returned_count || 0) + 1,
+              }
         }
         return a
       }),
     )
     setReturnApp(null)
     fetchApps()
+  }
+
+  // SO endorses a new lead, or re-endorses a reworked app — both advance to the verifier.
+  function handleSendToVerifier(app) {
+    setPendingTransition({ app, fromStage: 'sales_officer', toStage: 'verifier' })
   }
 
   async function handleSODecision(app, decision) {
@@ -306,6 +319,7 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
                 onVerifierAction={handleVerifierAction}
                 onRequestSOConfirmation={handleRequestSOConfirmation}
                 onSODecision={handleSODecision}
+                onSendToVerifier={handleSendToVerifier}
                 soDecisionLoading={soDecisionLoading}
                 userRoles={roles}
               />

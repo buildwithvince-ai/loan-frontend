@@ -1,21 +1,14 @@
 import { useState } from 'react'
 import { STAGE_LABELS } from '../../constants/pipeline'
 import { pipelineFetch } from '../../pages/admin/AdminDashboard'
+import { getApplicantName } from '../../lib/applicantName'
 
 export default function ReturnModal({ application, onConfirm, onCancel }) {
   const [reason, setReason] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const fullName =
-    [
-      application?.firstName || application?.first_name || '',
-      application?.lastName || application?.last_name || '',
-    ]
-      .filter(Boolean)
-      .join(' ') ||
-    application?.full_name ||
-    'this applicant'
+  const fullName = getApplicantName(application) || 'this applicant'
 
   const appId = application?.id || application?._id
 
@@ -27,7 +20,7 @@ export default function ReturnModal({ application, onConfirm, onCancel }) {
         method: 'PATCH',
         body: JSON.stringify({
           to_stage: 'sales_officer',
-          meta: { so_confirmation_requested: true, return_reason: reason.trim() },
+          meta: { return_reason: reason.trim() },
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -47,7 +40,7 @@ export default function ReturnModal({ application, onConfirm, onCancel }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-surface border border-border rounded-xl w-full max-w-md shadow-2xl shadow-black/60">
         <div className="px-6 pt-6 pb-4 border-b border-border">
-          <h2 className="text-white font-bold text-lg mb-1">Request SO Confirmation</h2>
+          <h2 className="text-white font-bold text-lg mb-1">Return to Sales Officer</h2>
           <p className="text-muted text-sm truncate">{fullName}</p>
         </div>
 
@@ -76,8 +69,8 @@ export default function ReturnModal({ application, onConfirm, onCancel }) {
           </div>
 
           <p className="text-muted text-sm">
-            This will send the application to the Sales Officer for client confirmation. The SO will
-            need to confirm or decline before it proceeds to the Approver.
+            This returns the application to the Sales Officer for rework. The SO will see your
+            reason and must re-endorse it back to the Verifier once corrected.
           </p>
 
           <div>

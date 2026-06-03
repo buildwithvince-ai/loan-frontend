@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { STAGE_LABELS } from '../../constants/pipeline'
 import { pipelineFetch } from '../../pages/admin/AdminDashboard'
+import { getApplicantName } from '../../lib/applicantName'
 
 function ArrowIcon() {
   return (
@@ -37,15 +38,7 @@ export default function TransitionModal({ fromStage, toStage, application, onCon
   const [error, setError] = useState(null)
   const [timedOut, setTimedOut] = useState(false)
 
-  const fullName =
-    [
-      application?.firstName || application?.first_name || '',
-      application?.lastName || application?.last_name || '',
-    ]
-      .filter(Boolean)
-      .join(' ') ||
-    application?.full_name ||
-    'this applicant'
+  const fullName = getApplicantName(application) || 'this applicant'
 
   const appId = application?.id || application?._id
 
