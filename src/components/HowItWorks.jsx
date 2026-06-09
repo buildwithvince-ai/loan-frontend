@@ -1,9 +1,9 @@
 const steps = [
   {
-    number: '01',
-    title: 'Apply Online',
+    number: '1',
+    title: 'Apply online',
     description:
-      'Fill out our simple application form from your phone or computer. Upload your documents — no need to visit our office.',
+      'Fill out our simple form from your phone or computer and upload your documents. No office visit needed.',
     icon: (
       <svg
         viewBox="0 0 24 24"
@@ -21,10 +21,10 @@ const steps = [
     ),
   },
   {
-    number: '02',
-    title: 'Get Reviewed',
+    number: '2',
+    title: 'Get reviewed',
     description:
-      "Our team reviews your application within 2-3 business days. We'll verify your documents and assess your eligibility.",
+      'Our team reviews your application within 2-3 business days, verifies your documents, and assesses eligibility.',
     icon: (
       <svg
         viewBox="0 0 24 24"
@@ -42,8 +42,8 @@ const steps = [
     ),
   },
   {
-    number: '03',
-    title: 'Receive Funds',
+    number: '3',
+    title: 'Receive funds',
     description:
       'Once approved, receive your funds directly. Fast processing, transparent terms, no hidden charges.',
     icon: (
@@ -66,41 +66,34 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="relative py-24 md:py-32 overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-surface/40" />
-      <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-
-      <div className="relative max-w-7xl mx-auto px-6">
-        <div className="text-center mb-20">
-          <span className="text-blue text-xs font-semibold tracking-[0.2em] uppercase">
+    <section id="how-it-works" className="relative py-24 md:py-28 bg-surface-alt/50">
+      <div className="relative max-w-7xl mx-auto px-5 sm:px-6">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <span className="text-green text-xs font-semibold tracking-[0.18em] uppercase">
             Simple Process
           </span>
-          <h2 className="text-3xl md:text-5xl text-green mt-3 font-bold">How It Works</h2>
-          <p className="text-muted mt-4 max-w-lg mx-auto">
-            Three simple steps to get the funding you need.
-          </p>
+          <h2 className="text-white text-3xl md:text-5xl font-bold mt-3 tracking-tight">
+            How it works
+          </h2>
+          <p className="text-muted mt-4 text-lg">Three steps to get the funding you need.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-          {steps.map((step, i) => (
-            <div key={step.number} className="relative text-center group">
-              {/* Connector line (desktop) */}
-              {i < steps.length - 1 && (
-                <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-px bg-gradient-to-r from-border to-border/20" />
-              )}
+        <div className="relative grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
+          {/* Connector line across the steps (desktop) */}
+          <div className="hidden md:block absolute top-9 left-[16.66%] right-[16.66%] h-px bg-border" />
 
-              {/* Icon circle */}
-              <div className="relative inline-flex">
-                <div className="w-24 h-24 rounded-2xl bg-surface border border-border flex items-center justify-center text-blue mx-auto group-hover:border-blue/40 group-hover:bg-blue/5 transition-all duration-500">
+          {steps.map(step => (
+            <div key={step.number} className="relative text-center">
+              <div className="relative inline-flex flex-col items-center">
+                <div className="relative w-[72px] h-[72px] rounded-2xl bg-surface border border-border card-soft flex items-center justify-center text-green">
                   {step.icon}
+                  <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-green text-white text-xs font-bold flex items-center justify-center ring-4 ring-surface-alt/50">
+                    {step.number}
+                  </span>
                 </div>
-                <span className="absolute -top-2 -right-2 w-8 h-8 rounded-lg bg-blue text-white text-xs font-bold flex items-center justify-center shadow-lg shadow-blue/30">
-                  {step.number}
-                </span>
               </div>
 
-              <h3 className="text-xl text-green mt-6 mb-3 font-bold">{step.title}</h3>
+              <h3 className="text-white text-xl font-bold mt-6 mb-2">{step.title}</h3>
               <p className="text-muted text-sm leading-relaxed max-w-xs mx-auto">
                 {step.description}
               </p>

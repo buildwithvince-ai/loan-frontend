@@ -58,7 +58,51 @@
   --color-white: #FFFFFF;
   --color-muted: #94A3B8;
   --color-border: #1E2D45;
+  /* PayPal-but-SaaS brand constants (used by the public marketing surface) */
+  --color-navy: #001C64;
+  --color-sky: #009CDE;
   --font-sans: 'Method', system-ui, sans-serif;
+}
+
+/*
+ * Public marketing + application theme — PayPal-but-SaaS.
+ * Scoped to PublicLayout (`.public-theme`) so the admin/CI dashboards keep
+ * their own palette untouched. Re-maps the shared semantic tokens to a light
+ * fintech theme: green -> PayPal blue (primary action), blue -> navy (headers).
+ */
+.public-theme {
+  --color-canvas: #F4F7F9;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #ECF2F1;
+  --color-green: #5CB85C;       /* GR8 brand green — primary action / accent */
+  --color-green-hover: #4CAD4C;
+  --color-blue: #2592B6;        /* GR8 brand blue, deepened for legible accent text */
+  --color-white: #0F1B20;       /* ink — headlines + body text on light */
+  --color-muted: #5B6770;
+  --color-border: #E3E9EC;
+  --color-navy: #0E1A22;        /* dark footer band */
+  --color-sky: #5BC0DE;         /* GR8 brand cyan — soft fills */
+  color-scheme: light;
+}
+
+/* Keep labels white on solid accent backgrounds (buttons + active pills use
+   `bg-green text-white`; the ink-text remap above would otherwise hide them). */
+.public-theme .bg-green,
+.public-theme .bg-green-hover,
+.public-theme .bg-blue,
+.public-theme .bg-navy {
+  color: #fff;
+}
+
+/* Soft, navy-tinted elevation — the SaaS card look, no pure-black shadows. */
+.public-theme .card-soft {
+  box-shadow: 0 1px 2px rgba(10, 22, 51, 0.04), 0 10px 30px rgba(10, 22, 51, 0.06);
+}
+.public-theme .card-soft-hover:hover {
+  box-shadow: 0 2px 6px rgba(10, 22, 51, 0.06), 0 18px 44px rgba(10, 22, 51, 0.12);
+}
+.public-theme .nav-shadow {
+  box-shadow: 0 1px 0 rgba(10, 22, 51, 0.04), 0 8px 24px rgba(10, 22, 51, 0.05);
 }
 
 /* Light mode overrides — scoped to admin/CI dashboards only */
@@ -178,6 +222,23 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: shimmer 3s linear infinite;
+}
+
+/* GR8 brand shimmer for the public marketing headlines. */
+.public-theme .text-shimmer {
+  background: linear-gradient(90deg, #5CB85C, #5BC0DE, #5CB85C);
+  background-size: 200% auto;
+}
+
+/* Range slider in the light theme — green thumb + soft green glow. */
+.public-theme input[type='range']::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(92, 184, 92, 0.16);
+}
+.public-theme input[type='range']::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 6px rgba(92, 184, 92, 0.22);
+}
+.public-theme input[type='range']::-moz-range-thumb {
+  box-shadow: 0 0 0 4px rgba(92, 184, 92, 0.16);
 }
 
 .noise-overlay::before {

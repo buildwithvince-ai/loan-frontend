@@ -21,11 +21,11 @@ import { ThemeProvider } from './context/ThemeContext'
 
 function PublicLayout({ children }) {
   return (
-    <div className="min-h-screen bg-canvas text-white">
+    <div className="public-theme min-h-screen bg-canvas text-white">
       {/* Fixed watermark */}
       <div
         className="fixed inset-0 flex items-center justify-center pointer-events-none"
-        style={{ zIndex: 0, opacity: 0.04 }}
+        style={{ zIndex: 0, opacity: 0.025 }}
       >
         <img src="/gr8logo.png" alt="" className="w-[600px] h-auto select-none" draggable={false} />
       </div>

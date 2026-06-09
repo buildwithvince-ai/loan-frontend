@@ -57,33 +57,27 @@ export default function LoanCalculator() {
   const amountPercent = ((amount - product.min) / (product.max - product.min)) * 100
 
   return (
-    <section id="calculator" className="relative py-24 md:py-32">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <span className="text-blue text-xs font-semibold tracking-[0.2em] uppercase">
-            Loan Calculator
-          </span>
-          <h2 className="text-3xl md:text-5xl text-green mt-3 font-bold">
-            Estimate Your Monthly Payment
+    <section id="calculator" className="relative py-24 md:py-28">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <h2 className="text-white text-3xl md:text-5xl font-bold tracking-tight">
+            Estimate your monthly payment
           </h2>
-          <p className="text-muted mt-4 max-w-lg mx-auto">
-            Choose your loan type, set your desired amount, and see your estimated monthly payment
-            instantly.
+          <p className="text-muted mt-4 text-lg leading-relaxed">
+            Pick a loan type, set your amount, and see your estimated payment instantly.
           </p>
         </div>
 
         <div className="max-w-4xl mx-auto">
-          <div className="bg-surface/60 backdrop-blur-sm border border-border rounded-2xl p-8 md:p-10 shadow-2xl shadow-canvas/50">
+          <div className="bg-surface border border-border rounded-3xl p-6 sm:p-9 card-soft">
             {/* Product tabs */}
-            <div className="flex flex-wrap gap-2 mb-10 bg-surface-alt/50 rounded-xl p-1.5">
+            <div className="flex flex-wrap gap-1.5 mb-9 bg-surface-alt rounded-2xl p-1.5">
               {PRODUCTS.map((p, i) => (
                 <button
                   key={p.name}
                   onClick={() => handleProductChange(i)}
-                  className={`flex-1 min-w-[100px] py-3 px-3 rounded-lg text-sm font-medium transition-all ${
-                    i === productIndex
-                      ? 'bg-green text-white shadow-lg shadow-green/20'
-                      : 'text-muted hover:text-white hover:bg-surface-alt/50'
+                  className={`flex-1 min-w-[100px] py-2.5 px-3 rounded-xl text-sm font-semibold transition-all ${
+                    i === productIndex ? 'bg-green text-white' : 'text-muted hover:text-white'
                   }`}
                 >
                   {p.name}
@@ -94,7 +88,7 @@ export default function LoanCalculator() {
             {/* Amount slider + input */}
             <div className="mb-8">
               <div className="flex justify-between items-center mb-4">
-                <label className="text-white text-sm font-medium">Loan Amount</label>
+                <label className="text-white text-sm font-semibold">Loan amount</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">
                     ₱
@@ -105,7 +99,7 @@ export default function LoanCalculator() {
                     value={inputValue}
                     onChange={e => handleInputChange(e.target.value)}
                     onBlur={handleInputBlur}
-                    className="w-40 pl-8 pr-3 py-2 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-1 focus:ring-green/30 transition-colors"
+                    className="w-40 pl-8 pr-3 py-2 rounded-xl bg-surface-alt border border-border text-green text-right text-xl font-bold focus:outline-none focus:border-green/50 focus:ring-2 focus:ring-green/20 transition-colors"
                   />
                 </div>
               </div>
@@ -118,7 +112,7 @@ export default function LoanCalculator() {
                 onChange={e => handleSliderChange(Number(e.target.value))}
                 className="w-full"
                 style={{
-                  background: `linear-gradient(to right, #5CB85C 0%, #5CB85C ${amountPercent}%, #1A2235 ${amountPercent}%, #1A2235 100%)`,
+                  background: `linear-gradient(to right, #5CB85C 0%, #5CB85C ${amountPercent}%, #E3E9EC ${amountPercent}%, #E3E9EC 100%)`,
                 }}
               />
               <div className="flex justify-between mt-2">
@@ -128,17 +122,17 @@ export default function LoanCalculator() {
             </div>
 
             {/* Term selector */}
-            <div className="mb-10">
-              <label className="text-white text-sm font-medium block mb-4">Payment Term</label>
+            <div className="mb-9">
+              <label className="text-white text-sm font-semibold block mb-4">Payment term</label>
               <div className="flex gap-3">
                 {product.terms.map(t => (
                   <button
                     key={t}
                     onClick={() => setTerm(t)}
-                    className={`flex-1 py-3 rounded-xl text-sm font-medium border transition-all ${
+                    className={`flex-1 py-3 rounded-xl text-sm font-semibold border transition-all ${
                       t === term
-                        ? 'border-green bg-green/10 text-green shadow-inner'
-                        : 'border-border text-muted hover:border-muted/30 hover:text-white'
+                        ? 'border-green bg-green/8 text-green'
+                        : 'border-border text-muted hover:border-green/30 hover:text-white'
                     }`}
                   >
                     {t} mo
@@ -147,35 +141,32 @@ export default function LoanCalculator() {
               </div>
             </div>
 
-            {/* Divider */}
-            <div className="border-t border-border my-8" />
-
-            {/* Results — Monthly Payment center and prominent */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-end">
-              <div className="bg-surface-alt/40 rounded-xl p-5 text-center order-2 sm:order-1">
+            {/* Results */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
+              <div className="bg-surface-alt rounded-2xl p-5 text-center order-2 sm:order-1 flex flex-col justify-center">
                 <div className="text-muted text-xs uppercase tracking-wider mb-2">
-                  Total Interest
+                  Total interest
                 </div>
-                <div className="text-muted text-xl font-medium">{formatPeso(totalInterest)}</div>
+                <div className="text-white text-xl font-semibold">{formatPeso(totalInterest)}</div>
               </div>
-              <div className="bg-surface-alt/40 rounded-xl p-6 text-center border border-green/20 order-1 sm:order-2 overflow-hidden min-w-0">
-                <div className="text-muted text-xs uppercase tracking-wider mb-2">
-                  Monthly Payment
+              <div className="bg-green rounded-2xl p-6 text-center order-1 sm:order-2 overflow-hidden min-w-0">
+                <div className="text-white/80 text-xs uppercase tracking-wider mb-2">
+                  Monthly payment
                 </div>
-                <div className="text-green text-2xl md:text-4xl font-bold">
+                <div className="text-white text-2xl md:text-3xl font-bold">
                   {formatPeso(monthlyPayment)}
                 </div>
               </div>
-              <div className="bg-surface-alt/40 rounded-xl p-5 text-center order-3">
+              <div className="bg-surface-alt rounded-2xl p-5 text-center order-3 flex flex-col justify-center">
                 <div className="text-muted text-xs uppercase tracking-wider mb-2">
-                  Total Payment
+                  Total payment
                 </div>
-                <div className="text-muted text-xl font-medium">{formatPeso(totalPayment)}</div>
+                <div className="text-white text-xl font-semibold">{formatPeso(totalPayment)}</div>
               </div>
             </div>
 
             <p className="text-muted text-xs text-center mt-6">
-              * This is an estimate only. Actual rates and terms may vary upon review.
+              This is an estimate only. Actual rates and terms may vary upon review.
             </p>
           </div>
         </div>

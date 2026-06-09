@@ -4,7 +4,7 @@ const products = [
   {
     title: 'Personal Loan',
     description: 'Quick cash for medical bills, education, home improvement, or emergencies.',
-    range: '₱10,000 – ₱200,000',
+    range: '₱10,000 - ₱200,000',
     terms: '3, 6, or 12 months',
     route: '/apply/personal',
     icon: (
@@ -26,7 +26,7 @@ const products = [
   {
     title: 'SME Loan',
     description: 'Working capital, equipment, inventory, or expansion funding for your business.',
-    range: '₱50,000 – ₱300,000',
+    range: '₱50,000 - ₱300,000',
     terms: '3, 6, 12, or 24 months',
     route: '/apply/sme',
     icon: (
@@ -48,8 +48,8 @@ const products = [
   {
     title: 'AKAP Loan',
     description:
-      'Micro-financing for small entrepreneurs and market vendors — low requirements, fast release.',
-    range: '₱5,000 – ₱40,000',
+      'Micro-financing for small entrepreneurs and market vendors, low requirements, fast release.',
+    range: '₱5,000 - ₱40,000',
     terms: '3, 4, 5, or 6 months',
     route: '/apply/akap',
     icon: (
@@ -70,8 +70,8 @@ const products = [
   },
   {
     title: 'Group Loan',
-    description: 'Group-based lending for communities — shared accountability, flexible terms.',
-    range: '₱10,000 – ₱50,000 per member',
+    description: 'Group-based lending for communities, shared accountability, flexible terms.',
+    range: '₱10,000 - ₱50,000 per member',
     terms: '3, 6, or 12 months',
     route: '/apply/group',
     icon: (
@@ -92,8 +92,8 @@ const products = [
   },
   {
     title: 'SBL (Sangguniang Barangay Loan)',
-    description: 'For Barangay Officials — salary-deduction repayment with low monthly rates.',
-    range: '₱5,000 – ₱100,000',
+    description: 'For Barangay Officials, salary-deduction repayment with low monthly rates.',
+    range: '₱5,000 - ₱100,000',
     terms: '3, 6, or 12 months',
     route: '/apply/sbl',
     icon: (
@@ -116,12 +116,12 @@ const products = [
 
 export default function SelectProduct() {
   return (
-    <div className="min-h-screen pt-28 pb-16 px-4 sm:px-6">
+    <div className="min-h-screen pt-28 pb-20 px-4 sm:px-6">
       <div className="max-w-3xl mx-auto">
         <div className="mb-10">
           <Link
             to="/"
-            className="text-muted hover:text-white text-sm transition-colors inline-flex items-center gap-1 mb-4"
+            className="text-muted hover:text-white text-sm transition-colors inline-flex items-center gap-1.5 mb-5"
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
               <path
@@ -130,10 +130,12 @@ export default function SelectProduct() {
                 clipRule="evenodd"
               />
             </svg>
-            Back to Home
+            Back to home
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold text-green">Choose Your Loan Product</h1>
-          <p className="text-muted text-sm mt-2">
+          <h1 className="text-white text-3xl sm:text-4xl font-bold tracking-tight">
+            Choose your loan product
+          </h1>
+          <p className="text-muted text-base mt-3">
             Select the loan type that fits your needs to start your application.
           </p>
         </div>
@@ -143,18 +145,18 @@ export default function SelectProduct() {
             <Link
               key={product.title}
               to={product.route}
-              className="group flex items-center gap-6 bg-surface/60 border border-border rounded-2xl p-6 hover:border-green/30 hover:shadow-xl hover:shadow-green/5 transition-all duration-300"
+              className="group flex items-center gap-5 bg-surface border border-border rounded-2xl p-5 sm:p-6 card-soft card-soft-hover transition-all duration-300 hover:-translate-y-0.5 hover:border-green/30"
             >
-              <div className="w-16 h-16 shrink-0 rounded-xl bg-surface-alt border border-border flex items-center justify-center text-blue group-hover:bg-blue/10 group-hover:border-blue/30 transition-all">
+              <div className="w-16 h-16 shrink-0 rounded-xl bg-gradient-to-br from-green/12 to-sky/10 text-green flex items-center justify-center">
                 {product.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-bold text-green group-hover:text-green-hover transition-colors">
+                <h2 className="text-white text-lg font-bold group-hover:text-green transition-colors">
                   {product.title}
                 </h2>
                 <p className="text-muted text-sm mt-0.5">{product.description}</p>
-                <div className="flex gap-4 mt-2">
-                  <span className="text-blue text-xs font-medium">{product.range}</span>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                  <span className="text-green text-xs font-semibold">{product.range}</span>
                   <span className="text-muted text-xs">{product.terms}</span>
                 </div>
               </div>

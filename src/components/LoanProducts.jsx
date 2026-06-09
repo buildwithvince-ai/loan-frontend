@@ -4,8 +4,8 @@ const products = [
   {
     title: 'Personal Loan',
     description:
-      'Quick cash for your personal needs — medical bills, education, home improvement, or emergencies.',
-    range: '₱10,000 – ₱200,000',
+      'Quick cash for your personal needs, medical bills, education, home improvement, or emergencies.',
+    range: '₱10,000 - ₱200,000',
     terms: '3, 6, or 12 months',
     repayment: 'Bimonthly',
     minIncome: '₱15,000/month',
@@ -29,8 +29,8 @@ const products = [
   {
     title: 'SME Loan',
     description:
-      'Fuel your business growth — working capital, equipment, inventory, or expansion funding.',
-    range: '₱50,000 – ₱300,000',
+      'Fuel your business growth, working capital, equipment, inventory, or expansion funding.',
+    range: '₱50,000 - ₱300,000',
     terms: '3, 6, 12, or 24 months',
     repayment: 'Monthly with PDCs',
     minIncome: '₱30,000/month',
@@ -54,8 +54,8 @@ const products = [
   {
     title: 'AKAP Loan',
     description:
-      'Accessible micro-financing for small entrepreneurs and market vendors — low requirements, fast release.',
-    range: '₱5,000 – ₱40,000',
+      'Accessible micro-financing for small entrepreneurs and market vendors, low requirements, fast release.',
+    range: '₱5,000 - ₱40,000',
     terms: '3, 4, 5, or 6 months',
     repayment: 'Weekly',
     minIncome: '₱10,000/month',
@@ -79,8 +79,8 @@ const products = [
   {
     title: 'SBL (Sangguniang Barangay Loan)',
     description:
-      'For elected or appointed Barangay Officials — salary-deduction repayment with low monthly rates.',
-    range: '₱5,000 – ₱100,000',
+      'For elected or appointed Barangay Officials, salary-deduction repayment with low monthly rates.',
+    range: '₱5,000 - ₱100,000',
     terms: '3, 6, or 12 months',
     repayment: 'Monthly',
     minIncome: '₱2,000/month',
@@ -104,8 +104,8 @@ const products = [
   {
     title: 'Group Loan',
     description:
-      'Community-based lending for groups — shared accountability with bimonthly repayment schedules.',
-    range: '₱10,000 – ₱50,000 per member',
+      'Community-based lending for groups, shared accountability with bimonthly repayment schedules.',
+    range: '₱10,000 - ₱50,000 per member',
     terms: '3, 6, or 12 months',
     repayment: 'Bimonthly',
     minIncome: '₱5,000/month',
@@ -130,72 +130,65 @@ const products = [
 
 export default function LoanProducts() {
   return (
-    <section id="products" className="relative py-24 md:py-32">
-      {/* Subtle background accent */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-green/3 rounded-full blur-[180px]" />
-
-      <div className="relative max-w-7xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <span className="text-blue text-xs font-semibold tracking-[0.2em] uppercase">
+    <section id="products" className="relative py-24 md:py-28">
+      <div className="relative max-w-7xl mx-auto px-5 sm:px-6">
+        <div className="max-w-2xl mb-14">
+          <span className="text-green text-xs font-semibold tracking-[0.18em] uppercase">
             Our Products
           </span>
-          <h2 className="text-3xl md:text-5xl text-green mt-3 font-bold">
-            Choose the Right Loan for You
+          <h2 className="text-white text-3xl md:text-5xl font-bold mt-3 tracking-tight">
+            Choose the right loan for you
           </h2>
-          <p className="text-muted mt-4 max-w-lg mx-auto">
-            Five loan products designed for different needs — from personal expenses to business
-            growth.
+          <p className="text-muted mt-4 text-lg leading-relaxed">
+            Five products built for different needs, from everyday expenses to growing a business.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {products.map(product => (
             <div
               key={product.title}
-              className="group relative flex flex-col bg-surface/50 backdrop-blur-sm border border-border rounded-2xl p-8 hover:border-green/30 transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl hover:shadow-green/5"
+              className="group flex flex-col bg-surface border border-border rounded-2xl p-7 card-soft card-soft-hover transition-all duration-300 hover:-translate-y-1 hover:border-green/30"
             >
-              {/* Hover glow */}
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-green/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-              <div className="relative flex flex-col flex-1">
-                {/* Icon */}
-                <div className="w-14 h-14 rounded-xl bg-surface-alt border border-border flex items-center justify-center text-blue mb-6 group-hover:bg-blue/10 group-hover:border-blue/30 transition-all">
-                  {product.icon}
-                </div>
-
-                <h3 className="text-2xl text-green mb-3 font-bold">{product.title}</h3>
-                <p className="text-muted text-sm leading-relaxed mb-6">{product.description}</p>
-
-                {/* Details */}
-                <div className="space-y-3 mb-8">
-                  <div className="flex items-center justify-between py-2 border-b border-border/50">
-                    <span className="text-muted text-xs uppercase tracking-wider">Amount</span>
-                    <span className="text-green font-medium text-sm">{product.range}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border/50">
-                    <span className="text-muted text-xs uppercase tracking-wider">Terms</span>
-                    <span className="text-white text-sm">{product.terms}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border/50">
-                    <span className="text-muted text-xs uppercase tracking-wider">Repayment</span>
-                    <span className="text-white text-sm">{product.repayment}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2">
-                    <span className="text-muted text-xs uppercase tracking-wider">Min Income</span>
-                    <span className="text-white text-sm">{product.minIncome}</span>
-                  </div>
-                </div>
-
-                {/* Button pinned to bottom */}
-                <div className="mt-auto">
-                  <Link
-                    to={product.route}
-                    className="block w-full py-3.5 text-center rounded-xl bg-green hover:bg-green-hover text-white font-medium text-sm transition-all duration-300"
-                  >
-                    Apply for {product.title}
-                  </Link>
-                </div>
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green/12 to-sky/10 text-green flex items-center justify-center mb-6">
+                {product.icon}
               </div>
+
+              <h3 className="text-white text-xl font-bold mb-2">{product.title}</h3>
+              <p className="text-muted text-sm leading-relaxed mb-6">{product.description}</p>
+
+              <dl className="space-y-2.5 mb-7 text-sm">
+                <div className="flex items-center justify-between gap-3 py-1.5 border-b border-border">
+                  <dt className="text-muted text-xs uppercase tracking-wider">Amount</dt>
+                  <dd className="text-green font-semibold text-right">{product.range}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3 py-1.5 border-b border-border">
+                  <dt className="text-muted text-xs uppercase tracking-wider">Terms</dt>
+                  <dd className="text-white text-right">{product.terms}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3 py-1.5 border-b border-border">
+                  <dt className="text-muted text-xs uppercase tracking-wider">Repayment</dt>
+                  <dd className="text-white text-right">{product.repayment}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3 py-1.5">
+                  <dt className="text-muted text-xs uppercase tracking-wider">Min income</dt>
+                  <dd className="text-white text-right">{product.minIncome}</dd>
+                </div>
+              </dl>
+
+              <Link
+                to={product.route}
+                className="mt-auto inline-flex items-center justify-center gap-1.5 w-full py-3 rounded-full bg-surface-alt text-white font-semibold text-sm transition-all group-hover:bg-green group-hover:text-white"
+              >
+                Apply now
+                <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path
+                    fillRule="evenodd"
+                    d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </Link>
             </div>
           ))}
         </div>
