@@ -62,7 +62,7 @@ function Toast({ toasts, removeToast }) {
         >
           <span className="flex-1">{t.message}</span>
           <button onClick={() => removeToast(t.id)} className="text-white/70 hover:text-white">
-            ✕
+            x
           </button>
         </div>
       ))}
@@ -80,6 +80,7 @@ export default function AdminDashboard() {
   const [dashView, setDashView] = useState(() => localStorage.getItem('gr8_admin_view') || 'list') // 'list' | 'pipeline'
   const [selectedAppId, setSelectedAppId] = useState(null)
   const [toasts, setToasts] = useState([])
+  const [lastRefreshed, setLastRefreshed] = useState(null)
 
   const addToast = useCallback((message, type = 'success') => {
     const id = Date.now()
@@ -111,34 +112,83 @@ export default function AdminDashboard() {
     localStorage.setItem('gr8_admin_view', v)
   }
 
+  const handleDataRefreshed = useCallback(ts => {
+    setLastRefreshed(ts)
+  }, [])
+
+  function formatRefreshed(ts) {
+    if (!ts) return null
+    const diff = Math.floor((Date.now() - ts) / 1000)
+    if (diff < 5) return 'just now'
+    if (diff < 60) return `${diff}s ago`
+    const mins = Math.floor(diff / 60)
+    return `${mins}m ago`
+  }
+
   return (
     <ToastContext.Provider value={addToast}>
       <Toast toasts={toasts} removeToast={removeToast} />
       <div className="px-4 sm:px-6 py-6">
-        {/* Top filter bar */}
+        {/* Top header bar */}
         {view !== 'detail' && (
-          <div className="flex items-center justify-between mb-5">
-            <h1 className="text-white font-bold text-2xl">Applications</h1>
-            <div className="flex items-center gap-0.5 p-0.5 bg-surface rounded-lg border border-border">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-white font-bold text-xl leading-tight">Applications</h1>
+              {lastRefreshed && dashView === 'list' && (
+                <p className="text-muted text-xs mt-0.5">
+                  Updated {formatRefreshed(lastRefreshed)}
+                </p>
+              )}
+            </div>
+            {/* Segmented toggle */}
+            <div className="flex items-center gap-0 p-1 bg-surface-alt border border-border rounded-lg">
               <button
                 onClick={() => switchDashView('list')}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
                   dashView === 'list'
-                    ? 'bg-surface-alt text-green/60'
+                    ? 'bg-surface text-white shadow-sm border border-border'
                     : 'text-muted hover:text-white'
                 }`}
               >
-                List View
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+                  />
+                </svg>
+                List
               </button>
               <button
                 onClick={() => switchDashView('pipeline')}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
                   dashView === 'pipeline'
-                    ? 'bg-surface-alt text-green/60'
+                    ? 'bg-surface text-white shadow-sm border border-border'
                     : 'text-muted hover:text-white'
                 }`}
               >
-                Pipeline View
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z"
+                  />
+                </svg>
+                Pipeline
               </button>
             </div>
           </div>
@@ -170,7 +220,7 @@ export default function AdminDashboard() {
         ) : dashView === 'pipeline' ? (
           <KanbanBoard onCardClick={openDetailFromCard} />
         ) : (
-          <ApplicationsList onReview={openDetail} />
+          <ApplicationsList onReview={openDetail} onDataRefreshed={handleDataRefreshed} />
         )}
       </div>
       <ReportProblemButton />

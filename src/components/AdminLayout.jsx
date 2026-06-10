@@ -13,6 +13,13 @@ const ROLE_LABEL = {
   loan_processing_officer: 'Loan Processing',
 }
 
+function getInitials(name) {
+  if (!name) return 'ST'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
 export default function AdminLayout({ children }) {
   const { logout, roles, hasRole, fullName, user } = useAuth()
   const { isDark, toggleTheme } = useTheme()
@@ -109,35 +116,48 @@ export default function AdminLayout({ children }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen w-56 bg-surface border-r border-border z-50 flex flex-col transition-transform duration-200 ${
+        className={`fixed lg:sticky top-0 left-0 h-screen w-60 bg-surface border-r border-border z-50 flex flex-col transition-transform duration-200 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        {/* Logo */}
-        <div className="px-5 h-14 flex items-center gap-3 border-b border-border shrink-0">
-          <img src="/gr8logo.png" alt="GR8" className="w-7 h-7 opacity-80" />
-          <span className="text-white font-bold text-sm">GR8 Admin</span>
+        {/* Logo lockup */}
+        <div className="px-5 h-16 flex items-center gap-3 border-b border-border shrink-0">
+          <img src="/gr8logo.png" alt="GR8" className="w-8 h-8 opacity-90" />
+          <div>
+            <span className="text-white font-bold text-sm leading-none block">GR8 Lending</span>
+            <span className="text-muted text-xs leading-none block mt-0.5">Admin Portal</span>
+          </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
-          {navItems.map(item => (
-            <button
-              key={item.path}
-              onClick={() => {
-                navigate(item.path)
-                setSidebarOpen(false)
-              }}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left ${
-                isActive(item)
-                  ? 'bg-surface-alt text-green'
-                  : 'text-muted hover:text-white hover:bg-surface-alt/50'
-              }`}
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
+        <nav className="flex-1 px-3 py-5 flex flex-col gap-1">
+          <p className="px-3 mb-2 text-muted text-xs font-medium uppercase tracking-wider">
+            Navigation
+          </p>
+          {navItems.map(item => {
+            const active = isActive(item)
+            return (
+              <button
+                key={item.path}
+                onClick={() => {
+                  navigate(item.path)
+                  setSidebarOpen(false)
+                }}
+                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left ${
+                  active
+                    ? 'bg-green/8 text-green'
+                    : 'text-muted hover:text-white hover:bg-surface-alt/50'
+                }`}
+              >
+                {/* Left accent bar for active state */}
+                {active && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-green rounded-r-full" />
+                )}
+                <span className={active ? 'text-green' : ''}>{item.icon}</span>
+                {item.label}
+              </button>
+            )
+          })}
         </nav>
 
         {/* Theme toggle */}
@@ -181,13 +201,21 @@ export default function AdminLayout({ children }) {
           </button>
         </div>
 
-        {/* User info + logout */}
+        {/* User block */}
         <div className="px-3 py-4 border-t border-border shrink-0">
-          <div className="px-3 mb-3">
-            <p className="text-white text-sm font-medium truncate">{fullName || 'Staff'}</p>
-            <p className="text-muted text-xs truncate">
-              {roles.map(r => ROLE_LABEL[r] || r).join(', ')}
-            </p>
+          <div className="flex items-center gap-3 px-2 mb-3">
+            {/* Avatar circle with initials */}
+            <div className="w-8 h-8 rounded-full bg-green/15 border border-green/25 flex items-center justify-center shrink-0">
+              <span className="text-green text-xs font-bold">{getInitials(fullName)}</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-white text-sm font-medium truncate leading-tight">
+                {fullName || 'Staff'}
+              </p>
+              <p className="text-muted text-xs truncate leading-tight">
+                {roles.map(r => ROLE_LABEL[r] || r).join(', ')}
+              </p>
+            </div>
           </div>
           <button
             onClick={handleLogout}
@@ -207,7 +235,7 @@ export default function AdminLayout({ children }) {
                 d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
               />
             </svg>
-            Logout
+            Sign Out
           </button>
         </div>
       </aside>
@@ -219,7 +247,8 @@ export default function AdminLayout({ children }) {
           <div className="px-4 h-14 flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="text-muted hover:text-white transition-colors"
+              className="text-muted hover:text-white transition-colors p-1"
+              aria-label="Open navigation"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -236,8 +265,8 @@ export default function AdminLayout({ children }) {
                 />
               </svg>
             </button>
-            <img src="/gr8logo.png" alt="GR8" className="w-7 h-7 opacity-80" />
-            <span className="text-white font-bold text-sm">GR8 Admin</span>
+            <img src="/gr8logo.png" alt="GR8" className="w-7 h-7 opacity-90" />
+            <span className="text-white font-bold text-sm">GR8 Lending</span>
           </div>
         </header>
 
