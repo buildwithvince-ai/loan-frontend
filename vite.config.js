@@ -18,6 +18,12 @@ export default defineConfig(({ command }) => ({
         '/api': {
           target: 'https://loan-backend-production-cd45.up.railway.app',
           changeOrigin: true,
+          // changeOrigin only rewrites Host. The browser's Origin header still
+          // says localhost and trips the backend CORS allowlist (500 HTML).
+          // Strip it so the request looks server-to-server.
+          configure: proxy => {
+            proxy.on('proxyReq', proxyReq => proxyReq.removeHeader('origin'))
+          },
         },
       },
     },
