@@ -281,3 +281,18 @@ Read and strictly follow all instructions in these files before writing any code
 - Open items / next session: Verify stage_history field names against a real sa_confirmation
   entry. UAT full loop: approver modifies terms → SA confirms → app back at pending/approver
   with adopted terms → normal Approve pushes to Loandisk.
+
+## Session Log — 2026-06-10 (admin dashboard revamp branch)
+- Built: `feat/admin-dashboard-revamp` (commit 434e68b) — ui-designer agent + design-taste-frontend
+  skill (dashboard = out of skill's core scope; applied only consistency/contrast/density/UI-state
+  rules, Redesign-Preserve mode). Changed: AdminLayout (accent bar, initials avatar, lockup),
+  AdminDashboard (raised segmented toggle w/ icons, last-refreshed line, optional onDataRefreshed
+  prop), ApplicationsList (clickable stat tiles, 13→10 col table w/ merged Applicant + Scoring
+  cells, sticky thead, row click, filter bar w/ clear-all, skeleton loaders, designed empty/error
+  states). ApplicationDetail intentionally untouched (logic-heavy).
+- Decisions made: reverted agent's CSV consent-string edit (compliance data, not UI copy);
+  renamed misleading "SA Confirmed" tile → "Awaiting SA".
+- Assumptions introduced: "Awaiting CI" tile maps to the plain 'pending' filter (no dedicated
+  status) — tile count and filtered rows can disagree; flagged for operator review.
+- Open items / next session: operator eyeball at localhost:5173 (login → /admin), both themes,
+  375px mobile; PR if approved.
