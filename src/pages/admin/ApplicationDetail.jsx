@@ -16,6 +16,7 @@ import {
   fmtCurrency,
   defaultSchemeId,
   defaultRate,
+  LOCKED_INTEREST_RATE,
   PAYMENT_SCHEMES,
   PAYMENT_SCHEME_LABELS,
   SCHEME_SUFFIX,
@@ -944,15 +945,14 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
   const loanType = (app.loan_type || '').toLowerCase()
   const originalAmount = app.loan_amount || app.amount || ''
   const originalTerm = app.loan_term || app.term || ''
-  const defRate = defaultRate(loanType)
-  const originalInterestRate = app.interest_rate || defRate
+  const originalInterestRate = app.interest_rate || LOCKED_INTEREST_RATE
   const originalSchemeId = app.payment_scheme_id || defaultSchemeId(loanType)
 
   const [adjustedAmount, setAdjustedAmount] = useState(String(originalAmount))
   const [adjustedTerm, setAdjustedTerm] = useState(String(originalTerm))
-  const [interestRate, setInterestRate] = useState(originalInterestRate)
+  // Rate is locked at 5%/month for all products — backend clamps to 5..5.
+  const interestRate = LOCKED_INTEREST_RATE
   const [schemeId, setSchemeId] = useState(defaultSchemeId(loanType))
-  const [discountReason, setDiscountReason] = useState('')
   const [loanReleaseDate, setLoanReleaseDate] = useState(app.loan_release_date || '')
   const [fieldErrors, setFieldErrors] = useState({})
   const [actionLoading, setActionLoading] = useState(false)
@@ -1018,9 +1018,6 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
     if (!adjustedAmount || Number(adjustedAmount) <= 0) e.amount = 'Enter a valid loan amount'
     const term = Number(adjustedTerm)
     if (!term || term < 3 || term > 24) e.term = 'Duration must be between 3 and 24 months'
-    if (interestRate < 3 || interestRate > 5) e.rate = 'Rate must be between 3% and 5%'
-    if (interestRate < defRate && discountReason.trim().length < 10)
-      e.discountReason = 'Discount reason required (min 10 characters)'
     return e
   }
 
@@ -1116,9 +1113,8 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
     const approveBody = {
       adjusted_amount: Number(adjustedAmount),
       adjusted_term: Number(adjustedTerm),
-      interest_rate: interestRate,
+      interest_rate: LOCKED_INTEREST_RATE,
       payment_scheme_id: schemeId,
-      discount_reason: interestRate < defRate ? discountReason.trim() : null,
       loan_release_date: loanReleaseDate || null,
     }
     // Override path (declined recommendation): carry the edited terms + override flag.
@@ -1234,59 +1230,15 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
           </select>
         </div>
         <div>
-          <label className="text-muted text-xs block mb-1.5">Interest Rate (% per month)</label>
-          <input
-            type="number"
-            min={3}
-            max={5}
-            step={0.25}
-            value={interestRate}
-            onChange={e => {
-              const val = Number(e.target.value)
-              setInterestRate(val)
-              if (val >= defRate) setDiscountReason('')
-              setFieldErrors(prev => ({ ...prev, rate: undefined, discountReason: undefined }))
-            }}
-            className={fieldErrors.rate ? inputErrCls : inputCls}
-          />
+          <label className="text-muted text-xs block mb-1.5">Interest Rate</label>
+          <div className={`${inputCls} bg-surface cursor-default`}>
+            {LOCKED_INTEREST_RATE}% / month
+          </div>
           <p className="text-muted text-xs mt-1">
-            Default rate for this product is {defRate}%. Lower rates require a discount reason.
+            Fixed at {LOCKED_INTEREST_RATE}% per month for all loan products.
           </p>
-          {fieldErrors.rate && <p className="text-red-400 text-xs mt-0.5">{fieldErrors.rate}</p>}
         </div>
       </div>
-
-      {/* Discount Reason */}
-      {interestRate < defRate && (
-        <div>
-          <label className="text-muted text-xs block mb-1.5">
-            Discount Reason <span className="text-red-400">*</span>
-          </label>
-          <textarea
-            value={discountReason}
-            onChange={e => {
-              setDiscountReason(e.target.value)
-              setFieldErrors(prev => ({ ...prev, discountReason: undefined }))
-            }}
-            rows={3}
-            maxLength={500}
-            placeholder="e.g., Borrower is SBL group treasurer / Barangay Captain endorsement / Group leader discount"
-            className={`w-full rounded-lg px-4 py-2.5 text-white text-sm bg-surface-alt border resize-none outline-none focus:ring-1 transition-colors ${
-              fieldErrors.discountReason
-                ? 'border-red-500/50 focus:border-red-400/50 focus:ring-red-400/20'
-                : 'border-border focus:border-green/50 focus:ring-green/30'
-            }`}
-          />
-          <div className="flex justify-between mt-1">
-            {fieldErrors.discountReason ? (
-              <p className="text-red-400 text-xs">{fieldErrors.discountReason}</p>
-            ) : (
-              <span />
-            )}
-            <p className="text-muted text-xs">{discountReason.length}/500</p>
-          </div>
-        </div>
-      )}
 
       {/* Loan Release Date — required in Approver stage (Part 5) */}
       {isApproverStage && (
@@ -1655,7 +1607,7 @@ function SaConfirmationBanner({ app, id, onRefresh }) {
       const res = await adminFetch(`/applications/${id}/confirm-terms`, { method: 'PATCH' })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.message || data.error || 'Failed to confirm')
-      addToast('Terms confirmed — proceeding to Loandisk')
+      addToast('Terms confirmed — returned to Approver for final approval')
       await onRefresh()
     } catch (err) {
       addToast(err.message, 'error')
@@ -1876,6 +1828,35 @@ function ActivityLog({ app, finscoreRaw, finscoreNorm, effectiveFinal, effective
               text={`Final Score: ${effectiveFinal} → Tier: ${TIER_CONFIG[effectiveTier]?.label || effectiveTier}`}
             />
           )}
+          {(app.stage_history || [])
+            .filter(h => h.type === 'sa_confirmation' || h.type === 'sa_rejection')
+            .map((h, i) => {
+              const date = h.at || h.timestamp || h.created_at
+              if (h.type === 'sa_confirmation') {
+                const amt = h.meta?.confirmed_amount
+                const term = h.meta?.confirmed_term
+                const terms = [amt ? formatCurrency(amt) : null, term ? `${term} months` : null]
+                  .filter(Boolean)
+                  .join(' · ')
+                return (
+                  <LogEntry
+                    key={`sh-${i}`}
+                    color="bg-amber-500/70"
+                    text={`SA confirmed adjusted terms${terms ? `: ${terms}` : ''} — returned to Approver for final approval`}
+                    date={date ? formatDate(date) : null}
+                  />
+                )
+              }
+              return (
+                <LogEntry
+                  key={`sh-${i}`}
+                  color="bg-red-500/70"
+                  text="SA rejected adjusted terms — returned to Approver"
+                  date={date ? formatDate(date) : null}
+                  note={h.note || h.meta?.note}
+                />
+              )
+            })}
           {app.status !== 'pending' && (
             <LogEntry
               color={app.status === 'approved' ? 'bg-green/60' : 'bg-red-500/70'}
@@ -2125,6 +2106,9 @@ export default function ApplicationDetail({ id, onBack }) {
         {/* SECTION 4 — Decision */}
         {hasCiScore ? (
           <DecisionSection
+            // Remount when official terms/status change (e.g. confirm-terms adopts the
+            // proposed amount/term) so the adjusted-terms inputs re-seed from fresh values.
+            key={`${app.status}-${app.loan_amount || app.amount}-${app.loan_term || app.term}`}
             app={app}
             id={id}
             effectiveTier={effectiveTier}

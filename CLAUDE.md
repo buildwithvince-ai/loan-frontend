@@ -237,3 +237,47 @@ Read and strictly follow all instructions in these files before writing any code
 - Open items / next session: Verify backend persists `honorarium_date` on first real SBL CI submit.
   Manual UAT on 375px — SBL shows Honorarium block (no freq dropdown, no Repayment Cycle box), required
   gate fires when unset; confirm Personal/Group still show full salary block unchanged.
+
+## Session Log — 2026-06-10
+- Built: Interest rate locked at 5%/month UI-side to match backend commit afb8d96 (backend clamps
+  /approve + /confirm-terms interest_rate into 5..5 band). `src/lib/loanCalculations.js`: removed
+  `DEFAULT_RATE_BY_TYPE` (personal 3.5 / sme 3.0 / akap 4.0 / group 5.0 / sbl 5.0), added
+  `LOCKED_INTEREST_RATE = 5`; `defaultRate()` now returns 5 unconditionally (signature kept so the
+  SA-confirmation caller is unchanged). `ApplicationDetail.jsx` DecisionSection: rate is no longer
+  state — editable number input replaced with display-only "5% / month" box; Discount Reason
+  textarea, its state, validation (3–5 band + min-10-chars), and `discount_reason` payload key all
+  removed. Approve body now sends `interest_rate: LOCKED_INTEREST_RATE`.
+- Decisions made: Kept `hasDiff()` rate comparison against `app.interest_rate || 5` — old apps with
+  a stored sub-5 rate correctly trigger the "Modified Loan Terms → send to SA" confirmation, since
+  approval genuinely changes their rate to 5. Historical `app.discount_reason` display in the SA
+  confirmation read-only section left intact (shows past data, not an input).
+- Assumptions introduced: none — backend behavior stated in work order (clamp, default 5).
+- Scope candidates deferred:
+  - [SCOPE CANDIDATE] Public-facing rates NOT updated: `LoanCalculator.jsx` PRODUCTS still uses
+    0.035/0.03/0.04 for Personal/SME/AKAP, and the CLAUDE.md Loan Products table + product cards
+    still advertise 3.5%/3%/4%. With backend locked at 5%, public calculator quotes understate real
+    repayment. Needs operator decision (marketing copy), not silently changed.
+- Open items / next session: Manual UAT — approve dialog shows fixed "5% / month", Loan Summary
+  computes with 5%, old sub-5-rate apps show "Rate: X% → 5%" in the modified-terms modal.
+
+## Session Log — 2026-06-10 (confirm-terms flow change)
+- Built: UI updates for backend commit 713f480 — confirm-terms no longer pushes to Loandisk; it
+  adopts proposed amount/term as official loan_amount/loan_term and returns the app to pending @
+  approver. Changes: (1) SA confirm toast now says "returned to Approver for final approval"
+  (was "proceeding to Loandisk"); (2) ActivityLog renders `stage_history` entries of type
+  'sa_confirmation' (shows meta.confirmed_amount/confirmed_term) and 'sa_rejection' (shows note);
+  (3) DecisionSection now keyed on `${status}-${loan_amount}-${loan_term}` so adjusted-terms
+  useState re-seeds after confirm-terms adopts new values — without this, stale inputs re-trigger
+  the modified-terms → SA loop on same-session approve.
+- Verified (no change needed): handleConfirm already sends an empty PATCH body, so
+  interest_rate/payment_scheme_id/discount_reason removal (item 4) was already satisfied;
+  loan_release_date override not sent. Final approve path unchanged — sends adjusted_* seeded
+  from adopted values, hasDiff() false → normal approve → Loandisk push.
+- Assumptions introduced:
+  - [ASSUMPTION] stage_history entry timestamp field unknown — reads `at || timestamp ||
+    created_at` defensively; date hidden if none match. Rejection note read from `note ||
+    meta.note`.
+- Scope candidates deferred: none.
+- Open items / next session: Verify stage_history field names against a real sa_confirmation
+  entry. UAT full loop: approver modifies terms → SA confirms → app back at pending/approver
+  with adopted terms → normal Approve pushes to Loandisk.

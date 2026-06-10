@@ -22,18 +22,12 @@ export function defaultSchemeId(loanType) {
   return loanType === 'akap' ? 4 : 3
 }
 
-// Interest rate (% per month) that each product defaults to. Approver may lower
-// down to 3% but a discount_reason becomes required below the product default.
-export const DEFAULT_RATE_BY_TYPE = {
-  personal: 3.5,
-  sme: 3.0,
-  akap: 4.0,
-  group: 5.0,
-  sbl: 5.0,
-}
+// Interest rate is hard-locked at 5%/month for ALL products — the backend clamps
+// any interest_rate sent to /approve and /confirm-terms into the 5..5 band.
+export const LOCKED_INTEREST_RATE = 5
 
-export function defaultRate(loanType) {
-  return DEFAULT_RATE_BY_TYPE[(loanType || '').toLowerCase()] ?? 5
+export function defaultRate() {
+  return LOCKED_INTEREST_RATE
 }
 
 export function calcNumRepayments(durationMonths, schemeId, loanType) {
