@@ -319,6 +319,8 @@ export default function SblLoanForm() {
   const handleSubmit = async () => {
     if (!validate()) return
     setSubmitting(true)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 90000)
     try {
       const fd = new FormData()
       fd.append('loanType', 'sbl')
@@ -355,15 +357,71 @@ export default function SblLoanForm() {
         {
           method: 'POST',
           body: fd,
+          signal: controller.signal,
         },
       )
-      const data = await res.json()
+      let data = null
+      try {
+        data = await res.json()
+      } catch {
+        data = null
+      }
       console.log('[sbl submit] response', res.status, data)
-      setResult(data)
+      if (res.ok && data) {
+        if (data.status === 'error') {
+          // 200 + status:'error' = a member's mobile number already has an
+          // application under review (duplicate phone). It already landed — do
+          // NOT offer a retry, or we loop on a submit that already succeeded.
+          setResult({
+            status: 'info',
+            message:
+              data.message ||
+              data.error ||
+              'An application for this mobile number is already under review. Please wait for our team to contact you.',
+          })
+        } else {
+          // Backend confirmed — success or declined.
+          setResult(data)
+        }
+      } else if (res.ok) {
+        // 2xx but the body couldn't be read — the application was almost
+        // certainly saved. Do NOT tell the applicant to resubmit (dup risk).
+        setResult({
+          status: 'uncertain',
+          message:
+            "Your application was likely received, but we couldn't load the confirmation. Please don't submit again — if you don't get a reference number by email, contact us before resubmitting.",
+        })
+      } else {
+        // Any non-2xx: 4xx validation, app-level 5xx, or 502/503/504 gateway.
+        // All member rows are written in ONE atomic bulk insert (no per-member
+        // loop) and Loandisk borrowers are created only at admin approval, so a
+        // genuine 5xx commits zero rows. Nothing was saved in any non-2xx case —
+        // safe to retry.
+        setResult({
+          status: 'error',
+          message:
+            (data && (data.message || data.error)) ||
+            `The server rejected the request (error ${res.status}). Nothing was saved — please try again.`,
+        })
+      }
     } catch (err) {
       console.error('[sbl submit] failed', err)
-      setResult({ status: 'error', message: 'Something went wrong. Please try again.' })
+      if (err.name === 'AbortError') {
+        // Timed out waiting for a response — it may still have gone through.
+        setResult({
+          status: 'uncertain',
+          message:
+            "Your application is taking longer than expected to confirm. It may still have gone through — please don't submit again. If you don't receive a reference number, contact us first.",
+        })
+      } else {
+        setResult({
+          status: 'error',
+          message:
+            "We couldn't reach our servers, so your application wasn't submitted. Please check your connection and try again.",
+        })
+      }
     } finally {
+      clearTimeout(timer)
       setSubmitting(false)
     }
   }
@@ -374,7 +432,7 @@ export default function SblLoanForm() {
       return (
         <div className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
           <div className="max-w-lg w-full text-center">
-            <div className="w-20 h-20 rounded-full bg-green/10 border border-green/30 flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 rounded-full bg-green/10 border border-green/30 flex items-center justify-center mx-auto mb-6 result-badge">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -382,7 +440,12 @@ export default function SblLoanForm() {
                 strokeWidth="2"
                 className="w-10 h-10 text-green"
               >
-                <path d="M4.5 12.75l6 6 9-13.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M4.5 12.75l6 6 9-13.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="result-draw-check"
+                />
               </svg>
             </div>
             <h2 className="text-3xl font-bold text-green mb-4">Application Received</h2>
@@ -412,7 +475,7 @@ export default function SblLoanForm() {
       return (
         <div className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
           <div className="max-w-lg w-full text-center">
-            <div className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-6 result-badge">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -420,7 +483,12 @@ export default function SblLoanForm() {
                 strokeWidth="2"
                 className="w-10 h-10 text-red-400"
               >
-                <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M6 18L18 6M6 6l12 12"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="result-draw-x"
+                />
               </svg>
             </div>
             <h2 className="text-3xl font-bold text-red-400 mb-4">Application Declined</h2>
@@ -445,37 +513,58 @@ export default function SblLoanForm() {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
         <div className="max-w-lg w-full text-center">
-          <div className="w-20 h-20 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center mx-auto mb-6">
+          <div
+            className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
+              result.status === 'info'
+                ? 'bg-blue/10 border border-blue/30 result-badge'
+                : 'bg-yellow-500/10 border border-yellow-500/30 result-badge-warn'
+            }`}
+          >
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              className="w-10 h-10 text-yellow-400"
+              className={`w-10 h-10 ${result.status === 'info' ? 'text-blue' : 'text-yellow-400'}`}
             >
               <path
-                d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
+                d={
+                  result.status === 'info'
+                    ? 'M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z'
+                    : 'M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z'
+                }
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-yellow-400 mb-4">Something Went Wrong</h2>
-          <p className="text-muted mb-8">{result.message || 'An unexpected error occurred.'}</p>
-          {result.failedMember !== undefined && (
-            <p className="text-red-400 text-sm mb-4">
-              Issue with Member {result.failedMember + 1}
-              {result.failedMember === 0 ? ' (Leader)' : ''}
-            </p>
-          )}
-          <button
-            onClick={() => {
-              setResult(null)
-            }}
-            className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all"
+          <h2
+            className={`text-3xl font-bold mb-4 ${result.status === 'info' ? 'text-blue' : 'text-yellow-400'}`}
           >
-            Try Again
-          </button>
+            {result.status === 'uncertain'
+              ? 'Submission Pending Confirmation'
+              : result.status === 'info'
+                ? 'Already Under Review'
+                : 'Something Went Wrong'}
+          </h2>
+          <p className="text-muted mb-8">{result.message || 'An unexpected error occurred.'}</p>
+          {result.status !== 'error' ? (
+            <Link
+              to="/"
+              className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all"
+            >
+              Back to Home
+            </Link>
+          ) : (
+            <button
+              onClick={() => {
+                setResult(null)
+              }}
+              className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all"
+            >
+              Try Again
+            </button>
+          )}
         </div>
       </div>
     )
