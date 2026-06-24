@@ -296,3 +296,83 @@ Read and strictly follow all instructions in these files before writing any code
   status) — tile count and filtered rows can disagree; flagged for operator review.
 - Open items / next session: operator eyeball at localhost:5173 (login → /admin), both themes,
   375px mobile; PR if approved.
+
+## Session Log — 2026-06-23 (public-form submission false warnings)
+- Context: all 5 public loan forms (Personal/SME/AKAP/Group/SBL) already carried a prior
+  uncommitted change that hardened `handleSubmit` — 90s AbortController timeout, parse the body
+  defensively, and branch on `res.ok && data` (trust backend) / `res.ok` no body (uncertain) /
+  `!res.ok` (error) / AbortError (uncertain) / network throw (error). New `status:'uncertain'`
+  result screen ("Submission Pending Confirmation" + "Back to Home" Link, no retry button) plus
+  result-icon CSS animations in `index.css`. This session continued the hunt for remaining false
+  warnings in that flow.
+- Probed live backend `/api/application/submit` to pin the status-code↔body contract:
+  - Validation rejection → **HTTP 200** with `{status:'declined', reasons:[…]}`.
+  - Handled error (e.g. bad upload) → **HTTP 400** with `{status:'error', message}`.
+  - => Handled outcomes are 200/400; therefore any **5xx is an UNHANDLED exception** (state unknown).
+- Built: split the `!res.ok` branch in all 5 forms. New `else if (res.status >= 500 &&
+  ![502,503,504].includes(res.status))` → `status:'uncertain'` (app reached, may have partially
+  saved — do NOT promise "nothing saved", no retry button). Remaining `else` (4xx validation +
+  502/503/504 gateway, which never reach the app) keeps the safe-retry "error" path with the
+  backend message. Group/SBL get a member-aware uncertain message ("some members may already be
+  on file") since they create borrowers in a server-side loop — a mid-loop 500 is a partial save.
+- Verified (no change needed): all 5 submit buttons are `disabled={submitting}` + show
+  "Submitting…", so the rapid double-click → duplicate-borrower path is already guarded.
+  `Link` already imported in all 5 forms. `npx vite build` green.
+- Decisions made: 502/503/504 stay on the safe-retry path (Railway cold-start/gateway errors never
+  reach app logic → nothing saved → retry is correct and friendlier than a "contact us" scare).
+  Only genuine app-5xx flips to uncertain. Bias throughout: a false "contact us" (mild ops
+  friction) beats a false "retry" (duplicate loan application).
+- Assumptions introduced:
+  - [ASSUMPTION] Backend keeps the observed coupling: handled outcomes 200/400, unhandled = 5xx.
+    If the backend ever returns `declined` under a 4xx, it would wrongly hit the safe-retry error
+    branch (losing the reasons list). Probe showed declined@200 today — UNVERIFIED for future.
+  - [ASSUMPTION] A `Failed to fetch` network throw = request never completed → "wasn't submitted".
+    Edge cases (CORS-rejected response, connection drop mid-response after a server save) are not
+    distinguished; left as-is to keep the common offline case from being scary. Low likelihood.
+- Scope candidates deferred:
+  - [SCOPE CANDIDATE] Group/SBL partial-save under a 200/4xx body carrying `failedMember` still
+    renders a "Try Again" button — retrying re-creates already-saved members. Only the 5xx path is
+    now guarded. Needs the backend's group/partial-failure contract (status code + whether retry
+    dedupes) before changing.
+- Open items / next session: UAT the uncertain screen copy on 375px; confirm a real declined still
+  renders the reasons list (declined@200 path). Nothing committed yet — operator review then PR.
+
+## Session Log — 2026-06-24 (public-form submit: duplicate-loop + 5xx contract correction)
+- Context: Backend engineer confirmed the exact `/api/application/submit` + `/submit-group` contract
+  — single/bulk insert is ATOMIC, NO per-member loop, Loandisk borrowers created only at admin
+  approval. This corrected two false assumptions from 2026-06-23 that were producing bad UX in all
+  5 public forms. The `failedMember` SCOPE CANDIDATE from 2026-06-23 is now RESOLVED.
+- Built (all 5 forms — Personal/SME/AKAP/Group/SBL):
+  - Bug A (duplicate-submit loop): a 200 `{status:'error'}` ("already under review" — duplicate
+    pending phone, caught via partial unique index `applications_pending_phone_uniq`) was hitting
+    `setResult(data)` → "Something Went Wrong" + **Try Again**, looping the user on a submit that
+    already landed. Now mapped to a new `status:'info'` → "Already Under Review" title + **Back to
+    Home** (no retry); backend message passed through.
+  - Bug B (mislabeled 5xx): removed the `res.status >= 500 && ![502,503,504]` → `uncertain` branch
+    in every form. Per the confirmed contract every handled outcome is a 200, so a genuine app-5xx
+    is an unhandled exception that commits ZERO rows. 5xx now falls through to the safe-retry
+    `error` path ("Try Again"). Reverses the 2026-06-23 caution that assumed partial saves.
+  - Bug C (Group/SBL only): deleted the `failedMember` result key + the "Issue with Member N" modal
+    block — provably never fires (no per-member loop on the endpoint = dead code).
+  - Modal (3-way result actions): `error` → "Try Again" (setResult(null)); `uncertain` → "Back to
+    Home"; `info` → primary "Try another application" (setResult(null), returns to the form with
+    entries preserved so the applicant can change the phone + resubmit) + secondary "Back to Home"
+    link. `info` styled with a calm blue badge (`bg-blue/10 border-blue/30`, info-circle icon,
+    `result-badge` pop only — NOT the `result-badge-warn` pulse) vs the yellow alert kept for
+    error/uncertain.
+- Decisions made:
+  - Scope expanded to all 5 forms (operator-confirmed). Prompt §4 confirmed the 5xx contract holds
+    for all 5; bugs A+B were identical in the 3 single forms, not just Group/SBL.
+  - 502/503/504 stay on the safe-retry path (unchanged) — gateway errors never reach app logic.
+  - Treat ALL 200 `{status:'error'}` as do-not-retry: per contract the only `error` at 200 is the
+    duplicate/already-pending case (declined=`declined`, success=`success`).
+- Assumptions introduced:
+  - [ASSUMPTION] 200 `{status:'error'}` is ALWAYS the duplicate/"already under review" case (never
+    a retry-able error at 200). Matches the stated contract; a future transient error returned at
+    200 would wrongly render the no-retry info screen.
+- Scope candidates deferred: none. (2026-06-23's Group/SBL `failedMember` partial-save SCOPE
+  CANDIDATE is RESOLVED — dead code removed, contract confirms no partial saves possible.)
+- Open items / next session: Manual UAT on 375px — duplicate phone → blue "Already Under Review"
+  screen with "Try another application" (returns to form, entries kept) + "Back to Home"; real
+  `declined@200` still lists reasons; a forced app-5xx shows "Try Again". `npx vite build` green.
+  Landed on main via PR #3 (merge commit).
