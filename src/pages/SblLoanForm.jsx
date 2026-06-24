@@ -548,13 +548,28 @@ export default function SblLoanForm() {
                 : 'Something Went Wrong'}
           </h2>
           <p className="text-muted mb-8">{result.message || 'An unexpected error occurred.'}</p>
-          {result.status !== 'error' ? (
+          {result.status === 'uncertain' ? (
             <Link
               to="/"
               className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all"
             >
               Back to Home
             </Link>
+          ) : result.status === 'info' ? (
+            <div className="flex flex-col items-center gap-3">
+              <button
+                onClick={() => setResult(null)}
+                className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all"
+              >
+                Try another application
+              </button>
+              <Link
+                to="/"
+                className="inline-block px-4 py-2 text-muted hover:text-white text-sm font-medium transition-colors"
+              >
+                Back to Home
+              </Link>
+            </div>
           ) : (
             <button
               onClick={() => {
