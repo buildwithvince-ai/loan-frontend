@@ -354,10 +354,12 @@ Read and strictly follow all instructions in these files before writing any code
     `error` path ("Try Again"). Reverses the 2026-06-23 caution that assumed partial saves.
   - Bug C (Group/SBL only): deleted the `failedMember` result key + the "Issue with Member N" modal
     block — provably never fires (no per-member loop on the endpoint = dead code).
-  - Modal: button condition flipped `=== 'uncertain'` → `!== 'error'` so only `error` shows Try
-    Again; `info`+`uncertain` show Back to Home. `info` styled with a calm blue badge
-    (`bg-blue/10 border-blue/30`, info-circle icon, `result-badge` pop only — NOT the
-    `result-badge-warn` pulse) vs the yellow alert kept for error/uncertain.
+  - Modal (3-way result actions): `error` → "Try Again" (setResult(null)); `uncertain` → "Back to
+    Home"; `info` → primary "Try another application" (setResult(null), returns to the form with
+    entries preserved so the applicant can change the phone + resubmit) + secondary "Back to Home"
+    link. `info` styled with a calm blue badge (`bg-blue/10 border-blue/30`, info-circle icon,
+    `result-badge` pop only — NOT the `result-badge-warn` pulse) vs the yellow alert kept for
+    error/uncertain.
 - Decisions made:
   - Scope expanded to all 5 forms (operator-confirmed). Prompt §4 confirmed the 5xx contract holds
     for all 5; bugs A+B were identical in the 3 single forms, not just Group/SBL.
@@ -371,5 +373,6 @@ Read and strictly follow all instructions in these files before writing any code
 - Scope candidates deferred: none. (2026-06-23's Group/SBL `failedMember` partial-save SCOPE
   CANDIDATE is RESOLVED — dead code removed, contract confirms no partial saves possible.)
 - Open items / next session: Manual UAT on 375px — duplicate phone → blue "Already Under Review"
-  screen with no Try Again; real `declined@200` still lists reasons; a forced app-5xx shows
-  "Try Again". `npx vite build` green.
+  screen with "Try another application" (returns to form, entries kept) + "Back to Home"; real
+  `declined@200` still lists reasons; a forced app-5xx shows "Try Again". `npx vite build` green.
+  Landed on main via PR #3 (merge commit).
