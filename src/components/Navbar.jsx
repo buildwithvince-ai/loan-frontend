@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  // Hash anchors only exist on the landing page — from any other route,
+  // link back to the landing page section instead of a dead in-page hash.
+  const { pathname } = useLocation()
+  const anchor = hash => (pathname === '/' ? hash : `/${hash}`)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -13,9 +17,9 @@ export default function Navbar() {
   }, [])
 
   const links = [
-    { href: '#products', label: 'Loan Products' },
-    { href: '#calculator', label: 'Calculator' },
-    { href: '#how-it-works', label: 'How It Works' },
+    { href: anchor('#products'), label: 'Loan Products' },
+    { href: anchor('#calculator'), label: 'Calculator' },
+    { href: anchor('#how-it-works'), label: 'How It Works' },
   ]
 
   return (

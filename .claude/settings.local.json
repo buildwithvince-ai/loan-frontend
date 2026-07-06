@@ -59,7 +59,10 @@
       "Bash(awk -F= '/^APPROVER_\\(EMAIL|PASSWORD\\)=/{ *)",
       "Bash(awk -F= '/^APPROVER_EMAIL=/{v=substr\\($0,index\\($0,\"=\"\\)+1\\); n=index\\(v,\"@\"\\); if\\(n>0\\) print \"domain:\", substr\\(v,n\\)}' e2e/.env.e2e)",
       "Bash(npx eslint *)",
-      "Bash(gh pr *)"
+      "Bash(gh pr *)",
+      "Bash(perl -0pi -e 's/<label className=\"block text-sm text-muted mb-2\">/<label htmlFor=\"salesOfficerId\" className=\"block text-sm text-muted mb-2\">/g; s/<label className=\"block text-sm font-medium text-white mb-1\\\\.5\">\\(\\\\s*\\)Link Existing Borrower/<label htmlFor=\"borrower-lookup\" className=\"block text-sm font-medium text-white mb-1.5\">$1Link Existing Borrower/g' PersonalLoanForm.jsx SmeLoanForm.jsx AkapLoanForm.jsx GroupLoanForm.jsx SblLoanForm.jsx)",
+      "Bash(perl -0pi -e 's{\\(border border-border rounded-2xl p-6 sm:p-8\">\\\\n\\)\\(          \\\\{/\\\\* ══ STEP 1\\)}{$1          {restoredNotice && \\( *)",
+      "Bash(perl -0pi -e 's{<Label required>Desired Loan Amount \\\\\\(₱\\\\\\)</Label>}{<Label required htmlFor={`member_\\\\$\\\\{i\\\\}_loanAmount`}>Desired Loan Amount \\\\\\(₱\\\\\\)</Label>}' src/pages/GroupLoanForm.jsx)"
     ]
   }
 }

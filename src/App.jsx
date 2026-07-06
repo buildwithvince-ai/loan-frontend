@@ -11,6 +11,7 @@ import GroupLoanForm from './pages/GroupLoanForm'
 import SblLoanForm from './pages/SblLoanForm'
 import SelectProduct from './pages/SelectProduct'
 import TermsAndConditions from './pages/TermsAndConditions'
+import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import Unauthorized from './pages/Unauthorized'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -166,6 +167,16 @@ function App() {
         element={
           <PublicLayout>
             <TermsAndConditions />
+          </PublicLayout>
+        }
+      />
+
+      {/* Catch-all — unknown URLs land on a designed 404, never a blank page */}
+      <Route
+        path="*"
+        element={
+          <PublicLayout>
+            <NotFound />
           </PublicLayout>
         }
       />

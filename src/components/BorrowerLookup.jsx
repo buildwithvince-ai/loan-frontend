@@ -84,6 +84,7 @@ export default function BorrowerLookup({ value, onChange }) {
     <div ref={containerRef} className="relative">
       <div className="relative">
         <input
+          id="borrower-lookup"
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}

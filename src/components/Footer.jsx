@@ -1,6 +1,10 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 export default function Footer() {
+  // Hash anchors only exist on the landing page — from any other route,
+  // link back to the landing page section instead of a dead in-page hash.
+  const { pathname } = useLocation()
+  const anchor = hash => (pathname === '/' ? hash : `/${hash}`)
   return (
     <footer className="relative bg-navy text-[#fff]">
       <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16">
@@ -50,9 +54,9 @@ export default function Footer() {
             </h4>
             <ul className="space-y-3">
               {[
-                ['Loan Calculator', '#calculator'],
-                ['How It Works', '#how-it-works'],
-                ['Compare Products', '#products'],
+                ['Loan Calculator', anchor('#calculator')],
+                ['How It Works', anchor('#how-it-works')],
+                ['Compare Products', anchor('#products')],
               ].map(([label, href]) => (
                 <li key={href}>
                   <a

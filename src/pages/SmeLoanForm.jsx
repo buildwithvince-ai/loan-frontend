@@ -140,9 +140,9 @@ function formatPeso(n) {
   )
 }
 
-function Label({ children, required }) {
+function Label({ children, required, htmlFor }) {
   return (
-    <label className="block text-sm font-medium text-white mb-1.5">
+    <label htmlFor={htmlFor} className="block text-sm font-medium text-white mb-1.5">
       {children}
       {required && <span className="text-red-400 ml-0.5">*</span>}
     </label>
@@ -191,12 +191,39 @@ function Select({ value, onChange, options, placeholder, ...props }) {
 
 function FieldError({ message }) {
   if (!message) return null
-  return <p className="text-red-400 text-xs mt-1">{message}</p>
+  return (
+    <p role="alert" data-field-error className="text-red-400 text-xs mt-1">
+      {message}
+    </p>
+  )
+}
+
+// ── Progress persistence ──
+// Files can't be serialized, so a restore never goes past the document-upload
+// step — document validation always re-runs before review/submit.
+const STORAGE_KEY = 'gr8-apply-sme'
+const RESTORE_MAX_STEP = 9
+
+function loadSaved() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null')
+    if (!saved || typeof saved.form !== 'object' || saved.form === null) return null
+    saved.step = Math.min(Math.max(parseInt(saved.step, 10) || 1, 1), RESTORE_MAX_STEP)
+    return saved
+  } catch {
+    return null
+  }
 }
 
 export default function SmeLoanForm() {
-  const [step, setStep] = useState(1)
-  const [form, setForm] = useState(initialForm)
+  const [saved] = useState(loadSaved)
+  const [step, setStep] = useState(saved ? saved.step : 1)
+  const [form, setForm] = useState(() => {
+    if (!saved) return initialForm
+    const known = Object.fromEntries(Object.entries(saved.form).filter(([k]) => k in initialForm))
+    return { ...initialForm, ...known }
+  })
+  const [restoredNotice, setRestoredNotice] = useState(Boolean(saved && saved.step > 1))
   const { officers, loading: soLoading, error: soError, retry: soRetry } = useSalesOfficers()
   const [docs, setDocs] = useState({})
   const [errors, setErrors] = useState({})
@@ -207,6 +234,31 @@ export default function SmeLoanForm() {
   useEffect(() => {
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [step])
+
+  // ── Persist progress so browser back / refresh doesn't wipe the application ──
+  useEffect(() => {
+    if (result) return
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ step, form }))
+    } catch {
+      // storage unavailable (private mode / quota) — persistence is best-effort
+    }
+  }, [step, form, result])
+
+  useEffect(() => {
+    // Terminal outcome (landed or already on file) — start the next visit clean.
+    if (result && result.status !== 'error') sessionStorage.removeItem(STORAGE_KEY)
+  }, [result])
+
+  useEffect(() => {
+    if (step === 1 || result) return
+    const warn = e => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [step, result])
 
   const set = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }))
@@ -370,13 +422,26 @@ export default function SmeLoanForm() {
     return Object.keys(e).length === 0
   }
 
+  // Errors render adjacent to fields — on long steps they can sit above the fold.
+  const scrollToFirstError = () => {
+    setTimeout(() => {
+      document
+        .querySelector('[data-field-error]')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 80)
+  }
+
   const next = () => {
     if (validate()) setStep(s => Math.min(s + 1, TOTAL_STEPS))
+    else scrollToFirstError()
   }
   const back = () => setStep(s => Math.max(s - 1, 1))
 
   const handleSubmit = async () => {
-    if (!validate()) return
+    if (!validate()) {
+      scrollToFirstError()
+      return
+    }
     setSubmitting(true)
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 90000)
@@ -670,6 +735,21 @@ export default function SmeLoanForm() {
         </div>
 
         <div className="bg-surface/60 backdrop-blur-sm border border-border rounded-2xl p-6 sm:p-8">
+          {restoredNotice && (
+            <div className="flex items-start justify-between gap-3 bg-blue/10 border border-blue/30 rounded-xl px-4 py-3 mb-6">
+              <p className="text-blue text-sm">
+                We restored your saved progress. Uploaded documents can't be kept between visits —
+                please re-attach them at the Documents step.
+              </p>
+              <button
+                type="button"
+                onClick={() => setRestoredNotice(false)}
+                className="text-blue hover:text-white text-xs font-semibold shrink-0"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
           {step === 1 && (
             <Step1
               form={form}
@@ -773,7 +853,7 @@ function Step1({ form, set, errors, officers, soLoading, soError, soRetry }) {
       {/* Borrower Lookup (renewal only) */}
       {form.application_category === 'renewal' && (
         <div>
-          <label className="block text-sm font-medium text-white mb-1.5">
+          <label htmlFor="borrower-lookup" className="block text-sm font-medium text-white mb-1.5">
             Link Existing Borrower <span className="text-red-400">*</span>
           </label>
           <p className="text-muted text-xs mb-2">
@@ -781,14 +861,16 @@ function Step1({ form, set, errors, officers, soLoading, soError, soRetry }) {
           </p>
           <BorrowerLookup value={form.linked_borrower} onChange={b => set('linked_borrower', b)} />
           {errors.linked_borrower && (
-            <p className="text-red-400 text-xs mt-1">{errors.linked_borrower}</p>
+            <p role="alert" data-field-error className="text-red-400 text-xs mt-1">
+              {errors.linked_borrower}
+            </p>
           )}
         </div>
       )}
 
       {/* Sales Officer Selection */}
       <div className="mb-6">
-        <label className="block text-sm text-muted mb-2">
+        <label htmlFor="salesOfficerId" className="block text-sm text-muted mb-2">
           Your Sales Officer <span className="text-red-400">*</span>
         </label>
         {soError ? (
@@ -804,6 +886,7 @@ function Step1({ form, set, errors, officers, soLoading, soError, soRetry }) {
           </div>
         ) : (
           <select
+            id="salesOfficerId"
             value={form.salesOfficerId}
             onChange={e => set('salesOfficerId', e.target.value)}
             disabled={soLoading}
@@ -820,18 +903,23 @@ function Step1({ form, set, errors, officers, soLoading, soError, soRetry }) {
           </select>
         )}
         {errors.salesOfficerId && (
-          <p className="text-red-400 text-xs mt-1">{errors.salesOfficerId}</p>
+          <p role="alert" data-field-error className="text-red-400 text-xs mt-1">
+            {errors.salesOfficerId}
+          </p>
         )}
       </div>
 
       <div>
-        <Label required>Loan Amount</Label>
+        <Label required htmlFor="loanAmount">
+          Loan Amount
+        </Label>
         <p className="text-muted text-xs mb-2">₱50,000 – ₱300,000</p>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">
             ₱
           </span>
           <input
+            id="loanAmount"
             type="text"
             inputMode="numeric"
             value={form.loanAmount.toLocaleString('en-PH')}
@@ -870,8 +958,11 @@ function Step1({ form, set, errors, officers, soLoading, soError, soRetry }) {
       </div>
 
       <div>
-        <Label required>Purpose of Loan</Label>
+        <Label required htmlFor="purpose">
+          Purpose of Loan
+        </Label>
         <Select
+          id="purpose"
           value={form.purpose}
           onChange={e => set('purpose', e.target.value)}
           options={PURPOSES}
@@ -891,8 +982,11 @@ function Step2({ form, set, errors }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <Label required>Business Name</Label>
+          <Label required htmlFor="businessName">
+            Business Name
+          </Label>
           <Input
+            id="businessName"
             value={form.businessName}
             onChange={e => set('businessName', e.target.value)}
             placeholder="Business name"
@@ -900,8 +994,11 @@ function Step2({ form, set, errors }) {
           <FieldError message={errors.businessName} />
         </div>
         <div>
-          <Label required>Business Type</Label>
+          <Label required htmlFor="businessType">
+            Business Type
+          </Label>
           <Select
+            id="businessType"
             value={form.businessType}
             onChange={e => set('businessType', e.target.value)}
             options={BUSINESS_TYPES}
@@ -913,8 +1010,11 @@ function Step2({ form, set, errors }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <Label required>DTI / SEC Registration No.</Label>
+          <Label required htmlFor="dtiSecNumber">
+            DTI / SEC Registration No.
+          </Label>
           <Input
+            id="dtiSecNumber"
             value={form.dtiSecNumber}
             onChange={e => set('dtiSecNumber', e.target.value)}
             placeholder="Registration number"
@@ -922,8 +1022,11 @@ function Step2({ form, set, errors }) {
           <FieldError message={errors.dtiSecNumber} />
         </div>
         <div>
-          <Label required>Date Established</Label>
+          <Label required htmlFor="dateEstablished">
+            Date Established
+          </Label>
           <Input
+            id="dateEstablished"
             type="date"
             value={form.dateEstablished}
             onChange={e => set('dateEstablished', e.target.value)}
@@ -938,8 +1041,11 @@ function Step2({ form, set, errors }) {
         </p>
         <div className="space-y-4">
           <div>
-            <Label required>Street</Label>
+            <Label required htmlFor="businessStreet">
+              Street
+            </Label>
             <Input
+              id="businessStreet"
               value={form.businessStreet}
               onChange={e => set('businessStreet', e.target.value)}
               placeholder="123 Commercial St."
@@ -948,8 +1054,11 @@ function Step2({ form, set, errors }) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label required>Barangay</Label>
+              <Label required htmlFor="businessBarangay">
+                Barangay
+              </Label>
               <Input
+                id="businessBarangay"
                 value={form.businessBarangay}
                 onChange={e => set('businessBarangay', e.target.value)}
                 placeholder="Brgy. San Pablo"
@@ -957,8 +1066,11 @@ function Step2({ form, set, errors }) {
               <FieldError message={errors.businessBarangay} />
             </div>
             <div>
-              <Label required>City / Municipality</Label>
+              <Label required htmlFor="businessCity">
+                City / Municipality
+              </Label>
               <Input
+                id="businessCity"
                 value={form.businessCity}
                 onChange={e => set('businessCity', e.target.value)}
                 placeholder="Malolos"
@@ -968,8 +1080,11 @@ function Step2({ form, set, errors }) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label required>Province</Label>
+              <Label required htmlFor="businessProvince">
+                Province
+              </Label>
               <Input
+                id="businessProvince"
                 value={form.businessProvince}
                 onChange={e => set('businessProvince', e.target.value)}
                 placeholder="Bulacan"
@@ -977,8 +1092,12 @@ function Step2({ form, set, errors }) {
               <FieldError message={errors.businessProvince} />
             </div>
             <div>
-              <Label required>ZIP Code</Label>
+              <Label required htmlFor="businessZip">
+                ZIP Code
+              </Label>
               <Input
+                id="businessZip"
+                inputMode="numeric"
                 value={form.businessZip}
                 onChange={e => set('businessZip', e.target.value)}
                 placeholder="3000"
@@ -991,8 +1110,12 @@ function Step2({ form, set, errors }) {
       </div>
 
       <div>
-        <Label required>Monthly Gross Revenue (₱)</Label>
+        <Label required htmlFor="monthlyGrossRevenue">
+          Monthly Gross Revenue (₱)
+        </Label>
         <Input
+          id="monthlyGrossRevenue"
+          inputMode="numeric"
           type="number"
           value={form.monthlyGrossRevenue}
           onChange={e => set('monthlyGrossRevenue', e.target.value)}
@@ -1017,8 +1140,11 @@ function EntityListStep({ form, set, errors, prefix, entityLabel, title, subtitl
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <Label required>{entityLabel} Name</Label>
+              <Label required htmlFor={`${prefix}${n}Name`}>
+                {entityLabel} Name
+              </Label>
               <Input
+                id={`${prefix}${n}Name`}
                 value={form[`${prefix}${n}Name`]}
                 onChange={e => set(`${prefix}${n}Name`, e.target.value)}
                 placeholder="Name"
@@ -1026,8 +1152,11 @@ function EntityListStep({ form, set, errors, prefix, entityLabel, title, subtitl
               <FieldError message={errors[`${prefix}${n}Name`]} />
             </div>
             <div>
-              <Label required>Contact Person</Label>
+              <Label required htmlFor={`${prefix}${n}Contact`}>
+                Contact Person
+              </Label>
               <Input
+                id={`${prefix}${n}Contact`}
                 value={form[`${prefix}${n}Contact`]}
                 onChange={e => set(`${prefix}${n}Contact`, e.target.value)}
                 placeholder="Contact person"
@@ -1035,8 +1164,13 @@ function EntityListStep({ form, set, errors, prefix, entityLabel, title, subtitl
               <FieldError message={errors[`${prefix}${n}Contact`]} />
             </div>
             <div>
-              <Label required>Contact Number</Label>
+              <Label required htmlFor={`${prefix}${n}Number`}>
+                Contact Number
+              </Label>
               <Input
+                id={`${prefix}${n}Number`}
+                type="tel"
+                inputMode="numeric"
                 value={form[`${prefix}${n}Number`]}
                 onChange={e => set(`${prefix}${n}Number`, e.target.value)}
                 placeholder="09XXXXXXXXX"
@@ -1087,8 +1221,12 @@ function Step5({ form, set, errors }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <Label required>First Name</Label>
+          <Label required htmlFor="firstName">
+            First Name
+          </Label>
           <Input
+            id="firstName"
+            autoComplete="given-name"
             value={form.firstName}
             onChange={e => set('firstName', e.target.value)}
             placeholder="Juan"
@@ -1096,16 +1234,22 @@ function Step5({ form, set, errors }) {
           <FieldError message={errors.firstName} />
         </div>
         <div>
-          <Label>Middle Name</Label>
+          <Label htmlFor="middleName">Middle Name</Label>
           <Input
+            id="middleName"
+            autoComplete="additional-name"
             value={form.middleName}
             onChange={e => set('middleName', e.target.value)}
             placeholder="Santos"
           />
         </div>
         <div>
-          <Label required>Last Name</Label>
+          <Label required htmlFor="lastName">
+            Last Name
+          </Label>
           <Input
+            id="lastName"
+            autoComplete="family-name"
             value={form.lastName}
             onChange={e => set('lastName', e.target.value)}
             placeholder="Dela Cruz"
@@ -1116,8 +1260,12 @@ function Step5({ form, set, errors }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <Label required>Date of Birth</Label>
+          <Label required htmlFor="dateOfBirth">
+            Date of Birth
+          </Label>
           <Input
+            id="dateOfBirth"
+            autoComplete="bday"
             type="date"
             value={form.dateOfBirth}
             onChange={e => set('dateOfBirth', e.target.value)}
@@ -1125,8 +1273,11 @@ function Step5({ form, set, errors }) {
           <FieldError message={errors.dateOfBirth} />
         </div>
         <div>
-          <Label required>Civil Status</Label>
+          <Label required htmlFor="civilStatus">
+            Civil Status
+          </Label>
           <Select
+            id="civilStatus"
             value={form.civilStatus}
             onChange={e => set('civilStatus', e.target.value)}
             options={CIVIL_STATUSES}
@@ -1138,8 +1289,14 @@ function Step5({ form, set, errors }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <Label required>Mobile Number</Label>
+          <Label required htmlFor="mobile">
+            Mobile Number
+          </Label>
           <Input
+            id="mobile"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
             value={form.mobile}
             onChange={e => set('mobile', e.target.value)}
             placeholder="09XXXXXXXXX"
@@ -1148,8 +1305,12 @@ function Step5({ form, set, errors }) {
           <FieldError message={errors.mobile} />
         </div>
         <div>
-          <Label required>Email Address</Label>
+          <Label required htmlFor="email">
+            Email Address
+          </Label>
           <Input
+            id="email"
+            autoComplete="email"
             type="email"
             value={form.email}
             onChange={e => set('email', e.target.value)}
@@ -1160,8 +1321,9 @@ function Step5({ form, set, errors }) {
       </div>
 
       <div className="max-w-xs">
-        <Label>TIN (optional)</Label>
+        <Label htmlFor="tin">TIN (optional)</Label>
         <Input
+          id="tin"
           value={form.tin}
           onChange={e => set('tin', e.target.value)}
           placeholder="000-000-000-000"
@@ -1179,8 +1341,11 @@ function AddressStep({ form, set, errors, prefix, title, subtitle }) {
       <p className="text-muted text-sm mb-4">{subtitle}</p>
 
       <div>
-        <Label required>House No. / Street</Label>
+        <Label required htmlFor={f('houseStreet')}>
+          House No. / Street
+        </Label>
         <Input
+          id={f('houseStreet')}
           value={form[f('houseStreet')]}
           onChange={e => set(f('houseStreet'), e.target.value)}
           placeholder="123 Rizal St."
@@ -1189,8 +1354,11 @@ function AddressStep({ form, set, errors, prefix, title, subtitle }) {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <Label required>Barangay</Label>
+          <Label required htmlFor={f('barangay')}>
+            Barangay
+          </Label>
           <Input
+            id={f('barangay')}
             value={form[f('barangay')]}
             onChange={e => set(f('barangay'), e.target.value)}
             placeholder="Brgy. San Pablo"
@@ -1198,8 +1366,11 @@ function AddressStep({ form, set, errors, prefix, title, subtitle }) {
           <FieldError message={errors[f('barangay')]} />
         </div>
         <div>
-          <Label required>City / Municipality</Label>
+          <Label required htmlFor={f('city')}>
+            City / Municipality
+          </Label>
           <Input
+            id={f('city')}
             value={form[f('city')]}
             onChange={e => set(f('city'), e.target.value)}
             placeholder="Malolos"
@@ -1209,8 +1380,11 @@ function AddressStep({ form, set, errors, prefix, title, subtitle }) {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <Label required>Province</Label>
+          <Label required htmlFor={f('province')}>
+            Province
+          </Label>
           <Input
+            id={f('province')}
             value={form[f('province')]}
             onChange={e => set(f('province'), e.target.value)}
             placeholder="Bulacan"
@@ -1218,8 +1392,12 @@ function AddressStep({ form, set, errors, prefix, title, subtitle }) {
           <FieldError message={errors[f('province')]} />
         </div>
         <div>
-          <Label required>ZIP Code</Label>
+          <Label required htmlFor={f('zip')}>
+            ZIP Code
+          </Label>
           <Input
+            id={f('zip')}
+            inputMode="numeric"
             value={form[f('zip')]}
             onChange={e => set(f('zip'), e.target.value)}
             placeholder="3000"
@@ -1228,8 +1406,11 @@ function AddressStep({ form, set, errors, prefix, title, subtitle }) {
           <FieldError message={errors[f('zip')]} />
         </div>
         <div>
-          <Label required>Length of Stay</Label>
+          <Label required htmlFor={f('lengthOfStay')}>
+            Length of Stay
+          </Label>
           <Input
+            id={f('lengthOfStay')}
             value={form[f('lengthOfStay')]}
             onChange={e => set(f('lengthOfStay'), e.target.value)}
             placeholder="e.g. 5 years"
@@ -1298,8 +1479,11 @@ function Step8({ form, set, errors }) {
         <div className="space-y-4 pt-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label required>First Name</Label>
+              <Label required htmlFor="spouseFirstName">
+                First Name
+              </Label>
               <Input
+                id="spouseFirstName"
                 value={form.spouseFirstName}
                 onChange={e => set('spouseFirstName', e.target.value)}
                 placeholder="First name"
@@ -1307,8 +1491,11 @@ function Step8({ form, set, errors }) {
               <FieldError message={errors.spouseFirstName} />
             </div>
             <div>
-              <Label required>Last Name</Label>
+              <Label required htmlFor="spouseLastName">
+                Last Name
+              </Label>
               <Input
+                id="spouseLastName"
                 value={form.spouseLastName}
                 onChange={e => set('spouseLastName', e.target.value)}
                 placeholder="Last name"
@@ -1318,8 +1505,13 @@ function Step8({ form, set, errors }) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label required>Mobile Number</Label>
+              <Label required htmlFor="spouseMobile">
+                Mobile Number
+              </Label>
               <Input
+                id="spouseMobile"
+                type="tel"
+                inputMode="numeric"
                 value={form.spouseMobile}
                 onChange={e => set('spouseMobile', e.target.value)}
                 placeholder="09XXXXXXXXX"
@@ -1328,8 +1520,9 @@ function Step8({ form, set, errors }) {
               <FieldError message={errors.spouseMobile} />
             </div>
             <div>
-              <Label>Employer</Label>
+              <Label htmlFor="spouseEmployer">Employer</Label>
               <Input
+                id="spouseEmployer"
                 value={form.spouseEmployer}
                 onChange={e => set('spouseEmployer', e.target.value)}
                 placeholder="Company name"
@@ -1337,8 +1530,10 @@ function Step8({ form, set, errors }) {
             </div>
           </div>
           <div className="max-w-xs">
-            <Label>Monthly Income (₱)</Label>
+            <Label htmlFor="spouseIncome">Monthly Income (₱)</Label>
             <Input
+              id="spouseIncome"
+              inputMode="numeric"
               type="number"
               value={form.spouseIncome}
               onChange={e => set('spouseIncome', e.target.value)}

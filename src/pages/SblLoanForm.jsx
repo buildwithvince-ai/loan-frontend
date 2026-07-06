@@ -82,9 +82,9 @@ function formatPeso(n) {
 
 // ── Shared UI ──
 
-function Label({ children, required }) {
+function Label({ children, required, htmlFor }) {
   return (
-    <label className="block text-sm font-medium text-white mb-1.5">
+    <label htmlFor={htmlFor} className="block text-sm font-medium text-white mb-1.5">
       {children}
       {required && <span className="text-red-400 ml-0.5">*</span>}
     </label>
@@ -133,23 +133,62 @@ function Select({ value, onChange, options, placeholder, ...props }) {
 
 function FieldError({ message }) {
   if (!message) return null
-  return <p className="text-red-400 text-xs mt-1">{message}</p>
+  return (
+    <p role="alert" data-field-error className="text-red-400 text-xs mt-1">
+      {message}
+    </p>
+  )
+}
+
+// ── Progress persistence ──
+// Files can't be serialized, so a restore never goes past step 2 — every
+// member's document validation always re-runs before review/submit.
+const STORAGE_KEY = 'gr8-apply-sbl'
+const RESTORE_MAX_STEP = 2
+const MEMBER_KEYS = Object.keys(createMember())
+
+function loadSaved() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null')
+    if (!saved || !Array.isArray(saved.members)) return null
+    saved.step = Math.min(Math.max(parseInt(saved.step, 10) || 1, 1), RESTORE_MAX_STEP)
+    saved.memberCount = parseInt(saved.memberCount, 10) || 5
+    return saved
+  } catch {
+    return null
+  }
+}
+
+function restoreMember(saved) {
+  if (!saved || typeof saved !== 'object') return createMember()
+  const known = Object.fromEntries(Object.entries(saved).filter(([k]) => MEMBER_KEYS.includes(k)))
+  return { ...createMember(), ...known }
 }
 
 // ── Component ──
 
 export default function SblLoanForm() {
-  const [step, setStep] = useState(1)
-  const [applicationCategory, setApplicationCategory] = useState('new')
-  const [linkedBorrower, setLinkedBorrower] = useState(null)
-  const [salesOfficerId, setSalesOfficerId] = useState('')
+  const [saved] = useState(loadSaved)
+  const initialCount = saved && saved.memberCount >= 5 ? saved.memberCount : 5
+  const [step, setStep] = useState(saved ? saved.step : 1)
+  const [applicationCategory, setApplicationCategory] = useState(
+    saved?.applicationCategory || 'new',
+  )
+  const [linkedBorrower, setLinkedBorrower] = useState(saved?.linkedBorrower || null)
+  const [salesOfficerId, setSalesOfficerId] = useState(saved?.salesOfficerId || '')
   const { officers, loading: soLoading, error: soError, retry: soRetry } = useSalesOfficers()
-  const [agentName, setAgentName] = useState('')
-  const [loanTerm, setLoanTerm] = useState(6)
-  const [memberCount, setMemberCount] = useState(5)
-  const [members, setMembers] = useState(() => Array.from({ length: 5 }, () => createMember()))
-  const [memberDocs, setMemberDocs] = useState(() => Array.from({ length: 5 }, () => ({})))
+  const [agentName, setAgentName] = useState(saved?.agentName || '')
+  const [loanTerm, setLoanTerm] = useState(saved?.loanTerm || 6)
+  const [memberCount, setMemberCount] = useState(initialCount)
+  const [memberCountInput, setMemberCountInput] = useState(String(initialCount))
+  const [members, setMembers] = useState(() =>
+    Array.from({ length: initialCount }, (_, idx) => restoreMember(saved?.members?.[idx])),
+  )
+  const [memberDocs, setMemberDocs] = useState(() =>
+    Array.from({ length: initialCount }, () => ({})),
+  )
   const [expandedMembers, setExpandedMembers] = useState({ 0: true })
+  const [restoredNotice, setRestoredNotice] = useState(Boolean(saved && saved.step > 1))
   const [errors, setErrors] = useState({})
   const [confirmAccurate, setConfirmAccurate] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
@@ -167,6 +206,53 @@ export default function SblLoanForm() {
   useEffect(() => {
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [step])
+
+  // ── Persist progress so browser back / refresh doesn't wipe the application ──
+  useEffect(() => {
+    if (result) return
+    try {
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          step,
+          applicationCategory,
+          linkedBorrower,
+          salesOfficerId,
+          agentName,
+          loanTerm,
+          memberCount,
+          members,
+        }),
+      )
+    } catch {
+      // storage unavailable (private mode / quota) — persistence is best-effort
+    }
+  }, [
+    step,
+    applicationCategory,
+    linkedBorrower,
+    salesOfficerId,
+    agentName,
+    loanTerm,
+    memberCount,
+    members,
+    result,
+  ])
+
+  useEffect(() => {
+    // Terminal outcome (landed or already on file) — start the next visit clean.
+    if (result && result.status !== 'error') sessionStorage.removeItem(STORAGE_KEY)
+  }, [result])
+
+  useEffect(() => {
+    if (step === 1 || result) return
+    const warn = e => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [step, result])
 
   // Sync members array with memberCount
   useEffect(() => {
@@ -309,15 +395,28 @@ export default function SblLoanForm() {
     return Object.keys(e).length === 0
   }
 
+  // Errors render adjacent to fields — on long steps they can sit above the fold.
+  const scrollToFirstError = () => {
+    setTimeout(() => {
+      document
+        .querySelector('[data-field-error]')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 80)
+  }
+
   const next = () => {
     if (validate()) setStep(s => Math.min(s + 1, TOTAL_STEPS))
+    else scrollToFirstError()
   }
 
   const back = () => setStep(s => Math.max(s - 1, 1))
 
   // ── Submit ──
   const handleSubmit = async () => {
-    if (!validate()) return
+    if (!validate()) {
+      scrollToFirstError()
+      return
+    }
     setSubmitting(true)
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 90000)
@@ -625,6 +724,21 @@ export default function SblLoanForm() {
 
         {/* Form card */}
         <div className="bg-surface/60 backdrop-blur-sm border border-border rounded-2xl p-6 sm:p-8">
+          {restoredNotice && (
+            <div className="flex items-start justify-between gap-3 bg-blue/10 border border-blue/30 rounded-xl px-4 py-3 mb-6">
+              <p className="text-blue text-sm">
+                We restored your saved progress. Uploaded documents can't be kept between visits —
+                please re-attach each member's documents.
+              </p>
+              <button
+                type="button"
+                onClick={() => setRestoredNotice(false)}
+                className="text-blue hover:text-white text-xs font-semibold shrink-0"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
           {/* ══ STEP 1: Group Details ══ */}
           {step === 1 && (
             <div className="space-y-6">
@@ -665,7 +779,10 @@ export default function SblLoanForm() {
               {/* Borrower Lookup (renewal only) */}
               {applicationCategory === 'renewal' && (
                 <div>
-                  <label className="block text-sm font-medium text-white mb-1.5">
+                  <label
+                    htmlFor="borrower-lookup"
+                    className="block text-sm font-medium text-white mb-1.5"
+                  >
                     Link Existing Borrower <span className="text-red-400">*</span>
                   </label>
                   <p className="text-muted text-xs mb-2">
@@ -673,14 +790,16 @@ export default function SblLoanForm() {
                   </p>
                   <BorrowerLookup value={linkedBorrower} onChange={setLinkedBorrower} />
                   {errors.linked_borrower && (
-                    <p className="text-red-400 text-xs mt-1">{errors.linked_borrower}</p>
+                    <p role="alert" data-field-error className="text-red-400 text-xs mt-1">
+                      {errors.linked_borrower}
+                    </p>
                   )}
                 </div>
               )}
 
               {/* Sales Officer Selection */}
               <div className="mb-6">
-                <label className="block text-sm text-muted mb-2">
+                <label htmlFor="salesOfficerId" className="block text-sm text-muted mb-2">
                   Your Sales Officer <span className="text-red-400">*</span>
                 </label>
                 {soError ? (
@@ -698,6 +817,7 @@ export default function SblLoanForm() {
                   </div>
                 ) : (
                   <select
+                    id="salesOfficerId"
                     value={salesOfficerId}
                     onChange={e => {
                       setSalesOfficerId(e.target.value)
@@ -717,7 +837,9 @@ export default function SblLoanForm() {
                   </select>
                 )}
                 {errors.salesOfficerId && (
-                  <p className="text-red-400 text-xs mt-1">{errors.salesOfficerId}</p>
+                  <p role="alert" data-field-error className="text-red-400 text-xs mt-1">
+                    {errors.salesOfficerId}
+                  </p>
                 )}
               </div>
 
@@ -755,8 +877,9 @@ export default function SblLoanForm() {
               </div>
 
               <div>
-                <Label>Accredit Agent Name</Label>
+                <Label htmlFor="agentName">Accredit Agent Name</Label>
                 <Input
+                  id="agentName"
                   value={agentName}
                   onChange={e => setAgentName(e.target.value)}
                   placeholder="Optional"
@@ -794,14 +917,21 @@ export default function SblLoanForm() {
 
               {/* Number of members */}
               <div>
-                <Label required>Number of Members</Label>
+                <Label required htmlFor="memberCount">
+                  Number of Members
+                </Label>
                 <Input
+                  id="memberCount"
                   type="number"
-                  value={memberCount}
+                  value={memberCountInput}
                   onChange={e => {
-                    const v = Math.max(5, parseInt(e.target.value) || 5)
-                    setMemberCount(v)
+                    setMemberCountInput(e.target.value)
                     setErrors(prev => ({ ...prev, memberCount: undefined }))
+                  }}
+                  onBlur={() => {
+                    const v = Math.max(5, parseInt(memberCountInput, 10) || 5)
+                    setMemberCount(v)
+                    setMemberCountInput(String(v))
                   }}
                   min={5}
                   placeholder="Minimum 5"
@@ -881,8 +1011,11 @@ export default function SblLoanForm() {
 
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
-                              <Label required>First Name</Label>
+                              <Label required htmlFor={`member_${i}_firstName`}>
+                                First Name
+                              </Label>
                               <Input
+                                id={`member_${i}_firstName`}
                                 value={member.firstName}
                                 onChange={e => updateMember(i, 'firstName', e.target.value)}
                                 placeholder="Juan"
@@ -890,16 +1023,20 @@ export default function SblLoanForm() {
                               <FieldError message={errors[`${prefix}firstName`]} />
                             </div>
                             <div>
-                              <Label>Middle Name</Label>
+                              <Label htmlFor={`member_${i}_middleName`}>Middle Name</Label>
                               <Input
+                                id={`member_${i}_middleName`}
                                 value={member.middleName}
                                 onChange={e => updateMember(i, 'middleName', e.target.value)}
                                 placeholder="Santos"
                               />
                             </div>
                             <div>
-                              <Label required>Last Name</Label>
+                              <Label required htmlFor={`member_${i}_lastName`}>
+                                Last Name
+                              </Label>
                               <Input
+                                id={`member_${i}_lastName`}
                                 value={member.lastName}
                                 onChange={e => updateMember(i, 'lastName', e.target.value)}
                                 placeholder="Dela Cruz"
@@ -910,8 +1047,11 @@ export default function SblLoanForm() {
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <Label required>Date of Birth</Label>
+                              <Label required htmlFor={`member_${i}_dateOfBirth`}>
+                                Date of Birth
+                              </Label>
                               <Input
+                                id={`member_${i}_dateOfBirth`}
                                 type="date"
                                 value={member.dateOfBirth}
                                 onChange={e => updateMember(i, 'dateOfBirth', e.target.value)}
@@ -919,8 +1059,11 @@ export default function SblLoanForm() {
                               <FieldError message={errors[`${prefix}dateOfBirth`]} />
                             </div>
                             <div>
-                              <Label required>Civil Status</Label>
+                              <Label required htmlFor={`member_${i}_civilStatus`}>
+                                Civil Status
+                              </Label>
                               <Select
+                                id={`member_${i}_civilStatus`}
                                 value={member.civilStatus}
                                 onChange={e => updateMember(i, 'civilStatus', e.target.value)}
                                 options={CIVIL_STATUSES}
@@ -932,8 +1075,13 @@ export default function SblLoanForm() {
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <Label required>Mobile Number</Label>
+                              <Label required htmlFor={`member_${i}_mobile`}>
+                                Mobile Number
+                              </Label>
                               <Input
+                                id={`member_${i}_mobile`}
+                                type="tel"
+                                inputMode="numeric"
                                 value={member.mobile}
                                 onChange={e => updateMember(i, 'mobile', e.target.value)}
                                 placeholder="09XXXXXXXXX"
@@ -942,8 +1090,9 @@ export default function SblLoanForm() {
                               <FieldError message={errors[`${prefix}mobile`]} />
                             </div>
                             <div>
-                              <Label>Email Address</Label>
+                              <Label htmlFor={`member_${i}_email`}>Email Address</Label>
                               <Input
+                                id={`member_${i}_email`}
                                 type="email"
                                 value={member.email}
                                 onChange={e => updateMember(i, 'email', e.target.value)}
@@ -955,8 +1104,11 @@ export default function SblLoanForm() {
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <Label required>Employment Status</Label>
+                              <Label required htmlFor={`member_${i}_employmentStatus`}>
+                                Employment Status
+                              </Label>
                               <Select
+                                id={`member_${i}_employmentStatus`}
                                 value={member.employmentStatus}
                                 onChange={e => updateMember(i, 'employmentStatus', e.target.value)}
                                 options={EMPLOYMENT_STATUSES}
@@ -965,8 +1117,12 @@ export default function SblLoanForm() {
                               <FieldError message={errors[`${prefix}employmentStatus`]} />
                             </div>
                             <div>
-                              <Label required>Monthly Income (₱)</Label>
+                              <Label required htmlFor={`member_${i}_monthlyIncome`}>
+                                Monthly Income (₱)
+                              </Label>
                               <Input
+                                id={`member_${i}_monthlyIncome`}
+                                inputMode="numeric"
                                 type="number"
                                 value={member.monthlyIncome}
                                 onChange={e => updateMember(i, 'monthlyIncome', e.target.value)}
@@ -978,8 +1134,11 @@ export default function SblLoanForm() {
                           </div>
 
                           <div>
-                            <Label required>Position / Job Title</Label>
+                            <Label required htmlFor={`member_${i}_position`}>
+                              Position / Job Title
+                            </Label>
                             <Select
+                              id={`member_${i}_position`}
                               value={member.position}
                               onChange={e => updateMember(i, 'position', e.target.value)}
                               options={POSITIONS}
@@ -990,13 +1149,16 @@ export default function SblLoanForm() {
 
                           {/* Per-member loan amount */}
                           <div>
-                            <Label required>Desired Loan Amount</Label>
+                            <Label required htmlFor={`member_${i}_loanAmount`}>
+                              Desired Loan Amount
+                            </Label>
                             <p className="text-muted text-xs mb-2">₱5,000 – ₱100,000</p>
                             <div className="relative">
                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green font-bold text-lg">
                                 ₱
                               </span>
                               <input
+                                id={`member_${i}_loanAmount`}
                                 type="text"
                                 inputMode="numeric"
                                 value={Number(member.loanAmount || 0).toLocaleString('en-PH')}
@@ -1030,8 +1192,11 @@ export default function SblLoanForm() {
                           </h3>
 
                           <div>
-                            <Label required>House No. / Street</Label>
+                            <Label required htmlFor={`member_${i}_houseStreet`}>
+                              House No. / Street
+                            </Label>
                             <Input
+                              id={`member_${i}_houseStreet`}
                               value={member.houseStreet}
                               onChange={e => updateMember(i, 'houseStreet', e.target.value)}
                               placeholder="123 Rizal St."
@@ -1041,8 +1206,11 @@ export default function SblLoanForm() {
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <Label required>Barangay</Label>
+                              <Label required htmlFor={`member_${i}_barangay`}>
+                                Barangay
+                              </Label>
                               <Input
+                                id={`member_${i}_barangay`}
                                 value={member.barangay}
                                 onChange={e => updateMember(i, 'barangay', e.target.value)}
                                 placeholder="Brgy. San Pablo"
@@ -1050,8 +1218,11 @@ export default function SblLoanForm() {
                               <FieldError message={errors[`${prefix}barangay`]} />
                             </div>
                             <div>
-                              <Label required>City / Municipality</Label>
+                              <Label required htmlFor={`member_${i}_city`}>
+                                City / Municipality
+                              </Label>
                               <Input
+                                id={`member_${i}_city`}
                                 value={member.city}
                                 onChange={e => updateMember(i, 'city', e.target.value)}
                                 placeholder="Malolos"
@@ -1062,8 +1233,11 @@ export default function SblLoanForm() {
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <Label required>Province</Label>
+                              <Label required htmlFor={`member_${i}_province`}>
+                                Province
+                              </Label>
                               <Input
+                                id={`member_${i}_province`}
                                 value={member.province}
                                 onChange={e => updateMember(i, 'province', e.target.value)}
                                 placeholder="Bulacan"
@@ -1071,8 +1245,12 @@ export default function SblLoanForm() {
                               <FieldError message={errors[`${prefix}province`]} />
                             </div>
                             <div>
-                              <Label required>ZIP Code</Label>
+                              <Label required htmlFor={`member_${i}_zip`}>
+                                ZIP Code
+                              </Label>
                               <Input
+                                id={`member_${i}_zip`}
+                                inputMode="numeric"
                                 value={member.zip}
                                 onChange={e => updateMember(i, 'zip', e.target.value)}
                                 placeholder="3000"
