@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { adminFetch, useToast } from './AdminDashboard'
 import {
   normalizeFinScore,
@@ -208,51 +208,80 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
     app.address ||
     ''
 
+  // Draft autosave — keyed per application so an expired-session redirect
+  // (or an accidental tab close) doesn't wipe an in-progress CI investigation.
+  // Read once; each field below seeds its initial value from the saved draft,
+  // falling back to the pre-filled default derived from the application.
+  const draftKey = `gr8_ci_scoring_draft_${appId || app.id || app.reference_id || 'unknown'}`
+  const savedDraft = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(draftKey)
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  }, [draftKey])
+
   // Header fields
-  const [clientName, setClientName] = useState(fullName)
-  const [completeAddress, setCompleteAddress] = useState(address)
-  const [contactNumber, setContactNumber] = useState(app.mobile || app.phone || '')
-  const [contactStatus, setContactStatus] = useState(null)
-  const [civilStatus, setCivilStatus] = useState(app.civil_status || app.civilStatus || '')
-  const [loanPurpose, setLoanPurpose] = useState(app.loan_purpose || app.purpose || '')
-  const [relativeAtGr8, setRelativeAtGr8] = useState(null)
-  const [relativeWho, setRelativeWho] = useState('')
-  const [interviewer, setInterviewer] = useState('')
+  const [clientName, setClientName] = useState(() => savedDraft?.clientName ?? fullName)
+  const [completeAddress, setCompleteAddress] = useState(
+    () => savedDraft?.completeAddress ?? address,
+  )
+  const [contactNumber, setContactNumber] = useState(
+    () => savedDraft?.contactNumber ?? app.mobile ?? app.phone ?? '',
+  )
+  const [contactStatus, setContactStatus] = useState(() => savedDraft?.contactStatus ?? null)
+  const [civilStatus, setCivilStatus] = useState(
+    () => savedDraft?.civilStatus ?? app.civil_status ?? app.civilStatus ?? '',
+  )
+  const [loanPurpose, setLoanPurpose] = useState(
+    () => savedDraft?.loanPurpose ?? app.loan_purpose ?? app.purpose ?? '',
+  )
+  const [relativeAtGr8, setRelativeAtGr8] = useState(() => savedDraft?.relativeAtGr8 ?? null)
+  const [relativeWho, setRelativeWho] = useState(() => savedDraft?.relativeWho ?? '')
+  const [interviewer, setInterviewer] = useState(() => savedDraft?.interviewer ?? '')
 
   // Address (required), payment frequency + salary payout dates
-  const [houseNumber, setHouseNumber] = useState('')
-  const [streetName, setStreetName] = useState('')
-  const [paymentFrequency, setPaymentFrequency] = useState('')
-  const [payoutDates, setPayoutDates] = useState([])
-  const [honorariumDate, setHonorariumDate] = useState(null) // SBL only: day-of-month int
+  const [houseNumber, setHouseNumber] = useState(() => savedDraft?.houseNumber ?? '')
+  const [streetName, setStreetName] = useState(() => savedDraft?.streetName ?? '')
+  const [paymentFrequency, setPaymentFrequency] = useState(() => savedDraft?.paymentFrequency ?? '')
+  const [payoutDates, setPayoutDates] = useState(() => savedDraft?.payoutDates ?? [])
+  const [honorariumDate, setHonorariumDate] = useState(() => savedDraft?.honorariumDate ?? null) // SBL only: day-of-month int
   const [fieldErrors, setFieldErrors] = useState({})
 
   // Scoring fields
-  const [q1, setQ1] = useState(null)
-  const [q2, setQ2] = useState(null)
-  const [q3, setQ3] = useState(null)
-  const [q4, setQ4] = useState(null)
-  const [renewalBonus, setRenewalBonus] = useState(null)
-  const [deductions, setDeductions] = useState([])
+  const [q1, setQ1] = useState(() => savedDraft?.q1 ?? null)
+  const [q2, setQ2] = useState(() => savedDraft?.q2 ?? null)
+  const [q3, setQ3] = useState(() => savedDraft?.q3 ?? null)
+  const [q4, setQ4] = useState(() => savedDraft?.q4 ?? null)
+  const [renewalBonus, setRenewalBonus] = useState(() => savedDraft?.renewalBonus ?? null)
+  const [deductions, setDeductions] = useState(() => savedDraft?.deductions ?? [])
 
   // References (not for SBL)
-  const [ref1Name, setRef1Name] = useState('')
-  const [ref1Phone, setRef1Phone] = useState('')
-  const [ref2Name, setRef2Name] = useState('')
-  const [ref2Phone, setRef2Phone] = useState('')
-  const [ref3Name, setRef3Name] = useState('')
-  const [ref3Phone, setRef3Phone] = useState('')
+  const [ref1Name, setRef1Name] = useState(() => savedDraft?.ref1Name ?? '')
+  const [ref1Phone, setRef1Phone] = useState(() => savedDraft?.ref1Phone ?? '')
+  const [ref2Name, setRef2Name] = useState(() => savedDraft?.ref2Name ?? '')
+  const [ref2Phone, setRef2Phone] = useState(() => savedDraft?.ref2Phone ?? '')
+  const [ref3Name, setRef3Name] = useState(() => savedDraft?.ref3Name ?? '')
+  const [ref3Phone, setRef3Phone] = useState(() => savedDraft?.ref3Phone ?? '')
 
   // SBL-only
-  const [brgyChairman, setBrgyChairman] = useState(null)
-  const [brgyTreasurer, setBrgyTreasurer] = useState(null)
+  const [brgyChairman, setBrgyChairman] = useState(() => savedDraft?.brgyChairman ?? null)
+  const [brgyTreasurer, setBrgyTreasurer] = useState(() => savedDraft?.brgyTreasurer ?? null)
 
   // Recommendation
-  const [ciRecommendation, setCiRecommendation] = useState(null)
-  const [remarks, setRemarks] = useState('')
-  const [recommendedAmount, setRecommendedAmount] = useState('')
+  const [ciRecommendation, setCiRecommendation] = useState(
+    () => savedDraft?.ciRecommendation ?? null,
+  )
+  const [remarks, setRemarks] = useState(() => savedDraft?.remarks ?? '')
+  const [recommendedAmount, setRecommendedAmount] = useState(
+    () => savedDraft?.recommendedAmount ?? '',
+  )
 
   const [submitting, setSubmitting] = useState(false)
+  // Show the "draft restored" banner when a saved draft exists (drafts are only
+  // ever written once the officer has entered real assessment content).
+  const [draftRestored, setDraftRestored] = useState(() => !!savedDraft)
   const addToast = useToast()
 
   // Live score calculation
@@ -262,6 +291,119 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
   const ciTotal = Math.max(0, Math.min(50, baseScore + bonus + totalDeductions))
 
   const anyScored = q1 != null || q2 != null || q3 != null || q4 != null
+
+  // Autosave the in-progress draft (debounced). "Has content" is judged only on
+  // officer-entered fields — the pre-filled header (name/address/contact/civil/
+  // purpose) is excluded so an untouched form never writes a draft or shows the
+  // restore banner. Self-clears when emptied; removed outright on submit.
+  useEffect(() => {
+    const draft = {
+      clientName,
+      completeAddress,
+      contactNumber,
+      contactStatus,
+      civilStatus,
+      loanPurpose,
+      relativeAtGr8,
+      relativeWho,
+      interviewer,
+      houseNumber,
+      streetName,
+      paymentFrequency,
+      payoutDates,
+      honorariumDate,
+      q1,
+      q2,
+      q3,
+      q4,
+      renewalBonus,
+      deductions,
+      ref1Name,
+      ref1Phone,
+      ref2Name,
+      ref2Phone,
+      ref3Name,
+      ref3Phone,
+      brgyChairman,
+      brgyTreasurer,
+      ciRecommendation,
+      remarks,
+      recommendedAmount,
+    }
+    const officerEntered = [
+      contactStatus,
+      relativeAtGr8,
+      relativeWho,
+      interviewer,
+      houseNumber,
+      streetName,
+      paymentFrequency,
+      payoutDates,
+      honorariumDate,
+      q1,
+      q2,
+      q3,
+      q4,
+      renewalBonus,
+      deductions,
+      ref1Name,
+      ref1Phone,
+      ref2Name,
+      ref2Phone,
+      ref3Name,
+      ref3Phone,
+      brgyChairman,
+      brgyTreasurer,
+      ciRecommendation,
+      remarks,
+      recommendedAmount,
+    ]
+    const hasContent = officerEntered.some(v =>
+      Array.isArray(v) ? v.length > 0 : v !== null && v !== '' && v !== false,
+    )
+    const timer = setTimeout(() => {
+      try {
+        if (hasContent) localStorage.setItem(draftKey, JSON.stringify(draft))
+        else localStorage.removeItem(draftKey)
+      } catch {
+        // localStorage unavailable (private mode / quota) — draft save is best-effort
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [
+    draftKey,
+    clientName,
+    completeAddress,
+    contactNumber,
+    contactStatus,
+    civilStatus,
+    loanPurpose,
+    relativeAtGr8,
+    relativeWho,
+    interviewer,
+    houseNumber,
+    streetName,
+    paymentFrequency,
+    payoutDates,
+    honorariumDate,
+    q1,
+    q2,
+    q3,
+    q4,
+    renewalBonus,
+    deductions,
+    ref1Name,
+    ref1Phone,
+    ref2Name,
+    ref2Phone,
+    ref3Name,
+    ref3Phone,
+    brgyChairman,
+    brgyTreasurer,
+    ciRecommendation,
+    remarks,
+    recommendedAmount,
+  ])
 
   const finalScore = useMemo(
     () => computeFinalFromCiTotal(finscoreNorm, ciTotal),
@@ -410,6 +552,11 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
         const errData = await res.json().catch(() => ({}))
         throw new Error(errData.error || errData.message || 'Failed to submit CI score')
       }
+      try {
+        localStorage.removeItem(draftKey)
+      } catch {
+        // best-effort draft cleanup
+      }
       addToast('CI Investigation submitted successfully')
       onSubmitSuccess()
     } catch (err) {
@@ -423,6 +570,24 @@ export default function CiScoringForm({ app, appId, finscoreRaw, finscoreNorm, o
     <div className="lg:flex lg:gap-5">
       {/* Main form */}
       <div className="flex-1 space-y-6">
+        {/* Draft-restored notice */}
+        {draftRestored && (
+          <div className="bg-blue/10 border border-blue/30 rounded-lg px-4 py-3 flex items-start gap-3">
+            <span className="text-blue text-lg leading-none mt-0.5">ⓘ</span>
+            <p className="flex-1 text-sm text-blue">
+              We restored your in-progress investigation from a previous session. Please review the
+              fields before submitting.
+            </p>
+            <button
+              onClick={() => setDraftRestored(false)}
+              className="text-blue/70 hover:text-blue text-sm"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Age warning */}
         {ageOver65 && (
           <div className="bg-red-500/7 border border-red-500/21 rounded-lg p-4">
