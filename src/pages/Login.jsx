@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const ROLE_REDIRECTS = {
@@ -26,6 +26,8 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false)
   const { login, isAuthenticated, roles } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const sessionExpired = location.state?.reason === 'session_expired'
 
   // If already authenticated, redirect
   if (isAuthenticated && roles.length) {
@@ -61,6 +63,11 @@ export default function Login() {
             <h1 className="text-2xl font-bold text-white">GR8 Lending</h1>
             <p className="text-muted text-sm mt-1">Staff Portal</p>
           </div>
+          {sessionExpired && !error && (
+            <p className="text-yellow-400 text-sm mb-4 text-center">
+              Your session expired. Please log in again to continue.
+            </p>
+          )}
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label className="block text-sm text-muted mb-2">Email</label>
