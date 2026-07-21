@@ -1,4 +1,5 @@
 import { useState, useCallback, createContext, useContext } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import ApplicationsList from './ApplicationsList'
 import ApplicationDetail from './ApplicationDetail'
@@ -13,11 +14,17 @@ const ADMIN_API = `${API_BASE}/api/admin`
 const ToastContext = createContext()
 export const useToast = () => useContext(ToastContext)
 
-// Admin API helper — uses JWT token for auth
+// Admin API helper — attaches the backend-issued JWT as a Bearer token. On a
+// 401 (missing/expired/invalid session) it fires the wired auth-expiry handler
+// so the user is sent to re-login instead of dead-ending on the raw error.
 let _getToken = () => null
+let _onAuthExpired = () => {}
+// Guards against a burst of concurrent 401s (e.g. list poll + kanban poll) each
+// triggering a redirect. Re-armed by any successful admin/pipeline call.
+let _authExpiryHandled = false
 
 function buildFetch(baseUrl) {
-  return function ({ timeoutMs, ...options } = {}, path) {
+  return async function ({ timeoutMs, ...options } = {}, path) {
     const token = _getToken()
     const headers = {
       'Content-Type': 'application/json',
@@ -25,12 +32,27 @@ function buildFetch(baseUrl) {
     }
     if (token) headers['Authorization'] = `Bearer ${token}`
     const init = { ...options, headers }
-    if (!timeoutMs) return fetch(`${baseUrl}${path}`, init)
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), timeoutMs)
-    return fetch(`${baseUrl}${path}`, { ...init, signal: controller.signal }).finally(() =>
-      clearTimeout(timer),
-    )
+    let res
+    if (!timeoutMs) {
+      res = await fetch(`${baseUrl}${path}`, init)
+    } else {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), timeoutMs)
+      try {
+        res = await fetch(`${baseUrl}${path}`, { ...init, signal: controller.signal })
+      } finally {
+        clearTimeout(timer)
+      }
+    }
+    if (res.status === 401) {
+      if (!_authExpiryHandled) {
+        _authExpiryHandled = true
+        _onAuthExpired()
+      }
+    } else if (res.ok) {
+      _authExpiryHandled = false
+    }
+    return res
   }
 }
 
@@ -71,7 +93,8 @@ function Toast({ toasts, removeToast }) {
 }
 
 export default function AdminDashboard() {
-  const { getToken } = useAuth()
+  const { getToken, logout } = useAuth()
+  const navigate = useNavigate()
 
   // Wire up the module-level _getToken so adminFetch can access JWT
   _getToken = getToken
@@ -91,6 +114,15 @@ export default function AdminDashboard() {
   const removeToast = useCallback(id => {
     setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
+
+  // Wire up the auth-expiry handler so a 401 on any admin/pipeline call clears
+  // the expired session and sends the user back to re-login (role redirect
+  // returns them to /admin) instead of dead-ending on the raw 401 error.
+  _onAuthExpired = async () => {
+    addToast('Your session has expired. Please log in again.', 'error')
+    await logout()
+    navigate('/login', { replace: true, state: { reason: 'session_expired' } })
+  }
 
   const openDetail = id => {
     setSelectedAppId(id)
