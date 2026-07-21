@@ -13,10 +13,17 @@ const CI_API = `${API_BASE}/api/ci`
 const ToastContext = createContext()
 export const useCiToast = () => useContext(ToastContext)
 
-// CI API helper — uses JWT token for auth
+// CI API helper — attaches the backend-issued JWT as a Bearer token on every
+// /api/ci/* call. On a 401 (missing/expired/invalid session) it fires the wired
+// auth-expiry handler so the user is sent to re-login instead of hitting a
+// dead-end "Invalid or missing authentication token" error.
 let _getToken = () => null
+let _onAuthExpired = () => {}
+// Guards against a burst of concurrent 401s (e.g. submit + the 60s list poll)
+// each triggering a redirect. Re-armed by any successful CI call.
+let _authExpiryHandled = false
 
-export function ciFetch(path, options = {}) {
+export async function ciFetch(path, options = {}) {
   const token = _getToken()
   const headers = {
     'Content-Type': 'application/json',
@@ -25,7 +32,16 @@ export function ciFetch(path, options = {}) {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
   }
-  return fetch(`${CI_API}${path}`, { ...options, headers })
+  const res = await fetch(`${CI_API}${path}`, { ...options, headers })
+  if (res.status === 401) {
+    if (!_authExpiryHandled) {
+      _authExpiryHandled = true
+      _onAuthExpired()
+    }
+  } else if (res.ok) {
+    _authExpiryHandled = false
+  }
+  return res
 }
 
 function Toast({ toasts, removeToast }) {
@@ -87,6 +103,15 @@ export default function CiPortal() {
   const handleLogout = async () => {
     await logout()
     navigate('/login', { replace: true })
+  }
+
+  // Wire up the auth-expiry handler so a 401 on any CI call clears the expired
+  // session and sends the user back to re-login (role redirect returns a
+  // ci_officer to /ci) instead of dead-ending on the raw 401 error.
+  _onAuthExpired = async () => {
+    addToast('Your session has expired. Please log in again.', 'error')
+    await logout()
+    navigate('/login', { replace: true, state: { reason: 'session_expired' } })
   }
 
   return (

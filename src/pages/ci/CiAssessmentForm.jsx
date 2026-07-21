@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { ciFetch, useCiToast } from './CiPortal'
 import { getApplicantName } from '../../lib/applicantName'
 import SalaryPayoutPicker from '../../components/ci/SalaryPayoutPicker'
@@ -214,45 +214,70 @@ export default function CiAssessmentForm({ app, onBack }) {
   const civilStatus = app.civil_status || app.civilStatus || ''
   const loanPurpose = app.loan_purpose || app.purpose || ''
 
+  // Draft autosave — keyed per application so an expired-session redirect
+  // (or an accidental tab close) doesn't wipe an in-progress CI interview.
+  // Read once; each field below seeds its initial value from the saved draft.
+  const draftKey = `gr8_ci_draft_${app.id || app.reference_id || 'unknown'}`
+  const savedDraft = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(draftKey)
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  }, [draftKey])
+
   // Form state (CI-specific fields only)
-  const [contactStatus, setContactStatus] = useState(null)
-  const [relativeAtGr8, setRelativeAtGr8] = useState(null)
-  const [relativeWho, setRelativeWho] = useState('')
-  const [interviewer, setInterviewer] = useState('')
+  const [contactStatus, setContactStatus] = useState(() => savedDraft?.contactStatus ?? null)
+  const [relativeAtGr8, setRelativeAtGr8] = useState(() => savedDraft?.relativeAtGr8 ?? null)
+  const [relativeWho, setRelativeWho] = useState(() => savedDraft?.relativeWho ?? '')
+  const [interviewer, setInterviewer] = useState(() => savedDraft?.interviewer ?? '')
 
   // Address (required), payment frequency + salary payout dates
-  const [houseNumber, setHouseNumber] = useState('')
-  const [streetName, setStreetName] = useState('')
-  const [paymentFrequency, setPaymentFrequency] = useState('')
-  const [payoutDates, setPayoutDates] = useState([])
-  const [honorariumDate, setHonorariumDate] = useState(null) // SBL only: day-of-month int
+  const [houseNumber, setHouseNumber] = useState(() => savedDraft?.houseNumber ?? '')
+  const [streetName, setStreetName] = useState(() => savedDraft?.streetName ?? '')
+  const [paymentFrequency, setPaymentFrequency] = useState(() => savedDraft?.paymentFrequency ?? '')
+  const [payoutDates, setPayoutDates] = useState(() => savedDraft?.payoutDates ?? [])
+  const [honorariumDate, setHonorariumDate] = useState(() => savedDraft?.honorariumDate ?? null) // SBL only: day-of-month int
   const [fieldErrors, setFieldErrors] = useState({})
 
-  const [q1, setQ1] = useState(null)
-  const [q2, setQ2] = useState(null)
-  const [q3, setQ3] = useState(null)
-  const [q4, setQ4] = useState(null)
-  const [renewalBonus, setRenewalBonus] = useState(null)
-  const [deductions, setDeductions] = useState([])
+  const [q1, setQ1] = useState(() => savedDraft?.q1 ?? null)
+  const [q2, setQ2] = useState(() => savedDraft?.q2 ?? null)
+  const [q3, setQ3] = useState(() => savedDraft?.q3 ?? null)
+  const [q4, setQ4] = useState(() => savedDraft?.q4 ?? null)
+  const [renewalBonus, setRenewalBonus] = useState(() => savedDraft?.renewalBonus ?? null)
+  const [deductions, setDeductions] = useState(() => savedDraft?.deductions ?? [])
 
-  const [ref1Name, setRef1Name] = useState('')
-  const [ref1Phone, setRef1Phone] = useState('')
-  const [ref2Name, setRef2Name] = useState('')
-  const [ref2Phone, setRef2Phone] = useState('')
-  const [ref3Name, setRef3Name] = useState('')
-  const [ref3Phone, setRef3Phone] = useState('')
+  const [ref1Name, setRef1Name] = useState(() => savedDraft?.ref1Name ?? '')
+  const [ref1Phone, setRef1Phone] = useState(() => savedDraft?.ref1Phone ?? '')
+  const [ref2Name, setRef2Name] = useState(() => savedDraft?.ref2Name ?? '')
+  const [ref2Phone, setRef2Phone] = useState(() => savedDraft?.ref2Phone ?? '')
+  const [ref3Name, setRef3Name] = useState(() => savedDraft?.ref3Name ?? '')
+  const [ref3Phone, setRef3Phone] = useState(() => savedDraft?.ref3Phone ?? '')
 
-  const [brgyChairman, setBrgyChairman] = useState(null)
-  const [brgyTreasurer, setBrgyTreasurer] = useState(null)
+  const [brgyChairman, setBrgyChairman] = useState(() => savedDraft?.brgyChairman ?? null)
+  const [brgyTreasurer, setBrgyTreasurer] = useState(() => savedDraft?.brgyTreasurer ?? null)
 
-  const [ciRecommendation, setCiRecommendation] = useState(null)
-  const [remarks, setRemarks] = useState('')
-  const [recommendedAmount, setRecommendedAmount] = useState('')
+  const [ciRecommendation, setCiRecommendation] = useState(
+    () => savedDraft?.ciRecommendation ?? null,
+  )
+  const [remarks, setRemarks] = useState(() => savedDraft?.remarks ?? '')
+  const [recommendedAmount, setRecommendedAmount] = useState(
+    () => savedDraft?.recommendedAmount ?? '',
+  )
 
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [formDirty, setFormDirty] = useState(false)
+  // Show the "draft restored" banner only when a non-empty draft was loaded.
+  const [draftRestored, setDraftRestored] = useState(
+    () =>
+      !!savedDraft &&
+      Object.values(savedDraft).some(v =>
+        Array.isArray(v) ? v.length > 0 : v !== null && v !== '' && v !== false,
+      ),
+  )
 
   // Track dirty state
   useEffect(() => {
@@ -260,6 +285,82 @@ export default function CiAssessmentForm({ app, onBack }) {
       setFormDirty(true)
     }
   }, [q1, q2, q3, q4, remarks, interviewer])
+
+  // Autosave the in-progress draft (debounced). Writes only when there's real
+  // content, and clears itself back out if the form is emptied; the draft is
+  // removed outright on a successful submit.
+  useEffect(() => {
+    if (submitted) return
+    const draft = {
+      contactStatus,
+      relativeAtGr8,
+      relativeWho,
+      interviewer,
+      houseNumber,
+      streetName,
+      paymentFrequency,
+      payoutDates,
+      honorariumDate,
+      q1,
+      q2,
+      q3,
+      q4,
+      renewalBonus,
+      deductions,
+      ref1Name,
+      ref1Phone,
+      ref2Name,
+      ref2Phone,
+      ref3Name,
+      ref3Phone,
+      brgyChairman,
+      brgyTreasurer,
+      ciRecommendation,
+      remarks,
+      recommendedAmount,
+    }
+    const hasContent = Object.values(draft).some(v =>
+      Array.isArray(v) ? v.length > 0 : v !== null && v !== '' && v !== false,
+    )
+    const timer = setTimeout(() => {
+      try {
+        if (hasContent) localStorage.setItem(draftKey, JSON.stringify(draft))
+        else localStorage.removeItem(draftKey)
+      } catch {
+        // localStorage unavailable (private mode / quota) — draft save is best-effort
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [
+    draftKey,
+    submitted,
+    contactStatus,
+    relativeAtGr8,
+    relativeWho,
+    interviewer,
+    houseNumber,
+    streetName,
+    paymentFrequency,
+    payoutDates,
+    honorariumDate,
+    q1,
+    q2,
+    q3,
+    q4,
+    renewalBonus,
+    deductions,
+    ref1Name,
+    ref1Phone,
+    ref2Name,
+    ref2Phone,
+    ref3Name,
+    ref3Phone,
+    brgyChairman,
+    brgyTreasurer,
+    ciRecommendation,
+    remarks,
+    recommendedAmount,
+  ])
 
   // Score calculation
   const baseScore = (q1 ?? 0) + (q2 ?? 0) + (q3 ?? 0) + (q4 ?? 0)
@@ -416,6 +517,11 @@ export default function CiAssessmentForm({ app, onBack }) {
       }
       setSubmitted(true)
       setFormDirty(false)
+      try {
+        localStorage.removeItem(draftKey)
+      } catch {
+        // best-effort draft cleanup
+      }
     } catch (err) {
       addToast(err.message, 'error')
     } finally {
@@ -500,6 +606,24 @@ export default function CiAssessmentForm({ app, onBack }) {
       >
         ← Back to Applications
       </button>
+
+      {/* Draft-restored notice */}
+      {draftRestored && (
+        <div className="bg-blue/10 border border-blue/30 rounded-lg px-4 py-3 mb-6 flex items-start gap-3">
+          <span className="text-blue text-lg leading-none mt-0.5">ⓘ</span>
+          <p className="flex-1 text-sm text-blue">
+            We restored your in-progress assessment from a previous session. Please review the
+            fields before submitting.
+          </p>
+          <button
+            onClick={() => setDraftRestored(false)}
+            className="text-blue/70 hover:text-blue text-sm"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Application summary */}
       <div className="bg-surface border border-border rounded-xl p-5 mb-6">
