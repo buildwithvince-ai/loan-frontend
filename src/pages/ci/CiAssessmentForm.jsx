@@ -428,6 +428,17 @@ export default function CiAssessmentForm({ app, onBack }) {
       addToast('Select CI recommendation', 'error')
       return false
     }
+    if (ciRecommendation === 'approved') {
+      const amt = Number(recommendedAmount)
+      if (recommendedAmount === '' || Number.isNaN(amt) || amt <= 0) {
+        setFieldErrors(prev => ({
+          ...prev,
+          recommendedAmount: 'Enter a valid recommended loan amount',
+        }))
+        addToast('Enter a valid recommended loan amount', 'error')
+        return false
+      }
+    }
     if (!remarks.trim()) {
       addToast('Remarks are required', 'error')
       return false
@@ -445,6 +456,12 @@ export default function CiAssessmentForm({ app, onBack }) {
     setSubmitting(true)
     try {
       const repaymentCycle = deriveRepaymentCycle(payoutDates)
+      // Coerce to a number (or null) — an empty string reaches the backend's
+      // numeric column as "" and 500s (invalid input syntax for type numeric).
+      const recommendedAmountValue =
+        ciRecommendation === 'approved' && recommendedAmount !== ''
+          ? Number(recommendedAmount)
+          : null
       const ciFormData = {
         client_name: fullName,
         age,
@@ -487,7 +504,7 @@ export default function CiAssessmentForm({ app, onBack }) {
         sbl_brgy_treasurer: isSbl ? brgyTreasurer : null,
         ci_recommendation: ciRecommendation,
         remarks,
-        recommended_amount: ciRecommendation === 'approved' ? recommendedAmount : null,
+        recommended_amount: recommendedAmountValue,
       }
 
       const res = await ciFetch(`/applications/${app.id || app.reference_id}/ci-score`, {
@@ -498,7 +515,7 @@ export default function CiAssessmentForm({ app, onBack }) {
           interviewer,
           ci_recommendation: ciRecommendation,
           ci_remarks: remarks,
-          ci_recommended_amount: ciRecommendation === 'approved' ? recommendedAmount : null,
+          ci_recommended_amount: recommendedAmountValue,
           reviewed_by: interviewer,
           notes: remarks,
           ...(isSbl ? { honorarium_date: honorariumDate } : {}),
@@ -1082,14 +1099,20 @@ export default function CiAssessmentForm({ app, onBack }) {
             </div>
             {ciRecommendation === 'approved' && (
               <div>
-                <label className={labelCls}>Recommended Loan Amount (₱)</label>
+                <label className={labelCls}>Recommended Loan Amount (₱) *</label>
                 <input
                   type="number"
                   value={recommendedAmount}
-                  onChange={e => setRecommendedAmount(e.target.value)}
+                  onChange={e => {
+                    setRecommendedAmount(e.target.value)
+                    setFieldErrors(prev => ({ ...prev, recommendedAmount: undefined }))
+                  }}
                   className={inputCls}
                   placeholder="e.g. 25000"
                 />
+                {fieldErrors.recommendedAmount && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.recommendedAmount}</p>
+                )}
               </div>
             )}
           </div>
