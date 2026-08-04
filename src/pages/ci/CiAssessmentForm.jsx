@@ -700,11 +700,11 @@ export default function CiAssessmentForm({ app, onBack }) {
         </div>
       </div>
 
-      {/* Borrower record — identity + carried-over-score warning. No fetcher: the
-          grouping route exists only under /api/admin, so the sibling-application
-          list is omitted here rather than firing a request that 404s. Pass
-          fetcher={ciFetch} once /api/ci mirrors the route. */}
-      <ClientApplicationsPanel app={app} className="mb-6" />
+      {/* Borrower record — identity, prior applications, carried-over-score warning.
+          Deliberately ciFetch, not adminFetch: both bases expose
+          /applications/borrower/:id, but the CI projection omits final_score and
+          tier so an officer's field assessment stays blind to approver scoring. */}
+      <ClientApplicationsPanel app={app} fetcher={ciFetch} className="mb-6" />
 
       <div className="lg:flex lg:gap-5">
         {/* Form */}
