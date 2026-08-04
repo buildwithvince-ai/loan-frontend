@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import useSalesOfficers from '../hooks/useSalesOfficers'
-import BorrowerLookup from '../components/BorrowerLookup'
 
 const TOTAL_STEPS = 10
 
@@ -49,7 +48,6 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024
 const initialForm = {
   // Step 1
   application_category: 'new',
-  linked_borrower: null,
   salesOfficerId: '',
   loanAmount: 50000,
   paymentTerm: 3,
@@ -315,8 +313,6 @@ export default function SmeLoanForm() {
     const e = {}
 
     if (step === 1) {
-      if (form.application_category === 'renewal' && !form.linked_borrower)
-        e.linked_borrower = 'Select an existing borrower to link this renewal'
       if (!form.salesOfficerId) e.salesOfficerId = 'Please select your Sales Officer'
       if (form.loanAmount < 50000 || form.loanAmount > 300000)
         e.loanAmount = 'Amount must be between ₱50,000 and ₱300,000'
@@ -448,13 +444,11 @@ export default function SmeLoanForm() {
     try {
       const fd = new FormData()
       fd.append('loanType', 'sme')
+      // Write-only. The backend DISCARDS this value and re-derives the category
+      // server-side from the mobile number (exact match against the borrower's last
+      // approved application), so the selector is UX copy and nothing more. Read the
+      // stored category back from the admin detail response, never from this.
       fd.append('application_category', form.application_category)
-      if (form.application_category === 'renewal' && form.linked_borrower) {
-        fd.append(
-          'linked_borrower_id',
-          form.linked_borrower.loandisk_borrower_id || form.linked_borrower.id,
-        )
-      }
       const keyMap = {
         presentBarangay: 'barangay',
         monthlyGrossRevenue: 'monthlyIncome',
@@ -466,8 +460,7 @@ export default function SmeLoanForm() {
           k !== 'agreeTerms' &&
           k !== 'sameAsPresent' &&
           k !== 'addSpouse' &&
-          k !== 'application_category' &&
-          k !== 'linked_borrower'
+          k !== 'application_category'
         )
           fd.append(keyMap[k] || k, v)
       })
@@ -850,22 +843,14 @@ function Step1({ form, set, errors, officers, soLoading, soError, soRetry }) {
         </div>
       </div>
 
-      {/* Borrower Lookup (renewal only) */}
+      {/* Renewal note — the selector is UX only. Matching this application to an
+          existing client record is done server-side, so the applicant is never
+          asked to hunt down their own borrower record. */}
       {form.application_category === 'renewal' && (
-        <div>
-          <label htmlFor="borrower-lookup" className="block text-sm font-medium text-white mb-1.5">
-            Link Existing Borrower <span className="text-red-400">*</span>
-          </label>
-          <p className="text-muted text-xs mb-2">
-            Search for the borrower's existing record to avoid duplicate entries.
-          </p>
-          <BorrowerLookup value={form.linked_borrower} onChange={b => set('linked_borrower', b)} />
-          {errors.linked_borrower && (
-            <p role="alert" data-field-error className="text-red-400 text-xs mt-1">
-              {errors.linked_borrower}
-            </p>
-          )}
-        </div>
+        <p className="text-muted text-xs bg-surface-alt border border-border rounded-xl px-4 py-3">
+          We'll match this to your existing GR8 record automatically using your name and mobile
+          number. Just fill in the form as usual.
+        </p>
       )}
 
       {/* Sales Officer Selection */}
