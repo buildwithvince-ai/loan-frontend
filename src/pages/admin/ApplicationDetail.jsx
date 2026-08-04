@@ -11,6 +11,9 @@ import CiScoringForm, { CiFormReadOnly } from './CiScoringForm'
 import { useAuth } from '../../context/AuthContext'
 import { getApplicantName } from '../../lib/applicantName'
 import useSalesOfficers from '../../hooks/useSalesOfficers'
+import ClientApplicationsPanel, {
+  FinscoreReuseNotice,
+} from '../../components/ClientApplicationsPanel'
 import {
   calcLoanSummary,
   fmtCurrency,
@@ -835,12 +838,15 @@ function FileViewerModal({ appId, onClose }) {
 
 // --- Section 2: FinScore Result ---
 
-function FinScoreSection({ finscoreRaw, finscoreNorm }) {
+function FinScoreSection({ app, finscoreRaw, finscoreNorm }) {
   const unavailable = !finscoreRaw || finscoreRaw <= 0
 
   return (
     <Section title="Section 2 — FinScore Result">
       <div className="pt-4">
+        {/* Renewals may carry a score over instead of pulling a fresh one —
+            say so before staff read the number as a new credit check. */}
+        <FinscoreReuseNotice app={app} className="mb-4" />
         {unavailable ? (
           <div>
             <div className="grid grid-cols-2 gap-4 mb-4">
@@ -1988,8 +1994,11 @@ export default function ApplicationDetail({ id, onBack }) {
           onRefresh={fetchApp}
         />
 
+        {/* Borrower record — name + every application tied to the same Loandisk borrower */}
+        <ClientApplicationsPanel app={app} fetcher={adminFetch} />
+
         {/* SECTION 2 — FinScore Result */}
-        <FinScoreSection finscoreRaw={finscoreRaw} finscoreNorm={finscoreNorm} />
+        <FinScoreSection app={app} finscoreRaw={finscoreRaw} finscoreNorm={finscoreNorm} />
 
         {/* SECTION 3 — CI Assessment Form (editable only by CI Officer / Approver / Super Admin) */}
         {showCiForm &&

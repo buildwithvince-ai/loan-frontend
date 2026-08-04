@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { ciFetch, useCiToast } from './CiPortal'
 import { getApplicantName } from '../../lib/applicantName'
 import SalaryPayoutPicker from '../../components/ci/SalaryPayoutPicker'
+import ClientApplicationsPanel from '../../components/ClientApplicationsPanel'
 import { deriveRepaymentCycle } from '../../lib/repaymentCycle'
 
 const INTERVIEWERS = [
@@ -698,6 +699,12 @@ export default function CiAssessmentForm({ app, onBack }) {
           </div>
         </div>
       </div>
+
+      {/* Borrower record — identity + carried-over-score warning. No fetcher: the
+          grouping route exists only under /api/admin, so the sibling-application
+          list is omitted here rather than firing a request that 404s. Pass
+          fetcher={ciFetch} once /api/ci mirrors the route. */}
+      <ClientApplicationsPanel app={app} className="mb-6" />
 
       <div className="lg:flex lg:gap-5">
         {/* Form */}
