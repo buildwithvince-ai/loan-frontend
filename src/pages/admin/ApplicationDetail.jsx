@@ -1036,7 +1036,12 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
       const res = await adminFetch(`/applications/${id}/${endpoint}`, {
         method: 'PATCH',
         body: JSON.stringify({ reviewed_by: app.reviewed_by || undefined, ...body }),
-        timeoutMs: isApprove ? 60000 : undefined,
+        // Approve holds the request open through the synchronous Loandisk push,
+        // including per-file transfer. A group renewal with ~60 documents is the
+        // worst case, so this is generous on purpose: a false abort here is
+        // costly, because a retry can silently no-op against the backend's
+        // concurrency claim and report success without pushing a loan.
+        timeoutMs: isApprove ? 180000 : undefined,
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.message || data.error || `Failed to ${endpoint}`)
