@@ -82,22 +82,53 @@ export async function fetchClientApplications(fetcher, borrowerId) {
  * last approved application instead of freshly pulled. Returns null for a
  * normal fresh credit check.
  *
- * Shape: { attributedScore: number|null }
+ * Shape: { attributedScore: number|null, sourceDate: string|null,
+ *          sourceReference: string|null }
  *
- * No source date and no source reference are available: the backend stores only
- * `renewal_source_application_id`, an internal UUID that is meaningless to staff
- * and absent from the CI payload entirely. If the backend later denormalizes the
- * source row's submitted_at + reference_id onto the renewal, add them here.
+ * `finscore_attributed` is the gate. Provenance (`renewal_source_submitted_at`,
+ * `renewal_source_reference_id`) is null whenever it is false, and also null on a
+ * renewal that re-ran FinScore — that row measured its own score, so it gets no
+ * provenance label. Both columns are pending a schema change, so treat them as
+ * absent-until-shipped: the notice degrades to the un-dated wording rather than
+ * rendering "measured null".
  */
 export function getFinscoreReuse(app) {
   if (!app || app.finscore_attributed !== true) return null
   const score = Number(app.attributed_final_score)
-  return { attributedScore: Number.isFinite(score) ? score : null }
+  return {
+    attributedScore: Number.isFinite(score) ? score : null,
+    sourceDate: app.renewal_source_submitted_at || null,
+    sourceReference: app.renewal_source_reference_id || null,
+  }
 }
 
-/** "Score carried over from this borrower's last approved application (prior final score: 88)" */
+function formatSourceDate(value) {
+  if (!value) return null
+  const d = new Date(value)
+  return isNaN(d.getTime())
+    ? null
+    : d.toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+/**
+ * Compact provenance suffix rendered beside the score itself, so a carried-over
+ * number is never read as freshly measured even if the notice is scrolled past.
+ * "carried over, measured 12 Jun 2026" — or just "carried over" pre-schema.
+ */
+export function formatScoreProvenance(reuse) {
+  if (!reuse) return null
+  const date = formatSourceDate(reuse.sourceDate)
+  return date ? `carried over, measured ${date}` : 'carried over'
+}
+
+/** "Score reused from 12 Jun 2026 (GR8-1780422)" — degrades as fields are absent. */
 export function describeFinscoreReuse(reuse) {
   if (!reuse) return null
+  const date = formatSourceDate(reuse.sourceDate)
+  const ref = reuse.sourceReference
+  if (date && ref) return `Score reused from ${date} (${ref})`
+  if (date) return `Score reused from ${date}`
+  if (ref) return `Score reused from application ${ref}`
   const base = "Score carried over from this borrower's last approved application"
   return reuse.attributedScore == null
     ? base

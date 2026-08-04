@@ -14,6 +14,7 @@ import useSalesOfficers from '../../hooks/useSalesOfficers'
 import ClientApplicationsPanel, {
   FinscoreReuseNotice,
 } from '../../components/ClientApplicationsPanel'
+import { getFinscoreReuse, formatScoreProvenance } from '../../lib/clientLinkage'
 import {
   calcLoanSummary,
   fmtCurrency,
@@ -840,6 +841,11 @@ function FileViewerModal({ appId, onClose }) {
 
 function FinScoreSection({ app, finscoreRaw, finscoreNorm }) {
   const unavailable = !finscoreRaw || finscoreRaw <= 0
+  // On an attributed row finscore_raw/normalized are copied from the source
+  // application, so the number is indistinguishable from a fresh measurement.
+  // Label it inline at the value — the amber notice below reinforces, but this
+  // is what a reader sees first.
+  const provenance = formatScoreProvenance(getFinscoreReuse(app))
 
   return (
     <Section title="Section 2 — FinScore Result">
@@ -863,7 +869,10 @@ function FinScoreSection({ app, finscoreRaw, finscoreNorm }) {
         ) : (
           <div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
-              <Field label="Raw Score" value={finscoreRaw} />
+              <Field
+                label="Raw Score"
+                value={provenance ? `${finscoreRaw} · ${provenance}` : finscoreRaw}
+              />
               <Field label="Normalized" value={`${finscoreNorm} / 100`} />
               <Field
                 label="Contributes"
