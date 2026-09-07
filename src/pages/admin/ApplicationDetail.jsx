@@ -11,6 +11,10 @@ import CiScoringForm, { CiFormReadOnly } from './CiScoringForm'
 import { useAuth } from '../../context/AuthContext'
 import { getApplicantName } from '../../lib/applicantName'
 import useSalesOfficers from '../../hooks/useSalesOfficers'
+import ClientApplicationsPanel, {
+  FinscoreReuseNotice,
+} from '../../components/ClientApplicationsPanel'
+import { getFinscoreReuse, formatScoreProvenance } from '../../lib/clientLinkage'
 import {
   calcLoanSummary,
   fmtCurrency,
@@ -835,12 +839,20 @@ function FileViewerModal({ appId, onClose }) {
 
 // --- Section 2: FinScore Result ---
 
-function FinScoreSection({ finscoreRaw, finscoreNorm }) {
+function FinScoreSection({ app, finscoreRaw, finscoreNorm }) {
   const unavailable = !finscoreRaw || finscoreRaw <= 0
+  // On an attributed row finscore_raw/normalized are copied from the source
+  // application, so the number is indistinguishable from a fresh measurement.
+  // Label it inline at the value — the amber notice below reinforces, but this
+  // is what a reader sees first.
+  const provenance = formatScoreProvenance(getFinscoreReuse(app))
 
   return (
     <Section title="Section 2 — FinScore Result">
       <div className="pt-4">
+        {/* Renewals may carry a score over instead of pulling a fresh one —
+            say so before staff read the number as a new credit check. */}
+        <FinscoreReuseNotice app={app} className="mb-4" />
         {unavailable ? (
           <div>
             <div className="grid grid-cols-2 gap-4 mb-4">
@@ -857,7 +869,10 @@ function FinScoreSection({ finscoreRaw, finscoreNorm }) {
         ) : (
           <div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
-              <Field label="Raw Score" value={finscoreRaw} />
+              <Field
+                label="Raw Score"
+                value={provenance ? `${finscoreRaw} · ${provenance}` : finscoreRaw}
+              />
               <Field label="Normalized" value={`${finscoreNorm} / 100`} />
               <Field
                 label="Contributes"
@@ -1030,7 +1045,12 @@ function DecisionSection({ app, id, effectiveTier, effectiveFinal, tierConfig, o
       const res = await adminFetch(`/applications/${id}/${endpoint}`, {
         method: 'PATCH',
         body: JSON.stringify({ reviewed_by: app.reviewed_by || undefined, ...body }),
-        timeoutMs: isApprove ? 60000 : undefined,
+        // Approve holds the request open through the synchronous Loandisk push,
+        // including per-file transfer. A group renewal with ~60 documents is the
+        // worst case, so this is generous on purpose: a false abort here is
+        // costly, because a retry can silently no-op against the backend's
+        // concurrency claim and report success without pushing a loan.
+        timeoutMs: isApprove ? 180000 : undefined,
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.message || data.error || `Failed to ${endpoint}`)
@@ -1988,8 +2008,11 @@ export default function ApplicationDetail({ id, onBack }) {
           onRefresh={fetchApp}
         />
 
+        {/* Borrower record — name + every application tied to the same Loandisk borrower */}
+        <ClientApplicationsPanel app={app} fetcher={adminFetch} />
+
         {/* SECTION 2 — FinScore Result */}
-        <FinScoreSection finscoreRaw={finscoreRaw} finscoreNorm={finscoreNorm} />
+        <FinScoreSection app={app} finscoreRaw={finscoreRaw} finscoreNorm={finscoreNorm} />
 
         {/* SECTION 3 — CI Assessment Form (editable only by CI Officer / Approver / Super Admin) */}
         {showCiForm &&

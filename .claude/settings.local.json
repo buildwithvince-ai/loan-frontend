@@ -62,7 +62,12 @@
       "Bash(gh pr *)",
       "Bash(perl -0pi -e 's/<label className=\"block text-sm text-muted mb-2\">/<label htmlFor=\"salesOfficerId\" className=\"block text-sm text-muted mb-2\">/g; s/<label className=\"block text-sm font-medium text-white mb-1\\\\.5\">\\(\\\\s*\\)Link Existing Borrower/<label htmlFor=\"borrower-lookup\" className=\"block text-sm font-medium text-white mb-1.5\">$1Link Existing Borrower/g' PersonalLoanForm.jsx SmeLoanForm.jsx AkapLoanForm.jsx GroupLoanForm.jsx SblLoanForm.jsx)",
       "Bash(perl -0pi -e 's{\\(border border-border rounded-2xl p-6 sm:p-8\">\\\\n\\)\\(          \\\\{/\\\\* ══ STEP 1\\)}{$1          {restoredNotice && \\( *)",
-      "Bash(perl -0pi -e 's{<Label required>Desired Loan Amount \\\\\\(₱\\\\\\)</Label>}{<Label required htmlFor={`member_\\\\$\\\\{i\\\\}_loanAmount`}>Desired Loan Amount \\\\\\(₱\\\\\\)</Label>}' src/pages/GroupLoanForm.jsx)"
+      "Bash(perl -0pi -e 's{<Label required>Desired Loan Amount \\\\\\(₱\\\\\\)</Label>}{<Label required htmlFor={`member_\\\\$\\\\{i\\\\}_loanAmount`}>Desired Loan Amount \\\\\\(₱\\\\\\)</Label>}' src/pages/GroupLoanForm.jsx)",
+      "Bash(mkdir -p /Users/vinzerra/Desktop/loan-frontend/case-study-assets/gr8-lending-loan-origination-platform)",
+      "Bash(cp /private/tmp/claude-501/-Users-vinzerra-Desktop-loan-frontend/7b0860b4-95cb-4ed8-990a-00f760b6ac70/scratchpad/shots/pipeline-board.png /Users/vinzerra/Desktop/loan-frontend/case-study-assets/gr8-lending-loan-origination-platform/cover.png)",
+      "Bash(cp /private/tmp/claude-501/-Users-vinzerra-Desktop-loan-frontend/7b0860b4-95cb-4ed8-990a-00f760b6ac70/scratchpad/shots/public-form.png /Users/vinzerra/Desktop/loan-frontend/case-study-assets/gr8-lending-loan-origination-platform/gallery-1.png)",
+      "Bash(cp /private/tmp/claude-501/-Users-vinzerra-Desktop-loan-frontend/7b0860b4-95cb-4ed8-990a-00f760b6ac70/scratchpad/shots/admin-list.png /Users/vinzerra/Desktop/loan-frontend/case-study-assets/gr8-lending-loan-origination-platform/gallery-2.png)",
+      "Bash(cp /private/tmp/claude-501/-Users-vinzerra-Desktop-loan-frontend/7b0860b4-95cb-4ed8-990a-00f760b6ac70/scratchpad/shots/ci-form.png /Users/vinzerra/Desktop/loan-frontend/case-study-assets/gr8-lending-loan-origination-platform/gallery-3.png)"
     ]
   }
 }

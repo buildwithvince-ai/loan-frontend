@@ -1,9 +1,21 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import useSalesOfficers from '../hooks/useSalesOfficers'
-import BorrowerLookup from '../components/BorrowerLookup'
+import {
+  MAX_FILE_SIZE,
+  MAX_UPLOAD_MB,
+  summarizeAttachments,
+  buildHttpFailureResult,
+  readJsonSafely,
+} from '../lib/submitErrors'
+
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
 
 const TOTAL_STEPS = 3
+// Step holding the document uploads — an upload rejection sends the
+// applicant back here rather than to the review step they submitted from.
+const DOCUMENTS_STEP = 2
 
 const CIVIL_STATUSES = ['Single', 'Married', 'Widowed', 'Separated']
 const EMPLOYMENT_STATUSES = [
@@ -32,7 +44,6 @@ const MEMBER_DOCS = [
 const LEADER_DOCS = [...MEMBER_DOCS]
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
-const MAX_FILE_SIZE = 10 * 1024 * 1024
 
 function createMember() {
   return {
@@ -174,7 +185,6 @@ export default function SblLoanForm() {
   const [applicationCategory, setApplicationCategory] = useState(
     saved?.applicationCategory || 'new',
   )
-  const [linkedBorrower, setLinkedBorrower] = useState(saved?.linkedBorrower || null)
   const [salesOfficerId, setSalesOfficerId] = useState(saved?.salesOfficerId || '')
   const { officers, loading: soLoading, error: soError, retry: soRetry } = useSalesOfficers()
   const [agentName, setAgentName] = useState(saved?.agentName || '')
@@ -216,7 +226,6 @@ export default function SblLoanForm() {
         JSON.stringify({
           step,
           applicationCategory,
-          linkedBorrower,
           salesOfficerId,
           agentName,
           loanTerm,
@@ -227,17 +236,7 @@ export default function SblLoanForm() {
     } catch {
       // storage unavailable (private mode / quota) — persistence is best-effort
     }
-  }, [
-    step,
-    applicationCategory,
-    linkedBorrower,
-    salesOfficerId,
-    agentName,
-    loanTerm,
-    memberCount,
-    members,
-    result,
-  ])
+  }, [step, applicationCategory, salesOfficerId, agentName, loanTerm, memberCount, members, result])
 
   useEffect(() => {
     // Terminal outcome (landed or already on file) — start the next visit clean.
@@ -290,7 +289,7 @@ export default function SblLoanForm() {
       return
     }
     if (file.size > MAX_FILE_SIZE) {
-      setErrors(prev => ({ ...prev, [errorKey]: 'File must be under 10MB' }))
+      setErrors(prev => ({ ...prev, [errorKey]: `File must be under ${MAX_UPLOAD_MB}MB` }))
       return
     }
     setMemberDocs(prev => prev.map((d, i) => (i === memberIndex ? { ...d, [docKey]: file } : d)))
@@ -317,8 +316,6 @@ export default function SblLoanForm() {
     const e = {}
 
     if (step === 1) {
-      if (applicationCategory === 'renewal' && !linkedBorrower)
-        e.linked_borrower = 'Select an existing borrower to link this renewal'
       if (!salesOfficerId) e.salesOfficerId = 'Please select your Sales Officer'
       if (memberCount < 5) e.memberCount = 'Minimum 5 members required'
     }
@@ -423,10 +420,11 @@ export default function SblLoanForm() {
     try {
       const fd = new FormData()
       fd.append('loanType', 'sbl')
+      // Write-only. The backend DISCARDS this value and re-derives the category
+      // server-side from the mobile number (exact match against the borrower's last
+      // approved application), so the selector is UX copy and nothing more. Read the
+      // stored category back from the admin detail response, never from this.
       fd.append('application_category', applicationCategory)
-      if (applicationCategory === 'renewal' && linkedBorrower) {
-        fd.append('linked_borrower_id', linkedBorrower.loandisk_borrower_id || linkedBorrower.id)
-      }
       fd.append('sales_officer_id', salesOfficerId)
       fd.append('groupName', groupName)
       if (agentName.trim()) fd.append('agentName', agentName)
@@ -451,20 +449,15 @@ export default function SblLoanForm() {
         console.log('[sbl submit]', k, v instanceof File ? `File(${v.name})` : v)
       }
 
-      const res = await fetch(
-        'https://loan-backend-production-cd45.up.railway.app/api/application/submit-group',
-        {
-          method: 'POST',
-          body: fd,
-          signal: controller.signal,
-        },
-      )
-      let data = null
-      try {
-        data = await res.json()
-      } catch {
-        data = null
-      }
+      // Snapshot the attached files BEFORE fetch consumes the body, so an
+      // upload rejection we cannot read can still name the likely culprit.
+      const attachments = summarizeAttachments(fd)
+      const res = await fetch(`${API_BASE}/api/application/submit-group`, {
+        method: 'POST',
+        body: fd,
+        signal: controller.signal,
+      })
+      const data = await readJsonSafely(res)
       console.log('[sbl submit] response', res.status, data)
       if (res.ok && data) {
         if (data.status === 'error') {
@@ -496,12 +489,10 @@ export default function SblLoanForm() {
         // loop) and Loandisk borrowers are created only at admin approval, so a
         // genuine 5xx commits zero rows. Nothing was saved in any non-2xx case —
         // safe to retry.
-        setResult({
-          status: 'error',
-          message:
-            (data && (data.message || data.error)) ||
-            `The server rejected the request (error ${res.status}). Nothing was saved — please try again.`,
-        })
+        // The multer upload gate answers mid-stream, so its 400 body is often
+        // truncated and unreadable — buildHttpFailureResult reconstructs a
+        // specific, actionable message from the status plus `attachments`.
+        setResult(buildHttpFailureResult({ status: res.status, data, attachments }))
       }
     } catch (err) {
       console.error('[sbl submit] failed', err)
@@ -640,13 +631,29 @@ export default function SblLoanForm() {
           <h2
             className={`text-3xl font-bold mb-4 ${result.status === 'info' ? 'text-blue' : 'text-yellow-400'}`}
           >
-            {result.status === 'uncertain'
-              ? 'Submission Pending Confirmation'
-              : result.status === 'info'
-                ? 'Already Under Review'
-                : 'Something Went Wrong'}
+            {result.title ||
+              (result.status === 'uncertain'
+                ? 'Submission Pending Confirmation'
+                : result.status === 'info'
+                  ? 'Already Under Review'
+                  : 'Something Went Wrong')}
           </h2>
-          <p className="text-muted mb-8">{result.message || 'An unexpected error occurred.'}</p>
+          <p className={`text-muted ${result.suggestions?.length ? 'mb-5' : 'mb-8'}`}>
+            {result.message || 'An unexpected error occurred.'}
+          </p>
+          {result.suggestions?.length > 0 && (
+            <div className="text-left bg-surface border border-border rounded-xl p-5 mb-8">
+              <p className="text-white text-sm font-semibold mb-3">What you can do:</p>
+              <ul className="space-y-2">
+                {result.suggestions.map((s, i) => (
+                  <li key={i} className="text-muted text-sm flex items-start gap-2">
+                    <span className="text-green mt-0.5 shrink-0">&bull;</span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {result.status === 'uncertain' ? (
             <Link
               to="/"
@@ -672,11 +679,12 @@ export default function SblLoanForm() {
           ) : (
             <button
               onClick={() => {
+                if (result.refocusDocuments) setStep(DOCUMENTS_STEP)
                 setResult(null)
               }}
               className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all"
             >
-              Try Again
+              {result.actionLabel || 'Try Again'}
             </button>
           )}
         </div>
@@ -760,10 +768,7 @@ export default function SblLoanForm() {
                     <button
                       key={val}
                       type="button"
-                      onClick={() => {
-                        setApplicationCategory(val)
-                        setErrors(prev => ({ ...prev, linked_borrower: undefined }))
-                      }}
+                      onClick={() => setApplicationCategory(val)}
                       className={`flex-1 py-3 text-sm font-medium transition-colors ${
                         applicationCategory === val
                           ? 'bg-green text-white'
@@ -776,25 +781,14 @@ export default function SblLoanForm() {
                 </div>
               </div>
 
-              {/* Borrower Lookup (renewal only) */}
+              {/* Renewal note — the selector is UX only. Matching this application to
+                  an existing client record is done server-side, so the applicant is
+                  never asked to hunt down their own borrower record. */}
               {applicationCategory === 'renewal' && (
-                <div>
-                  <label
-                    htmlFor="borrower-lookup"
-                    className="block text-sm font-medium text-white mb-1.5"
-                  >
-                    Link Existing Borrower <span className="text-red-400">*</span>
-                  </label>
-                  <p className="text-muted text-xs mb-2">
-                    Search for the borrower's existing record to avoid duplicate entries.
-                  </p>
-                  <BorrowerLookup value={linkedBorrower} onChange={setLinkedBorrower} />
-                  {errors.linked_borrower && (
-                    <p role="alert" data-field-error className="text-red-400 text-xs mt-1">
-                      {errors.linked_borrower}
-                    </p>
-                  )}
-                </div>
+                <p className="text-muted text-xs bg-surface-alt border border-border rounded-xl px-4 py-3">
+                  We'll match this to your existing GR8 record automatically using the borrower's
+                  name and mobile number. Just fill in the form as usual.
+                </p>
               )}
 
               {/* Sales Officer Selection */}
@@ -1267,7 +1261,7 @@ export default function SblLoanForm() {
                             Document Upload
                           </h3>
                           <p className="text-muted text-xs">
-                            JPG, PNG, or PDF only. Max 10MB per file.
+                            JPG, PNG, or PDF only. Max {MAX_UPLOAD_MB}MB per file.
                           </p>
 
                           {requiredDocList.map(doc => {
@@ -1426,7 +1420,7 @@ export default function SblLoanForm() {
                       <div className="flex justify-between gap-4 text-sm">
                         <span className="text-muted shrink-0">Address</span>
                         <span className="text-white text-right break-all">
-                          {m.houseStreet}, Brgy. {m.barangay}, {m.city}, {m.province} {m.zip}
+                          {m.houseStreet}, {m.barangay}, {m.city}, {m.province} {m.zip}
                         </span>
                       </div>
                       <div className="flex justify-between gap-4 text-sm">
