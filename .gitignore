@@ -9,3 +9,6 @@ dist
 test-results
 e2e/.report
 e2e/.artifacts
+
+# Playwright MCP browser session artifacts
+.playwright-mcp

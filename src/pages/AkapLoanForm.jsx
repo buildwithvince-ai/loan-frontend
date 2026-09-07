@@ -1,8 +1,21 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import useSalesOfficers from '../hooks/useSalesOfficers'
+import {
+  MAX_FILE_SIZE,
+  MAX_UPLOAD_MB,
+  summarizeAttachments,
+  buildHttpFailureResult,
+  readJsonSafely,
+} from '../lib/submitErrors'
+
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
 
 const TOTAL_STEPS = 8
+// Step holding the document uploads — an upload rejection sends the
+// applicant back here rather than to the review step they submitted from.
+const DOCUMENTS_STEP = 7
 
 const PURPOSES = ['Working Capital', 'Inventory', 'Equipment', 'Daily Operations', 'Other']
 const BUSINESS_TYPES = ['Sole Proprietorship', 'Sari-sari Store', 'Market Vendor', 'Other']
@@ -35,7 +48,6 @@ const OPTIONAL_DOCS = [
 const ALL_DOCS = [...REQUIRED_DOCS, ...OPTIONAL_DOCS]
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
-const MAX_FILE_SIZE = 10 * 1024 * 1024
 
 const initialForm = {
   application_category: 'new',
@@ -259,7 +271,7 @@ export default function AkapLoanForm() {
       return
     }
     if (file.size > MAX_FILE_SIZE) {
-      setErrors(prev => ({ ...prev, [key]: 'File must be under 10MB' }))
+      setErrors(prev => ({ ...prev, [key]: `File must be under ${MAX_UPLOAD_MB}MB` }))
       return
     }
     setDocs(prev => ({ ...prev, [key]: file }))
@@ -415,16 +427,15 @@ export default function AkapLoanForm() {
           fd.append(keyMap[k] || k, v)
       })
       Object.entries(docs).forEach(([k, file]) => fd.append(k, file, file.name))
-      const res = await fetch(
-        'https://loan-backend-production-cd45.up.railway.app/api/application/submit',
-        { method: 'POST', body: fd, signal: controller.signal },
-      )
-      let data = null
-      try {
-        data = await res.json()
-      } catch {
-        data = null
-      }
+      // Snapshot the attached files BEFORE fetch consumes the body, so an
+      // upload rejection we cannot read can still name the likely culprit.
+      const attachments = summarizeAttachments(fd)
+      const res = await fetch(`${API_BASE}/api/application/submit`, {
+        method: 'POST',
+        body: fd,
+        signal: controller.signal,
+      })
+      const data = await readJsonSafely(res)
       if (res.ok && data) {
         if (data.status === 'error') {
           // 200 + status:'error' = this mobile number already has an application
@@ -455,12 +466,10 @@ export default function AkapLoanForm() {
         // exception that commits nothing (the application insert is atomic;
         // Loandisk borrowers are created only at admin approval). Nothing was
         // saved in any non-2xx case — safe to retry.
-        setResult({
-          status: 'error',
-          message:
-            (data && (data.message || data.error)) ||
-            `The server rejected the request (error ${res.status}). Nothing was saved — please try again.`,
-        })
+        // The multer upload gate answers mid-stream, so its 400 body is often
+        // truncated and unreadable — buildHttpFailureResult reconstructs a
+        // specific, actionable message from the status plus `attachments`.
+        setResult(buildHttpFailureResult({ status: res.status, data, attachments }))
       }
     } catch (err) {
       if (err.name === 'AbortError') {
@@ -590,13 +599,29 @@ export default function AkapLoanForm() {
           <h2
             className={`text-3xl font-bold mb-4 ${result.status === 'info' ? 'text-blue' : 'text-yellow-400'}`}
           >
-            {result.status === 'uncertain'
-              ? 'Submission Pending Confirmation'
-              : result.status === 'info'
-                ? 'Already Under Review'
-                : 'Something Went Wrong'}
+            {result.title ||
+              (result.status === 'uncertain'
+                ? 'Submission Pending Confirmation'
+                : result.status === 'info'
+                  ? 'Already Under Review'
+                  : 'Something Went Wrong')}
           </h2>
-          <p className="text-muted mb-8">{result.message || 'An unexpected error occurred.'}</p>
+          <p className={`text-muted ${result.suggestions?.length ? 'mb-5' : 'mb-8'}`}>
+            {result.message || 'An unexpected error occurred.'}
+          </p>
+          {result.suggestions?.length > 0 && (
+            <div className="text-left bg-surface border border-border rounded-xl p-5 mb-8">
+              <p className="text-white text-sm font-semibold mb-3">What you can do:</p>
+              <ul className="space-y-2">
+                {result.suggestions.map((s, i) => (
+                  <li key={i} className="text-muted text-sm flex items-start gap-2">
+                    <span className="text-green mt-0.5 shrink-0">&bull;</span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {result.status === 'uncertain' ? (
             <Link
               to="/"
@@ -621,10 +646,13 @@ export default function AkapLoanForm() {
             </div>
           ) : (
             <button
-              onClick={() => setResult(null)}
+              onClick={() => {
+                if (result.refocusDocuments) setStep(DOCUMENTS_STEP)
+                setResult(null)
+              }}
               className="inline-block px-8 py-3 bg-green hover:bg-green-hover text-white font-semibold rounded-xl transition-all"
             >
-              Try Again
+              {result.actionLabel || 'Try Again'}
             </button>
           )}
         </div>
@@ -1425,7 +1453,7 @@ function Step7({ docs, errors, handleFile, removeFile }) {
     <div className="space-y-5">
       <h2 className="text-xl font-bold text-green mb-1">Document Upload</h2>
       <p className="text-muted text-sm mb-4">
-        Upload clear photos or scanned copies. JPG, PNG, or PDF only. Max 10MB per file.
+        Upload clear photos or scanned copies. JPG, PNG, or PDF only. Max {MAX_UPLOAD_MB}MB per file.
       </p>
 
       <div className="space-y-3">
@@ -1512,7 +1540,7 @@ function Step8({ form, set, docs, errors }) {
         ['Date Established', form.dateEstablished],
         [
           'Address',
-          `${form.businessStreet}, Brgy. ${form.businessBarangay}, ${form.businessCity}, ${form.businessProvince} ${form.businessZip}`,
+          `${form.businessStreet}, ${form.businessBarangay}, ${form.businessCity}, ${form.businessProvince} ${form.businessZip}`,
         ],
         ['Monthly Gross Revenue', formatPeso(form.monthlyGrossRevenue)],
       ],
@@ -1534,7 +1562,7 @@ function Step8({ form, set, docs, errors }) {
       items: [
         [
           'Address',
-          `${form.presentHouseStreet}, Brgy. ${form.presentBarangay}, ${form.presentCity}, ${form.presentProvince} ${form.presentZip}`,
+          `${form.presentHouseStreet}, ${form.presentBarangay}, ${form.presentCity}, ${form.presentProvince} ${form.presentZip}`,
         ],
         ['Length of Stay', form.presentLengthOfStay],
       ],
@@ -1546,7 +1574,7 @@ function Step8({ form, set, docs, errors }) {
         : [
             [
               'Address',
-              `${form.permanentHouseStreet}, Brgy. ${form.permanentBarangay}, ${form.permanentCity}, ${form.permanentProvince} ${form.permanentZip}`,
+              `${form.permanentHouseStreet}, ${form.permanentBarangay}, ${form.permanentCity}, ${form.permanentProvince} ${form.permanentZip}`,
             ],
             ['Length of Stay', form.permanentLengthOfStay],
           ],
