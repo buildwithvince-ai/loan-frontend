@@ -96,11 +96,17 @@ https://gr8lendingcorporation.com
 
 | Product | Amount | Terms | Rate/mo | Min Income | Repayment |
 |---------|--------|-------|---------|------------|-----------|
-| Personal | ₱10K–₱30K | 3, 6, 12 mo | 3.5% | ₱15K | Bimonthly |
+| Personal | ₱10K–₱200K | 3, 6, 12 mo | 3.5% | ₱15K | Bimonthly |
 | SME | ₱50K–₱300K | 3, 6, 12, 24 mo | 3% | ₱30K | Monthly w/ PDCs |
 | AKAP | ₱5K–₱40K | 3, 4, 5, 6 mo | 4% | ₱10K | Weekly |
-| Group | ₱10K–₱50K | 3, 6, 12 mo | 5% | ₱15K | Bimonthly |
-| SBL | ₱5K–₱100K | 6, 12 mo | 5% | ₱2K | Monthly |
+| Group | ₱10K–₱50K | 3, 6, 12 mo | 5% | ₱5K | Bimonthly |
+| SBL | ₱5K–₱100K | 6, 12 mo | 5% | ₱1K | Monthly |
+
+> Amounts, terms, and min income above are verified against the form clamps/validators
+> (2026-08-04). **Rate/mo is the advertised marketing rate, NOT what is charged** —
+> backend locks all approvals to 5%/month (see `LOCKED_INTEREST_RATE` in
+> `src/lib/loanCalculations.js`, 2026-06-10). Reconciling public copy is an open
+> operator decision.
 
 ## Design System
 - **Theme:** Dark navy/slate background, green primary, blue secondary
