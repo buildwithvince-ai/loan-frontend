@@ -5,7 +5,6 @@ const API_BASE =
 
 const FALLBACK_OFFICERS = [
   { id: '71dbd005-a56f-4e02-829b-ffec86293b55', full_name: 'Troy Laderas' },
-  { id: 'e1a3b182-021c-437b-9eb3-e4fa9a6eed1a', full_name: 'Dennis De Guia' },
 ]
 
 export default function useSalesOfficers() {
