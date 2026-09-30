@@ -67,13 +67,13 @@ export default function InviteUserModal({ getToken, onSuccess, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+      className="x-modal-backdrop"
       onClick={e => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="w-full max-w-md bg-surface border border-border rounded-xl p-6 shadow-2xl">
-        <h2 className="text-white font-bold text-lg mb-5">Invite User</h2>
+      <div className="x-modal max-w-md p-6">
+        <h2 className="text-white font-medium text-lg mb-5">Invite User</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>

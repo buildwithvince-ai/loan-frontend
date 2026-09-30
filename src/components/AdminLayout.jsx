@@ -1,45 +1,52 @@
-import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useTheme } from '../context/ThemeContext'
+import AppShell from './AppShell'
+import ReportingIcon from './ReportingIcon'
+import { INSIGHT_ROLES } from '../constants/roles'
 
-const ROLE_LABEL = {
-  super_admin: 'Super Admin',
-  admin: 'Admin',
-  sales_officer: 'Sales Officer',
-  verifier: 'Verifier',
-  ci_officer: 'CI Officer',
-  approver: 'Approver',
-  loan_processing_officer: 'Loan Processing',
-}
-
-function getInitials(name) {
-  if (!name) return 'ST'
-  const parts = name.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-}
-
+// Admin portal: the shared shell with the admin sections.
 export default function AdminLayout({ children }) {
-  const { logout, roles, hasRole, fullName, user } = useAuth()
-  const { isDark, toggleTheme } = useTheme()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { hasRole, hasAnyRole } = useAuth()
+  // Management views (see INSIGHT_ROLES in App.jsx).
+  const canSeeInsights = hasAnyRole(INSIGHT_ROLES)
 
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login', { replace: true })
+  const iconProps = {
+    xmlns: 'http://www.w3.org/2000/svg',
+    fill: 'none',
+    viewBox: '0 0 24 24',
+    stroke: 'currentColor',
+    strokeWidth: 1.5,
+  }
+  const dashboardItem = {
+    label: 'Dashboard',
+    path: '/admin/dashboard',
+    icon: (
+      <svg {...iconProps}>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"
+        />
+      </svg>
+    ),
+    match: p => p === '/admin/dashboard',
+  }
+  const reportingItem = {
+    label: 'Reporting',
+    path: '/admin/reporting',
+    icon: <ReportingIcon />,
+    match: p => p === '/admin/reporting',
+    // Listed for every staff role; non-admins land on the access-restricted page.
+    locked: !canSeeInsights,
   }
 
   const navItems = [
+    ...(canSeeInsights ? [dashboardItem] : []),
     {
       label: 'Applications',
       path: '/admin',
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="w-5 h-5"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -54,6 +61,7 @@ export default function AdminLayout({ children }) {
       ),
       match: p => p === '/admin',
     },
+    reportingItem,
     ...(hasRole('super_admin')
       ? [
           {
@@ -62,7 +70,6 @@ export default function AdminLayout({ children }) {
             icon: (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -85,7 +92,6 @@ export default function AdminLayout({ children }) {
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="w-5 h-5"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -102,177 +108,5 @@ export default function AdminLayout({ children }) {
     },
   ]
 
-  const isActive = item => item.match(location.pathname)
-
-  return (
-    <div className={`min-h-screen bg-canvas flex ${isDark ? '' : 'light-mode'}`}>
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen w-60 bg-surface border-r border-border z-50 flex flex-col transition-transform duration-200 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
-      >
-        {/* Logo lockup */}
-        <div className="px-5 h-16 flex items-center gap-3 border-b border-border shrink-0">
-          <img src="/gr8logo.png" alt="GR8" className="w-8 h-8 opacity-90" />
-          <div>
-            <span className="text-white font-bold text-sm leading-none block">GR8 Lending</span>
-            <span className="text-muted text-xs leading-none block mt-0.5">Admin Portal</span>
-          </div>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-5 flex flex-col gap-1">
-          <p className="px-3 mb-2 text-muted text-xs font-medium uppercase tracking-wider">
-            Navigation
-          </p>
-          {navItems.map(item => {
-            const active = isActive(item)
-            return (
-              <button
-                key={item.path}
-                onClick={() => {
-                  navigate(item.path)
-                  setSidebarOpen(false)
-                }}
-                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left ${
-                  active
-                    ? 'bg-green/8 text-green'
-                    : 'text-muted hover:text-white hover:bg-surface-alt/50'
-                }`}
-              >
-                {/* Left accent bar for active state */}
-                {active && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-green rounded-r-full" />
-                )}
-                <span className={active ? 'text-green' : ''}>{item.icon}</span>
-                {item.label}
-              </button>
-            )
-          })}
-        </nav>
-
-        {/* Theme toggle */}
-        <div className="px-3 pb-2">
-          <button
-            onClick={toggleTheme}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:text-white hover:bg-surface-alt/50 transition-colors w-full text-left"
-          >
-            {isDark ? (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
-                />
-              </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"
-                />
-              </svg>
-            )}
-            {isDark ? 'Light Mode' : 'Dark Mode'}
-          </button>
-        </div>
-
-        {/* User block */}
-        <div className="px-3 py-4 border-t border-border shrink-0">
-          <div className="flex items-center gap-3 px-2 mb-3">
-            {/* Avatar circle with initials */}
-            <div className="w-8 h-8 rounded-full bg-green/15 border border-green/25 flex items-center justify-center shrink-0">
-              <span className="text-green text-xs font-bold">{getInitials(fullName)}</span>
-            </div>
-            <div className="min-w-0">
-              <p className="text-white text-sm font-medium truncate leading-tight">
-                {fullName || 'Staff'}
-              </p>
-              <p className="text-muted text-xs truncate leading-tight">
-                {roles.map(r => ROLE_LABEL[r] || r).join(', ')}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:text-red-400 hover:bg-red-500/5 transition-colors w-full"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
-              />
-            </svg>
-            Sign Out
-          </button>
-        </div>
-      </aside>
-
-      {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile top bar */}
-        <header className="lg:hidden bg-surface border-b border-border sticky top-0 z-30">
-          <div className="px-4 h-14 flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="text-muted hover:text-white transition-colors p-1"
-              aria-label="Open navigation"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-                />
-              </svg>
-            </button>
-            <img src="/gr8logo.png" alt="GR8" className="w-7 h-7 opacity-90" />
-            <span className="text-white font-bold text-sm">GR8 Lending</span>
-          </div>
-        </header>
-
-        {/* Page content */}
-        <main className="flex-1">{children}</main>
-      </div>
-    </div>
-  )
+  return <AppShell navItems={navItems}>{children}</AppShell>
 }

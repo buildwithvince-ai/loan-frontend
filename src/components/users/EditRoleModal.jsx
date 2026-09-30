@@ -67,13 +67,13 @@ export default function EditRoleModal({ user, getToken, onSuccess, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+      className="x-modal-backdrop"
       onClick={e => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="w-full max-w-sm bg-surface border border-border rounded-xl p-6 shadow-2xl">
-        <h2 className="text-white font-bold text-lg mb-1">Edit User</h2>
+      <div className="x-modal max-w-sm p-6">
+        <h2 className="text-white font-medium text-lg mb-1">Edit User</h2>
         <p className="text-muted text-sm mb-5 truncate">{user.email}</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

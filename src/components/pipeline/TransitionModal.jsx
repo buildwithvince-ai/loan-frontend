@@ -98,11 +98,8 @@ export default function TransitionModal({ fromStage, toStage, application, onCon
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div
-        className="bg-surface border border-border rounded-xl w-full max-w-md shadow-2xl shadow-black/60"
-        onClick={e => e.stopPropagation()}
-      >
+    <div className="x-modal-backdrop">
+      <div className="x-modal" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-border">
           <h2 className="text-white font-bold text-lg mb-1">Move Application</h2>

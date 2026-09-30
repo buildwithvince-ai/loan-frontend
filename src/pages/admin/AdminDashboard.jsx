@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext'
 import ApplicationsList from './ApplicationsList'
 import ApplicationDetail from './ApplicationDetail'
 import KanbanBoard from '../../components/pipeline/KanbanBoard'
-import ReportProblemButton from '../../components/ReportProblemButton'
 
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
@@ -163,24 +162,28 @@ export default function AdminDashboard() {
       <div className="px-4 sm:px-6 py-6">
         {/* Top header bar */}
         {view !== 'detail' && (
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <div>
-              <h1 className="text-white font-bold text-xl leading-tight">Applications</h1>
+              <h1 className="text-white font-medium text-2xl leading-tight">Applications</h1>
               {lastRefreshed && dashView === 'list' && (
                 <p className="text-muted text-xs mt-0.5">
                   Updated {formatRefreshed(lastRefreshed)}
                 </p>
               )}
             </div>
-            {/* Segmented toggle */}
-            <div className="flex items-center gap-0 p-1 bg-surface-alt border border-border rounded-lg">
+            {/* Segmented toggle — one sliding thumb */}
+            <div
+              className="x-seg"
+              role="tablist"
+              aria-label="Dashboard view"
+              style={{ '--n': 2, '--idx': dashView === 'pipeline' ? 1 : 0 }}
+            >
+              <span className="x-seg-thumb" aria-hidden="true" />
               <button
+                role="tab"
+                aria-selected={dashView === 'list'}
                 onClick={() => switchDashView('list')}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  dashView === 'list'
-                    ? 'bg-surface text-white shadow-sm border border-border'
-                    : 'text-muted hover:text-white'
-                }`}
+                className={`x-seg-btn${dashView === 'list' ? ' is-active' : ''}`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -199,12 +202,10 @@ export default function AdminDashboard() {
                 List
               </button>
               <button
+                role="tab"
+                aria-selected={dashView === 'pipeline'}
                 onClick={() => switchDashView('pipeline')}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  dashView === 'pipeline'
-                    ? 'bg-surface text-white shadow-sm border border-border'
-                    : 'text-muted hover:text-white'
-                }`}
+                className={`x-seg-btn${dashView === 'pipeline' ? ' is-active' : ''}`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -226,36 +227,16 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Back button when in detail */}
-        {view === 'detail' && (
-          <button
-            onClick={backToList}
-            className="mb-4 flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-            </svg>
-            Back to Applications
-          </button>
-        )}
-
-        {/* Content */}
-        {view === 'detail' ? (
-          <ApplicationDetail id={selectedAppId} onBack={backToList} />
-        ) : dashView === 'pipeline' ? (
-          <KanbanBoard onCardClick={openDetailFromCard} />
-        ) : (
-          <ApplicationsList onReview={openDetail} onDataRefreshed={handleDataRefreshed} />
-        )}
+        <div key={view === 'detail' ? 'detail' : dashView} className="x-rise">
+          {view === 'detail' ? (
+            <ApplicationDetail id={selectedAppId} onBack={backToList} />
+          ) : dashView === 'pipeline' ? (
+            <KanbanBoard onCardClick={openDetailFromCard} />
+          ) : (
+            <ApplicationsList onReview={openDetail} onDataRefreshed={handleDataRefreshed} />
+          )}
+        </div>
       </div>
-      <ReportProblemButton />
     </ToastContext.Provider>
   )
 }

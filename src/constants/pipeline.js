@@ -7,6 +7,14 @@ export const PIPELINE_STAGES = [
   'declined',
 ]
 
+// Application status → display label + chip tone (admin list + detail).
+export const STATUS_CHIP = {
+  pending: { label: 'Pending', tone: 'x-chip--neutral' },
+  approved: { label: 'Approved', tone: 'x-chip--positive' },
+  declined: { label: 'Declined', tone: 'x-chip--negative' },
+  pending_sa_confirmation: { label: 'Awaiting SA', tone: 'x-chip--warn' },
+}
+
 export const STAGE_LABELS = {
   sales_officer: 'Sales Officer',
   verifier: 'Verifier',

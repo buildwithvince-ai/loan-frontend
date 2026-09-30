@@ -35,3 +35,14 @@ export function getApplicantName(app) {
   if (composed) return composed
   return String(fromApp(app, 'full_name', 'fullName', 'name')).trim()
 }
+
+// Up to two initials for an avatar ("Maria Santos" → "MS"). `fallback` when empty.
+export function getInitials(name, fallback = '—') {
+  const parts = String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  if (!parts.length) return fallback
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}

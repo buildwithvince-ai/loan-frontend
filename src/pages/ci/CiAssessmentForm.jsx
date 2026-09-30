@@ -11,7 +11,8 @@ const INTERVIEWERS = [
   'Ronald Allan Mendez',
   'Jerry Liquido',
   'Arnel Estrella',
-  'Rafael Roque',
+  // Rafael Roque resigned 2026-09-30; past assessments keep his name as stored text.
+  'Villy Estrella',
   'Anaceto DC Carreon',
 ]
 
@@ -152,7 +153,7 @@ function SectionHeader({ number, title, maxPts, currentPts }) {
   return (
     <div className="flex items-center justify-between mb-3">
       <h4 className="text-white font-semibold text-sm">
-        {number && <span className="text-green mr-1.5">Q{number}.</span>}
+        {number && <span className="x-step mr-2">Q{number}</span>}
         {title}
       </h4>
       {maxPts != null && (
@@ -551,11 +552,11 @@ export default function CiAssessmentForm({ app, onBack }) {
   if (submitted) {
     return (
       <div>
-        <div className="bg-surface border border-border rounded-xl p-8 text-center max-w-lg mx-auto mt-8">
+        <div className="x-panel p-8 text-center max-w-lg mx-auto mt-8">
           <div className="w-16 h-16 bg-green/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-green text-3xl">✓</span>
           </div>
-          <h2 className="text-white text-xl font-bold mb-2">CI Assessment Submitted</h2>
+          <h2 className="text-white text-xl font-medium mb-2">CI Assessment Submitted</h2>
           <p className="text-muted text-sm mb-6">
             Assessment submitted for <span className="text-white font-medium">{fullName}</span>
           </p>
@@ -576,10 +577,7 @@ export default function CiAssessmentForm({ app, onBack }) {
           <p className="text-muted text-xs mb-6">
             This application will now be reviewed by the supervisor.
           </p>
-          <button
-            onClick={onBack}
-            className="w-full bg-green hover:bg-green-hover text-white font-medium py-2.5 rounded-lg transition-colors"
-          >
+          <button onClick={onBack} className="x-btn x-btn--primary w-full">
             Back to Applications
           </button>
         </div>
@@ -592,8 +590,8 @@ export default function CiAssessmentForm({ app, onBack }) {
       {/* Confirm modal */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setShowConfirm(false)} />
-          <div className="relative bg-surface border border-border rounded-xl p-6 max-w-md w-full">
+          <div className="absolute inset-0 x-scrim" onClick={() => setShowConfirm(false)} />
+          <div className="relative x-modal max-w-md p-6" role="dialog" aria-modal="true">
             <h3 className="text-white font-bold text-lg mb-2">Submit CI Assessment</h3>
             <p className="text-muted text-sm mb-6">
               Submit CI assessment for <span className="text-white">{fullName}</span>? This cannot
@@ -606,10 +604,7 @@ export default function CiAssessmentForm({ app, onBack }) {
               >
                 Cancel
               </button>
-              <button
-                onClick={handleConfirmSubmit}
-                className="px-4 py-2 text-sm font-medium bg-green hover:bg-green-hover text-white rounded-lg transition-colors"
-              >
+              <button onClick={handleConfirmSubmit} className="x-btn x-btn--primary">
                 {submitting ? 'Submitting...' : 'Confirm Submit'}
               </button>
             </div>
@@ -618,11 +613,17 @@ export default function CiAssessmentForm({ app, onBack }) {
       )}
 
       {/* Back button */}
-      <button
-        onClick={handleBack}
-        className="flex items-center gap-2 text-muted hover:text-white text-sm mb-6 transition-colors"
-      >
-        ← Back to Applications
+      <button onClick={handleBack} className="x-pill mb-6">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden="true"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+        </svg>
+        Back to Applications
       </button>
 
       {/* Draft-restored notice */}
@@ -644,31 +645,31 @@ export default function CiAssessmentForm({ app, onBack }) {
       )}
 
       {/* Application summary */}
-      <div className="bg-surface border border-border rounded-xl p-5 mb-6">
+      <div className="x-panel p-5 mb-6">
         <h3 className="text-white font-semibold text-sm mb-3">Applicant Information</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
           <div>
-            <span className="text-muted text-xs block">Name</span>
+            <span className="x-field-label">Name</span>
             <span className="text-white">{fullName}</span>
           </div>
           <div>
-            <span className="text-muted text-xs block">Age</span>
+            <span className="x-field-label">Age</span>
             <span className="text-white">{age != null ? `${age} years old` : '—'}</span>
           </div>
           <div>
-            <span className="text-muted text-xs block">Phone</span>
+            <span className="x-field-label">Phone</span>
             <span className="text-white">{app.phone || app.mobile || '—'}</span>
           </div>
           <div>
-            <span className="text-muted text-xs block">Civil Status</span>
+            <span className="x-field-label">Civil Status</span>
             <span className="text-white">{civilStatus || '—'}</span>
           </div>
           <div className="sm:col-span-2 lg:col-span-4">
-            <span className="text-muted text-xs block">Address</span>
+            <span className="x-field-label">Address</span>
             <span className="text-white">{address || '—'}</span>
           </div>
           <div>
-            <span className="text-muted text-xs block">Loan Type</span>
+            <span className="x-field-label">Loan Type</span>
             <span
               className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
                 {
@@ -684,17 +685,17 @@ export default function CiAssessmentForm({ app, onBack }) {
             </span>
           </div>
           <div>
-            <span className="text-muted text-xs block">Amount</span>
+            <span className="x-field-label">Amount</span>
             <span className="text-white">{formatCurrency(app.loan_amount || app.amount)}</span>
           </div>
           <div>
-            <span className="text-muted text-xs block">Term</span>
+            <span className="x-field-label">Term</span>
             <span className="text-white">
               {app.term || app.loan_term ? `${app.term || app.loan_term} months` : '—'}
             </span>
           </div>
           <div>
-            <span className="text-muted text-xs block">Purpose</span>
+            <span className="x-field-label">Purpose</span>
             <span className="text-white">{loanPurpose || '—'}</span>
           </div>
         </div>
@@ -719,7 +720,7 @@ export default function CiAssessmentForm({ app, onBack }) {
           )}
 
           {/* CI Investigation Fields */}
-          <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+          <div className="x-panel p-5 space-y-4">
             <h4 className="text-white font-semibold text-sm mb-3">Investigation Details</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -840,7 +841,7 @@ export default function CiAssessmentForm({ app, onBack }) {
 
           {/* Payment Frequency + Salary Payout Dates — hidden for AKAP & SME */}
           {!hidePayout && (
-            <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+            <div className="x-panel p-5 space-y-4">
               <h4 className="text-white font-semibold text-sm">Salary / Honorarium Payout</h4>
               <div>
                 <label className={labelCls}>Payment Frequency *</label>
@@ -882,7 +883,7 @@ export default function CiAssessmentForm({ app, onBack }) {
 
           {/* Honorarium Date — SBL only (replaces the salary payout block) */}
           {isSbl && (
-            <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+            <div className="x-panel p-5 space-y-4">
               <h4 className="text-white font-semibold text-sm">Honorarium</h4>
               <div>
                 <label className={labelCls}>Honorarium Date *</label>
@@ -902,7 +903,7 @@ export default function CiAssessmentForm({ app, onBack }) {
           )}
 
           {/* Q1 */}
-          <div className="bg-surface border border-border rounded-xl p-5">
+          <div className="x-panel p-5">
             <SectionHeader
               number="1"
               title="Capacity to Pay — Declared Net Income"
@@ -916,7 +917,7 @@ export default function CiAssessmentForm({ app, onBack }) {
           </div>
 
           {/* Q2 */}
-          <div className="bg-surface border border-border rounded-xl p-5">
+          <div className="x-panel p-5">
             <SectionHeader
               number="2"
               title="Capacity to Pay — Verified Net Income"
@@ -930,7 +931,7 @@ export default function CiAssessmentForm({ app, onBack }) {
           </div>
 
           {/* Q3 */}
-          <div className="bg-surface border border-border rounded-xl p-5">
+          <div className="x-panel p-5">
             <SectionHeader
               number="3"
               title="Work / Business Stability"
@@ -941,13 +942,13 @@ export default function CiAssessmentForm({ app, onBack }) {
           </div>
 
           {/* Q4 */}
-          <div className="bg-surface border border-border rounded-xl p-5">
+          <div className="x-panel p-5">
             <SectionHeader number="4" title="Residency" maxPts={10} currentPts={q4} />
             <RadioGroup name="ciQ4" options={Q4_OPTIONS} value={q4} onChange={setQ4} />
           </div>
 
           {/* Renewal Bonus */}
-          <div className="bg-surface border border-border rounded-xl p-5">
+          <div className="x-panel p-5">
             <SectionHeader title="Additional Points for Renewal (optional)" />
             <RadioGroup
               name="ciRenewalBonus"
@@ -958,7 +959,7 @@ export default function CiAssessmentForm({ app, onBack }) {
           </div>
 
           {/* Deductions */}
-          <div className="bg-surface border border-border rounded-xl p-5">
+          <div className="x-panel p-5">
             <SectionHeader title="Points Deduction for Renewal (optional)" />
             <CheckboxGroup
               options={RENEWAL_DEDUCTIONS}
@@ -969,7 +970,7 @@ export default function CiAssessmentForm({ app, onBack }) {
 
           {/* Character References (not SBL) */}
           {!isSbl && (
-            <div className="bg-surface border border-border rounded-xl p-5">
+            <div className="x-panel p-5">
               <h4 className="text-white font-semibold text-sm mb-4">
                 Character / Trade References
               </h4>
@@ -1024,7 +1025,7 @@ export default function CiAssessmentForm({ app, onBack }) {
 
           {/* SBL fields */}
           {isSbl && (
-            <div className="bg-surface border border-border rounded-xl p-5">
+            <div className="x-panel p-5">
               <h4 className="text-white font-semibold text-sm mb-4">SBL Approvals</h4>
               <div className="space-y-4">
                 {[
@@ -1069,7 +1070,7 @@ export default function CiAssessmentForm({ app, onBack }) {
           )}
 
           {/* Recommendation */}
-          <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+          <div className="x-panel p-5 space-y-4">
             <h4 className="text-white font-semibold text-sm">CI Recommendation</h4>
             <div className="flex gap-3">
               {['approved', 'disapproved'].map(v => (
@@ -1128,7 +1129,7 @@ export default function CiAssessmentForm({ app, onBack }) {
           <button
             onClick={handleSubmitClick}
             disabled={submitting}
-            className="w-full bg-green hover:bg-green-hover text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 mb-16 lg:mb-0"
+            className="x-btn x-btn--primary w-full min-h-12 mb-16 lg:mb-0"
           >
             {submitting ? 'Submitting...' : 'Submit CI Assessment'}
           </button>
@@ -1136,8 +1137,8 @@ export default function CiAssessmentForm({ app, onBack }) {
 
         {/* Sticky CI-only score panel (desktop) */}
         <div className="hidden lg:block w-64 shrink-0">
-          <div className="sticky top-20">
-            <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+          <div className="sticky top-6">
+            <div className="x-panel p-4 space-y-3">
               <h4 className="text-white font-semibold text-sm">CI Score Breakdown</h4>
               <div className="space-y-1.5 text-xs">
                 <ScoreLine label="Q1 Declared Income" value={q1} max={20} />
@@ -1181,7 +1182,7 @@ export default function CiAssessmentForm({ app, onBack }) {
             <button
               onClick={handleSubmitClick}
               disabled={submitting}
-              className="bg-green hover:bg-green-hover text-white font-medium text-sm px-5 py-2 rounded-lg transition-colors disabled:opacity-50"
+              className="x-btn x-btn--primary px-5"
             >
               Submit
             </button>

@@ -1,4 +1,5 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -19,6 +20,57 @@ import UserManagement from './pages/admin/UserManagement'
 import MyAccount from './pages/admin/MyAccount'
 import CiPortal from './pages/ci/CiPortal'
 import { ThemeProvider } from './context/ThemeContext'
+import { useAuth } from './context/AuthContext'
+import AccessRestricted from './components/AccessRestricted'
+import AppShell from './components/AppShell'
+import { useCiNav } from './pages/ci/CiPortal'
+import { INSIGHT_ROLES } from './constants/roles'
+
+// Chart pages load on demand so Recharts stays out of the main bundle.
+const Dashboard = lazy(() => import('./pages/admin/Dashboard'))
+const Reporting = lazy(() => import('./pages/admin/Reporting'))
+
+// CI officers' locked Reporting page, inside the CI shell. Admins who land here
+// are sent to the real page.
+function CiReportingRestricted() {
+  const ciNav = useCiNav()
+  const { hasAnyRole } = useAuth()
+  if (hasAnyRole(INSIGHT_ROLES)) return <Navigate to="/admin/reporting" replace />
+  return (
+    <AppShell navItems={ciNav} showTabBar={false}>
+      <AccessRestricted
+        feature="Reporting"
+        allowedRoles={INSIGHT_ROLES}
+        homePath="/ci"
+        homeLabel="Assessments"
+      />
+    </AppShell>
+  )
+}
+
+// Reporting is listed for every staff role but only admins/super admins get in;
+// everyone else sees AccessRestricted (operator decision, 2026-09-30).
+// [ASSUMPTION] Dashboard stays hidden (not listed) for non-admins.
+function InsightGate({ feature, homePath, homeLabel, children }) {
+  const { hasAnyRole } = useAuth()
+  if (hasAnyRole(INSIGHT_ROLES)) return children
+  return (
+    <AccessRestricted
+      feature={feature}
+      allowedRoles={INSIGHT_ROLES}
+      homePath={homePath}
+      homeLabel={homeLabel}
+    />
+  )
+}
+
+function PageFallback() {
+  return (
+    <div className="flex items-center justify-center py-24">
+      <div className="w-7 h-7 border-2 border-green border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+}
 
 function PublicLayout({ children }) {
   return (
@@ -81,6 +133,36 @@ function App() {
         }
       />
       <Route
+        path="/admin/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={INSIGHT_ROLES}>
+            <ThemeProvider>
+              <AdminLayout>
+                <Suspense fallback={<PageFallback />}>
+                  <Dashboard />
+                </Suspense>
+              </AdminLayout>
+            </ThemeProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/reporting"
+        element={
+          <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+            <ThemeProvider>
+              <AdminLayout>
+                <InsightGate feature="Reporting">
+                  <Suspense fallback={<PageFallback />}>
+                    <Reporting />
+                  </Suspense>
+                </InsightGate>
+              </AdminLayout>
+            </ThemeProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin/account"
         element={
           <ProtectedRoute allowedRoles={ADMIN_ROLES}>
@@ -88,6 +170,18 @@ function App() {
               <AdminLayout>
                 <MyAccount />
               </AdminLayout>
+            </ThemeProvider>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* CI officers see Reporting in their menu, locked */}
+      <Route
+        path="/ci/reporting"
+        element={
+          <ProtectedRoute allowedRoles={['ci_officer', 'admin', 'super_admin']}>
+            <ThemeProvider>
+              <CiReportingRestricted />
             </ThemeProvider>
           </ProtectedRoute>
         }
