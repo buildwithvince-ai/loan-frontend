@@ -307,12 +307,23 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        {/* Horizontal scrolling board */}
-        <div className="overflow-x-auto pb-4">
-          <div className="flex gap-4 min-w-max">
-            {PIPELINE_STAGES.map(stage => (
+        <section className="x-board" aria-label="Application pipeline">
+          <header className="x-board-bar">
+            <div className="min-w-0">
+              <p className="x-kicker">Pipeline</p>
+              <h2 className="x-board-title">Applications by stage</h2>
+            </div>
+            <span className="x-board-total">
+              {filteredApps.length} {filteredApps.length === 1 ? 'application' : 'applications'}
+            </span>
+          </header>
+
+          {/* Lanes — the 1px grid gap shows through as hairline dividers */}
+          <div className="x-lanes">
+            {PIPELINE_STAGES.map((stage, i) => (
               <KanbanColumn
                 key={stage}
+                index={i}
                 stage={stage}
                 cards={grouped[stage] || []}
                 onCardClick={onCardClick}
@@ -325,12 +336,12 @@ export default function KanbanBoard({ searchFilter = '', typeFilter = 'all', onC
               />
             ))}
           </div>
-        </div>
+        </section>
 
         {/* Drag overlay — floating ghost card */}
         <DragOverlay dropAnimation={null}>
           {activeApp ? (
-            <div className="rotate-2 scale-105">
+            <div className="rotate-2">
               <KanbanCard app={activeApp} onCardClick={() => {}} isLocked={false} />
             </div>
           ) : null}

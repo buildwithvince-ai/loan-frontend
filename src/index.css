@@ -1,4 +1,5 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@import './styles/admin-ui.css';
 
 @font-face {
   font-family: 'Method';
@@ -49,19 +50,28 @@
 }
 
 @theme {
-  --color-canvas: #0A0F1E;
+  --color-canvas: #0a0f1e;
   --color-surface: #111827;
-  --color-surface-alt: #1A2235;
-  --color-green: #5CB85C;
-  --color-green-hover: #4CAD4C;
-  --color-blue: #5BC0DE;
-  --color-white: #FFFFFF;
-  --color-muted: #94A3B8;
-  --color-border: #1E2D45;
+  --color-surface-alt: #1a2235;
+  --color-green: #5cb85c;
+  --color-green-hover: #4cad4c;
+  --color-blue: #5bc0de;
+  --color-white: #ffffff;
+  --color-muted: #94a3b8;
+  --color-border: #1e2d45;
   /* PayPal-but-SaaS brand constants (used by the public marketing surface) */
-  --color-navy: #001C64;
-  --color-sky: #009CDE;
+  --color-navy: #001c64;
+  --color-sky: #009cde;
   --font-sans: 'Method', system-ui, sans-serif;
+}
+
+/* shadcn color names used by the vendored EvilCharts components, mapped onto the admin
+   shell roles. `inline` so utilities read the --x-* vars where they are defined. */
+@theme inline {
+  --color-background: var(--x-surface);
+  --color-foreground: var(--x-ink);
+  --color-muted-foreground: var(--x-ink-muted);
+  --color-primary: var(--x-accent);
 }
 
 /*
@@ -71,17 +81,17 @@
  * fintech theme: green -> PayPal blue (primary action), blue -> navy (headers).
  */
 .public-theme {
-  --color-canvas: #F4F7F9;
-  --color-surface: #FFFFFF;
-  --color-surface-alt: #ECF2F1;
-  --color-green: #5CB85C;       /* GR8 brand green — primary action / accent */
-  --color-green-hover: #4CAD4C;
-  --color-blue: #2592B6;        /* GR8 brand blue, deepened for legible accent text */
-  --color-white: #0F1B20;       /* ink — headlines + body text on light */
-  --color-muted: #5B6770;
-  --color-border: #E3E9EC;
-  --color-navy: #0E1A22;        /* dark footer band */
-  --color-sky: #5BC0DE;         /* GR8 brand cyan — soft fills */
+  --color-canvas: #f4f7f9;
+  --color-surface: #ffffff;
+  --color-surface-alt: #ecf2f1;
+  --color-green: #5cb85c; /* GR8 brand green — primary action / accent */
+  --color-green-hover: #4cad4c;
+  --color-blue: #2592b6; /* GR8 brand blue, deepened for legible accent text */
+  --color-white: #0f1b20; /* ink — headlines + body text on light */
+  --color-muted: #5b6770;
+  --color-border: #e3e9ec;
+  --color-navy: #0e1a22; /* dark footer band */
+  --color-sky: #5bc0de; /* GR8 brand cyan — soft fills */
   color-scheme: light;
 }
 
@@ -96,49 +106,55 @@
 
 /* Soft, navy-tinted elevation — the SaaS card look, no pure-black shadows. */
 .public-theme .card-soft {
-  box-shadow: 0 1px 2px rgba(10, 22, 51, 0.04), 0 10px 30px rgba(10, 22, 51, 0.06);
+  box-shadow:
+    0 1px 2px rgba(10, 22, 51, 0.04),
+    0 10px 30px rgba(10, 22, 51, 0.06);
 }
 .public-theme .card-soft-hover:hover {
-  box-shadow: 0 2px 6px rgba(10, 22, 51, 0.06), 0 18px 44px rgba(10, 22, 51, 0.12);
+  box-shadow:
+    0 2px 6px rgba(10, 22, 51, 0.06),
+    0 18px 44px rgba(10, 22, 51, 0.12);
 }
 .public-theme .nav-shadow {
-  box-shadow: 0 1px 0 rgba(10, 22, 51, 0.04), 0 8px 24px rgba(10, 22, 51, 0.05);
+  box-shadow:
+    0 1px 0 rgba(10, 22, 51, 0.04),
+    0 8px 24px rgba(10, 22, 51, 0.05);
 }
 
 /* Light mode overrides — scoped to admin/CI dashboards only */
 .light-mode {
-  --color-canvas: #F1F5F9;
-  --color-surface: #F8FAFC;
-  --color-surface-alt: #FFFFFF;
-  --color-white: #1E293B;
-  --color-muted: #64748B;
-  --color-border: #E2E8F0;
+  --color-canvas: #f1f5f9;
+  --color-surface: #f8fafc;
+  --color-surface-alt: #ffffff;
+  --color-white: #1e293b;
+  --color-muted: #64748b;
+  --color-border: #e2e8f0;
   color-scheme: light;
 }
 
 /* Declined column — swap dark red-950 tints for light-friendly versions */
-.light-mode [class*="bg-red-950"] {
+.light-mode [class*='bg-red-950'] {
   background-color: rgb(254 226 226 / 0.5) !important;
 }
-.light-mode [class*="border-red-900"] {
+.light-mode [class*='border-red-900'] {
   border-color: rgb(252 165 165 / 0.4) !important;
 }
-.light-mode [class*="bg-red-900"] {
+.light-mode [class*='bg-red-900'] {
   background-color: rgb(254 202 202 / 0.6) !important;
 }
-.light-mode [class*="text-red-900"] {
+.light-mode [class*='text-red-900'] {
   color: rgb(239 68 68) !important;
 }
 
 /* Soften dark shadows in light mode */
-.light-mode [class*="shadow-black"] {
+.light-mode [class*='shadow-black'] {
   --tw-shadow-color: rgb(0 0 0 / 0.08) !important;
 }
 
 /* Native select/option elements in light mode */
 .light-mode select option {
   background-color: #fff;
-  color: #1E293B;
+  color: #1e293b;
 }
 
 html {
@@ -153,38 +169,75 @@ body {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-20px) scale(1.05); }
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.05);
+  }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-40px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(40px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 
 .animate-fade-in-up {
@@ -207,13 +260,27 @@ body {
   animation: scaleIn 0.6s ease-out both;
 }
 
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
-.delay-300 { animation-delay: 0.3s; }
-.delay-400 { animation-delay: 0.4s; }
-.delay-500 { animation-delay: 0.5s; }
-.delay-600 { animation-delay: 0.6s; }
-.delay-700 { animation-delay: 0.7s; }
+.delay-100 {
+  animation-delay: 0.1s;
+}
+.delay-200 {
+  animation-delay: 0.2s;
+}
+.delay-300 {
+  animation-delay: 0.3s;
+}
+.delay-400 {
+  animation-delay: 0.4s;
+}
+.delay-500 {
+  animation-delay: 0.5s;
+}
+.delay-600 {
+  animation-delay: 0.6s;
+}
+.delay-700 {
+  animation-delay: 0.7s;
+}
 
 .text-shimmer {
   background: linear-gradient(90deg, var(--color-green), var(--color-blue), var(--color-green));
@@ -226,22 +293,38 @@ body {
 
 /* GR8 brand shimmer for the public marketing headlines. */
 .public-theme .text-shimmer {
-  background: linear-gradient(90deg, #5CB85C, #5BC0DE, #5CB85C);
+  background: linear-gradient(90deg, #5cb85c, #5bc0de, #5cb85c);
   background-size: 200% auto;
 }
 
 /* ── Form submission result icons ── */
 @keyframes resultBadgePop {
-  0%   { transform: scale(0);    opacity: 0; }
-  60%  { transform: scale(1.12); opacity: 1; }
-  100% { transform: scale(1);    opacity: 1; }
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 @keyframes resultStrokeDraw {
-  to { stroke-dashoffset: 0; }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 @keyframes resultBadgePulse {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.05); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
 }
 
 .result-badge {
@@ -296,7 +379,7 @@ body {
   z-index: 0;
 }
 
-input[type="range"] {
+input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
@@ -306,7 +389,7 @@ input[type="range"] {
   outline: none;
 }
 
-input[type="range"]::-webkit-slider-thumb {
+input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 22px;
@@ -315,15 +398,17 @@ input[type="range"]::-webkit-slider-thumb {
   background: var(--color-green);
   cursor: pointer;
   box-shadow: 0 0 12px rgba(92, 184, 92, 0.4);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
-input[type="range"]::-webkit-slider-thumb:hover {
+input[type='range']::-webkit-slider-thumb:hover {
   transform: scale(1.15);
   box-shadow: 0 0 20px rgba(92, 184, 92, 0.6);
 }
 
-input[type="range"]::-moz-range-thumb {
+input[type='range']::-moz-range-thumb {
   width: 22px;
   height: 22px;
   border-radius: 50%;

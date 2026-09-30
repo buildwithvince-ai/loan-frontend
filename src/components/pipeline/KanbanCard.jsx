@@ -4,19 +4,140 @@ import { getTier, TIER_CONFIG } from '../../pages/admin/scoring'
 import { getApplicantName } from '../../lib/applicantName'
 import { getSoStageReason } from '../../constants/pipeline'
 
-const LOAN_TYPE_COLORS = {
-  personal: 'bg-blue/20 text-blue',
-  sme: 'bg-purple-500/20 text-purple-400',
-  akap: 'bg-amber-500/20 text-amber-400',
-  group: 'bg-teal-500/20 text-teal-400',
-  sbl: 'bg-pink-500/20 text-pink-400',
-}
-
 function formatPeso(amount) {
   return '₱' + Number(amount || 0).toLocaleString()
 }
 
-export default function KanbanCard({ app, onCardClick, isLocked }) {
+// Stage actions rendered inside the card. The drag overlay passes no handlers, so the
+// floating ghost card shows none.
+function CardActions({
+  app,
+  stage,
+  userRoles,
+  onVerifierAction,
+  onRequestSOConfirmation,
+  onSODecision,
+  onSendToVerifier,
+  soDecisionLoading,
+}) {
+  const can = allowed => userRoles.some(r => allowed.includes(r))
+  const act = fn => e => {
+    e.stopPropagation()
+    fn()
+  }
+
+  if (stage === 'verifier' && onVerifierAction && can(['verifier', 'admin', 'super_admin'])) {
+    return (
+      <div className="x-card-actions">
+        <button
+          onClick={act(() => onVerifierAction(app, 'approve'))}
+          className="x-card-action x-card-action--positive x-card-action--wide"
+        >
+          Approve
+        </button>
+        <button
+          onClick={act(() => onVerifierAction(app, 'return'))}
+          className="x-card-action x-card-action--warn"
+        >
+          Return
+        </button>
+        <button
+          onClick={act(() => onVerifierAction(app, 'decline'))}
+          className="x-card-action x-card-action--negative"
+        >
+          Decline
+        </button>
+      </div>
+    )
+  }
+
+  // Sales Officer — show exactly ONE set based on why the app is at this stage.
+  // 'confirmation' → Confirm/Decline (→ approver); 'rework' → Re-endorse (→ verifier);
+  // 'new' → Endorse (→ verifier). Re-endorse and Confirm/Decline can never coexist, so
+  // client-confirm can't skip the verifier.
+  if (stage === 'sales_officer' && onSODecision && can(['sales_officer', 'admin', 'super_admin'])) {
+    const reason = getSoStageReason(app)
+    if (reason === 'confirmation') {
+      const busy = soDecisionLoading === String(app.id || app._id)
+      return (
+        <div className="x-card-actions">
+          <button
+            onClick={act(() => onSODecision(app, 'confirm'))}
+            disabled={busy}
+            className="x-card-action x-card-action--positive"
+          >
+            {busy ? '…' : 'Confirm'}
+          </button>
+          <button
+            onClick={act(() => onSODecision(app, 'decline'))}
+            disabled={busy}
+            className="x-card-action x-card-action--negative"
+          >
+            Decline
+          </button>
+        </div>
+      )
+    }
+    return (
+      <div className="x-card-actions">
+        <button
+          onClick={act(() => onSendToVerifier(app))}
+          className="x-card-action x-card-action--positive"
+        >
+          {reason === 'rework' ? 'Re-endorse to Verifier' : 'Endorse to Verifier'}
+        </button>
+      </div>
+    )
+  }
+
+  if (
+    stage === 'approver' &&
+    onRequestSOConfirmation &&
+    can(['admin', 'super_admin', 'approver'])
+  ) {
+    return (
+      <div className="x-card-actions">
+        {!app.so_decision && !app.so_confirmation_sent_at && (
+          <button
+            onClick={act(() => onRequestSOConfirmation(app))}
+            className="x-card-action x-card-action--info"
+          >
+            Request SO Confirmation
+          </button>
+        )}
+        {app.so_confirmation_sent_at && !app.so_decision && (
+          <div className="x-card-action x-card-action--pending x-card-action--status">
+            Awaiting SO Response
+          </div>
+        )}
+        {app.so_decision && (
+          <div
+            className={`x-card-action x-card-action--status ${
+              app.so_decision === 'confirm' ? 'x-card-action--positive' : 'x-card-action--negative'
+            }`}
+          >
+            {app.so_decision === 'confirm' ? 'Client Confirmed' : 'Client Declined'}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return null
+}
+
+export default function KanbanCard({
+  app,
+  onCardClick,
+  isLocked,
+  stage,
+  userRoles = [],
+  onVerifierAction,
+  onRequestSOConfirmation,
+  onSODecision,
+  onSendToVerifier,
+  soDecisionLoading,
+}) {
   const id = String(app.id || app._id || app.reference_id)
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -27,7 +148,6 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
 
   const style = {
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.4 : 1,
     zIndex: isDragging ? 50 : undefined,
   }
 
@@ -37,7 +157,12 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
   const groupLabel = app.group_name || app.groupName || fd.groupName || null
 
   const loanType = app.loan_type || ''
-  const loanTypeColor = LOAN_TYPE_COLORS[loanType] || 'bg-gray-500/20 text-gray-400'
+  const subtitle = [
+    groupLabel,
+    app.assigned_sales_officer_name && `SO: ${app.assigned_sales_officer_name}`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   // Tier resolution
   const finalScore = app.final_score != null ? Number(app.final_score) : null
@@ -48,24 +173,18 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-surface-alt border border-border rounded-lg p-3 mb-2 cursor-pointer select-none
-        hover:border-green/40 hover:shadow-md hover:shadow-black/30 transition-all group
-        ${isDragging ? 'shadow-xl shadow-black/50 rotate-1' : ''}`}
+      className={`x-glass group${isDragging ? ' x-glass--dragging' : ''}`}
     >
-      {/* Drag handle + ref row */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <span className="font-mono text-xs text-blue leading-tight">{app.reference_id || '—'}</span>
-        <div className="flex items-center gap-1">
-          {app.prior_decline_flag && (
-            <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-400">
-              Prior Decline
-            </span>
-          )}
+      {/* Top row: reference + flags + drag handle */}
+      <div className="x-card-top">
+        <span className="truncate">{app.reference_id || '—'}</span>
+        <div className="flex items-center gap-1 shrink-0">
+          {app.prior_decline_flag && <span className="x-chip x-chip--warn">Prior Decline</span>}
           {!isLocked && (
             <button
               {...attributes}
               {...listeners}
-              className="p-1 rounded text-muted hover:text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+              className="p-1 -m-1 rounded opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
               onClick={e => e.stopPropagation()}
               aria-label="Drag card"
             >
@@ -79,35 +198,29 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
 
       {/* Clickable body */}
       <div onClick={() => onCardClick(app)}>
-        {/* Full name */}
-        <p className="text-white text-sm font-medium leading-snug mb-1 line-clamp-1">{fullName}</p>
-        {groupLabel && <p className="text-muted text-xs mb-2 line-clamp-1">{groupLabel}</p>}
+        <p className="x-card-title">{fullName}</p>
+        {subtitle && <p className="x-card-sub">{subtitle}</p>}
 
-        {/* Loan type + amount row */}
-        <div className="flex items-center gap-2 mb-2">
-          <span
-            className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${loanTypeColor}`}
-          >
-            {loanType || '—'}
-          </span>
-          <span className="text-muted text-xs">{formatPeso(app.loan_amount || app.amount)}</span>
-        </div>
-
-        {/* Tier badge */}
-        {tierCfg && (
-          <div className="mb-2">
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${tierCfg.badgeClass}`}>
-              {tierCfg.label}
-            </span>
-          </div>
-        )}
-
-        {/* Return count badge */}
-        {app.returned_count > 0 && (
-          <div className="mb-2">
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400">
-              Returned ({app.returned_count}x)
-            </span>
+        {/* Status badges */}
+        {(tierCfg ||
+          app.returned_count > 0 ||
+          app.so_decision ||
+          (app.so_confirmation_sent_at && !app.so_decision)) && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {tierCfg && <span className={`x-chip ${tierCfg.chipClass}`}>{tierCfg.label}</span>}
+            {app.returned_count > 0 && (
+              <span className="x-chip x-chip--warn">Returned ({app.returned_count}x)</span>
+            )}
+            {app.so_decision === 'confirm' && (
+              <span className="x-chip x-chip--positive">SO Confirmed</span>
+            )}
+            {app.so_decision === 'decline' && (
+              <span className="x-chip x-chip--negative">SO Declined</span>
+            )}
+            {/* Awaiting SO confirmation — yellow pulse */}
+            {app.so_confirmation_sent_at && !app.so_decision && (
+              <span className="x-chip x-chip--pending animate-pulse">Awaiting SO</span>
+            )}
           </div>
         )}
 
@@ -115,44 +228,29 @@ export default function KanbanCard({ app, onCardClick, isLocked }) {
         {app.stage === 'sales_officer' &&
           getSoStageReason(app) === 'rework' &&
           app.last_return_reason && (
-            <div className="mb-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-2 py-1.5">
-              <p className="text-[10px] uppercase tracking-wide text-amber-400/70 font-semibold mb-0.5">
-                Return reason
-              </p>
-              <p className="text-xs text-amber-200/90 leading-snug">{app.last_return_reason}</p>
+            <div className="x-note">
+              <p className="x-note-label">Return reason</p>
+              <p>{app.last_return_reason}</p>
             </div>
           )}
 
-        {/* SO Decision badges */}
-        {app.so_decision === 'confirm' && (
-          <div className="mb-2">
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green/20 text-green">
-              SO Confirmed
-            </span>
-          </div>
-        )}
-        {app.so_decision === 'decline' && (
-          <div className="mb-2">
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
-              SO Declined
-            </span>
-          </div>
-        )}
-
-        {/* Awaiting SO confirmation — yellow pulse */}
-        {app.so_confirmation_sent_at && !app.so_decision && (
-          <div className="mb-2">
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 animate-pulse">
-              Awaiting SO
-            </span>
-          </div>
-        )}
-
-        {/* Assigned sales officer */}
-        {app.assigned_sales_officer_name && (
-          <p className="text-muted text-xs truncate">SO: {app.assigned_sales_officer_name}</p>
-        )}
+        {/* Footer: product + amount */}
+        <div className="x-card-foot">
+          <span className="x-card-foot-label">{loanType || '—'}</span>
+          <span className="x-card-foot-value">{formatPeso(app.loan_amount || app.amount)}</span>
+        </div>
       </div>
+
+      <CardActions
+        app={app}
+        stage={stage}
+        userRoles={userRoles}
+        onVerifierAction={onVerifierAction}
+        onRequestSOConfirmation={onRequestSOConfirmation}
+        onSODecision={onSODecision}
+        onSendToVerifier={onSendToVerifier}
+        soDecisionLoading={soDecisionLoading}
+      />
     </div>
   )
 }

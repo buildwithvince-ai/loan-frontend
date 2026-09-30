@@ -10,6 +10,7 @@ import {
 import CiScoringForm, { CiFormReadOnly } from './CiScoringForm'
 import { useAuth } from '../../context/AuthContext'
 import { getApplicantName } from '../../lib/applicantName'
+import { STAGE_LABELS, STATUS_CHIP } from '../../constants/pipeline'
 import useSalesOfficers from '../../hooks/useSalesOfficers'
 import ClientApplicationsPanel, {
   FinscoreReuseNotice,
@@ -30,21 +31,47 @@ import {
 
 function Section({ title, children, collapsible = false, defaultOpen = true, rightContent }) {
   const [open, setOpen] = useState(defaultOpen)
+  // Titles arrive as "Section N — Name"; the number renders as a step badge.
+  const m = typeof title === 'string' ? title.match(/^Section (\d+) — (.+)$/) : null
+  const step = m?.[1]
+  const label = m ? m[2] : title
+  const toggle = () => collapsible && setOpen(o => !o)
   return (
-    <div className="bg-surface border border-border rounded-xl overflow-hidden">
+    <div className="x-panel x-section">
       <div
-        onClick={() => collapsible && setOpen(!open)}
-        className={`w-full px-5 py-4 flex items-center justify-between text-left ${
-          collapsible ? 'cursor-pointer hover:bg-surface-alt/50' : ''
-        }`}
+        onClick={toggle}
+        onKeyDown={e => {
+          if (collapsible && e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault()
+            toggle()
+          }
+        }}
+        role={collapsible ? 'button' : undefined}
+        tabIndex={collapsible ? 0 : undefined}
+        aria-expanded={collapsible ? open : undefined}
+        className={`x-section-head${collapsible ? ' x-section-head--toggle' : ''}`}
       >
-        <h3 className="text-white font-semibold text-sm">{title}</h3>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          {step && <span className="x-step">{step}</span>}
+          <h3 className="x-section-title">{label}</h3>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
           {rightContent}
-          {collapsible && <span className="text-muted text-xs">{open ? '▲' : '▼'}</span>}
+          {collapsible && (
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className={`x-chevron${open ? ' is-open' : ''}`}
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+          )}
         </div>
       </div>
-      {open && <div className="px-5 pb-5 border-t border-border/50">{children}</div>}
+      {open && <div className="x-section-body">{children}</div>}
     </div>
   )
 }
@@ -52,7 +79,7 @@ function Section({ title, children, collapsible = false, defaultOpen = true, rig
 function Field({ label, value }) {
   return (
     <div>
-      <span className="text-muted text-xs block mb-0.5">{label}</span>
+      <span className="x-field-label">{label}</span>
       <span className="text-white text-sm">{value || '—'}</span>
     </div>
   )
@@ -60,9 +87,9 @@ function Field({ label, value }) {
 
 function FieldCard({ label, value }) {
   return (
-    <div className="bg-surface-alt rounded-lg px-3 py-2">
-      <span className="text-muted text-xs block">{label}</span>
-      <span className="text-white text-sm break-all">{value || '—'}</span>
+    <div className="x-field-card">
+      <span className="x-field-label">{label}</span>
+      <span className="text-white text-sm break-words">{value || '—'}</span>
     </div>
   )
 }
@@ -348,7 +375,7 @@ function SoAssigner({ app, appId, onAssigned }) {
   )
 }
 
-function ApplicationSummary({ app, appId, onViewDocuments, onRefresh }) {
+function ApplicationSummary({ app, appId, onRefresh }) {
   const fd = app.form_data || {}
   const data = { ...fd, ...app } // app fields override form_data
   const age = calcAge(data.date_of_birth || data.dob || data.birthdate || data.dateOfBirth)
@@ -637,29 +664,6 @@ function ApplicationSummary({ app, appId, onViewDocuments, onRefresh }) {
             </div>
           </div>
         )}
-
-        {/* View Documents Button */}
-        <div>
-          <button
-            onClick={() => onViewDocuments?.()}
-            className="flex items-center gap-2 text-sm text-blue/60 hover:text-blue transition-colors"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="w-4 h-4"
-            >
-              <path
-                d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            View Documents
-          </button>
-        </div>
       </div>
     </Section>
   )
@@ -1813,8 +1817,8 @@ function SaConfirmationBanner({ app, id, onRefresh }) {
 function ActivityLog({ app, finscoreRaw, finscoreNorm, effectiveFinal, effectiveTier }) {
   return (
     <Section title="Activity Log">
-      <div className="pt-4">
-        <div className="space-y-3">
+      <div className="pt-5">
+        <ol>
           {(app.submitted_at || app.created_at) && (
             <LogEntry
               color="bg-blue/60"
@@ -1884,7 +1888,7 @@ function ActivityLog({ app, finscoreRaw, finscoreNorm, effectiveFinal, effective
               date={app.reviewed_at ? formatDate(app.reviewed_at) : null}
             />
           )}
-        </div>
+        </ol>
       </div>
     </Section>
   )
@@ -1892,14 +1896,98 @@ function ActivityLog({ app, finscoreRaw, finscoreNorm, effectiveFinal, effective
 
 function LogEntry({ color, text, date, note }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className={`w-2 h-2 rounded-full ${color} mt-1.5 shrink-0`} />
-      <div>
-        <p className="text-white text-sm">{text}</p>
-        {date && <p className="text-muted text-xs">{date}</p>}
-        {note && <p className="text-muted text-xs mt-0.5">Notes: {note}</p>}
+    <li className="x-log-item">
+      <span className={`x-log-dot ${color}`} aria-hidden="true" />
+      <p className="text-white text-sm leading-snug">{text}</p>
+      {date && <p className="text-muted text-xs mt-0.5">{date}</p>}
+      {note && <p className="text-muted text-xs mt-1">Notes: {note}</p>}
+    </li>
+  )
+}
+
+// --- Detail hero: who, what, and where it stands ---
+
+function DetailHero({
+  app,
+  finscoreRaw,
+  finscoreNorm,
+  effectiveFinal,
+  effectiveTier,
+  onViewDocuments,
+}) {
+  const status = STATUS_CHIP[app.status] || { label: app.status, tone: 'x-chip--neutral' }
+  const amount = app.loan_amount || app.amount
+  const term = app.loan_term || app.term
+  const hasFinal = app.ci_score != null && effectiveFinal != null
+  const kicker = [
+    app.reference_id,
+    app.loan_type,
+    app.application_category === 'renewal' ? 'Renewal' : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  return (
+    <header className="x-hero">
+      <div className="x-hero-top">
+        <div className="min-w-0">
+          <p className="x-kicker">{kicker}</p>
+          <h1 className="x-hero-name">{getApplicantName(app) || '—'}</h1>
+          <div className="x-hero-chips">
+            <span className={`x-chip ${status.tone}`}>{status.label}</span>
+            {app.stage && STAGE_LABELS[app.stage] && (
+              <span className="x-chip x-chip--info">Stage: {STAGE_LABELS[app.stage]}</span>
+            )}
+            {hasFinal && effectiveTier && (
+              <span
+                className={`x-chip ${TIER_CONFIG[effectiveTier]?.chipClass || 'x-chip--neutral'}`}
+              >
+                {TIER_CONFIG[effectiveTier]?.label || effectiveTier}
+              </span>
+            )}
+            {app.prior_decline_flag && <span className="x-chip x-chip--warn">Prior Decline</span>}
+            {app.assigned_sales_officer_name && (
+              <span className="x-chip x-chip--neutral">SO: {app.assigned_sales_officer_name}</span>
+            )}
+          </div>
+        </div>
+        <button onClick={onViewDocuments} className="x-pill x-pill--on-deep">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path
+              d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          View Documents
+        </button>
       </div>
-    </div>
+
+      <dl className="x-hero-metrics">
+        <div className="x-metric">
+          <dt className="x-metric-label">Amount</dt>
+          <dd className="x-metric-value">{amount ? formatCurrency(amount) : '—'}</dd>
+        </div>
+        <div className="x-metric">
+          <dt className="x-metric-label">Term</dt>
+          <dd className="x-metric-value">{term ? `${term} mo` : '—'}</dd>
+        </div>
+        <div className="x-metric">
+          <dt className="x-metric-label">FinScore</dt>
+          <dd className="x-metric-value">{finscoreRaw > 0 ? finscoreNorm : '—'}</dd>
+          <dd className="x-metric-sub">
+            {finscoreRaw > 0 ? `of 100 · raw ${finscoreRaw}` : 'Not available'}
+          </dd>
+        </div>
+        <div className="x-metric">
+          <dt className="x-metric-label">Final score</dt>
+          <dd className="x-metric-value">{hasFinal ? effectiveFinal : '—'}</dd>
+          <dd className="x-metric-sub">
+            {hasFinal ? `CI ${app.ci_score} / 50` : 'Awaiting CI assessment'}
+          </dd>
+        </div>
+      </dl>
+    </header>
   )
 }
 
@@ -1991,175 +2079,188 @@ export default function ApplicationDetail({ id, onBack }) {
 
   return (
     <div>
-      {/* Back button */}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-muted hover:text-white text-sm mb-6 transition-colors"
-      >
-        ← Back to Applications
+      <button onClick={onBack} className="x-pill mb-5">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden="true"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+        </svg>
+        Back to Applications
       </button>
 
-      <div className="flex flex-col gap-5">
-        {/* SECTION 1 — Application Summary */}
-        <ApplicationSummary
-          app={app}
-          appId={id}
-          onViewDocuments={() => setShowFileViewer(true)}
-          onRefresh={fetchApp}
-        />
+      <DetailHero
+        app={app}
+        finscoreRaw={finscoreRaw}
+        finscoreNorm={finscoreNorm}
+        effectiveFinal={effectiveFinal}
+        effectiveTier={effectiveTier}
+        onViewDocuments={() => setShowFileViewer(true)}
+      />
 
-        {/* Borrower record — name + every application tied to the same Loandisk borrower */}
-        <ClientApplicationsPanel app={app} fetcher={adminFetch} />
+      <div className="x-detail-grid">
+        <div className="x-detail-main">
+          {/* SECTION 1 — Application Summary */}
+          <ApplicationSummary app={app} appId={id} onRefresh={fetchApp} />
 
-        {/* SECTION 2 — FinScore Result */}
-        <FinScoreSection app={app} finscoreRaw={finscoreRaw} finscoreNorm={finscoreNorm} />
+          {/* SECTION 2 — FinScore Result */}
+          <FinScoreSection app={app} finscoreRaw={finscoreRaw} finscoreNorm={finscoreNorm} />
 
-        {/* SECTION 3 — CI Assessment Form (editable only by CI Officer / Approver / Super Admin) */}
-        {showCiForm &&
-          (canScoreCi ? (
-            <Section title="Section 3 — CI Assessment Form" collapsible defaultOpen={isCiRole}>
+          {/* SECTION 3 — CI Assessment Form (editable only by CI Officer / Approver / Super Admin) */}
+          {showCiForm &&
+            (canScoreCi ? (
+              <Section title="Section 3 — CI Assessment Form" collapsible defaultOpen={isCiRole}>
+                <div className="pt-4">
+                  <CiScoringForm
+                    app={app}
+                    appId={id}
+                    finscoreRaw={finscoreRaw}
+                    finscoreNorm={finscoreNorm}
+                    onSubmitSuccess={fetchApp}
+                  />
+                </div>
+              </Section>
+            ) : (
+              <Section title="Section 3 — CI Assessment Form">
+                <div className="pt-4">
+                  <div className="bg-surface-alt rounded-lg p-6 text-center">
+                    <p className="text-muted text-sm">Awaiting CI Assessment</p>
+                    <p className="text-muted/60 text-xs mt-1">
+                      Only the CI Officer, Approver, or Super Admin can complete this form.
+                    </p>
+                  </div>
+                </div>
+              </Section>
+            ))}
+
+          {/* CI Form Read-Only (after submission) */}
+          {hasCiScore && (app.ci_form_data || app.ci_form) && (
+            <Section title="Section 3 — CI Assessment (Submitted)" collapsible defaultOpen={false}>
               <div className="pt-4">
-                <CiScoringForm
-                  app={app}
-                  appId={id}
-                  finscoreRaw={finscoreRaw}
-                  finscoreNorm={finscoreNorm}
-                  onSubmitSuccess={fetchApp}
-                />
+                <CiFormReadOnly ciFormData={app.ci_form_data || app.ci_form} />
               </div>
             </Section>
+          )}
+
+          {/* SO Confirmation section — only in approver stage */}
+          {app.stage === 'approver' && (
+            <Section title="Sales Officer Confirmation" collapsible defaultOpen>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                {app.so_confirmation_sent_at && (
+                  <FieldCard
+                    label="Confirmation Sent"
+                    value={formatDate(app.so_confirmation_sent_at)}
+                  />
+                )}
+                {app.so_decision && (
+                  <>
+                    <FieldCard
+                      label="SO Decision"
+                      value={app.so_decision === 'confirm' ? 'Confirmed' : 'Declined'}
+                    />
+                    {app.so_decision_at && (
+                      <FieldCard label="Decision Date" value={formatDate(app.so_decision_at)} />
+                    )}
+                  </>
+                )}
+                {!app.so_confirmation_sent_at && (
+                  <div className="col-span-full">
+                    <p className="text-muted text-sm">No confirmation request sent yet.</p>
+                  </div>
+                )}
+                {app.so_confirmation_sent_at && !app.so_decision && (
+                  <div className="col-span-full">
+                    <span className="text-yellow-400/70 text-sm animate-pulse">
+                      Awaiting sales officer response…
+                    </span>
+                  </div>
+                )}
+                {app.returned_count > 0 && (
+                  <FieldCard label="Times Returned" value={String(app.returned_count)} />
+                )}
+              </div>
+            </Section>
+          )}
+
+          {/* SA rejection note — shown to approver when SA sent terms back */}
+          {app.sa_rejection_note && app.status === 'pending' && app.stage === 'approver' && (
+            <div className="bg-red-500/7 border border-red-500/30 rounded-xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-red-500/20 flex items-center gap-2">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="w-4 h-4 text-red-400 shrink-0"
+                >
+                  <path
+                    d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <h3 className="text-red-400 font-semibold text-sm">
+                  SA Rejected Modified Terms — Re-review Required
+                </h3>
+              </div>
+              <div className="px-5 py-4">
+                <p className="text-muted text-xs mb-1">Rejection reason from Sales Officer:</p>
+                <p className="text-white text-sm">{app.sa_rejection_note}</p>
+                {app.sa_rejection_at && (
+                  <p className="text-muted text-xs mt-2">{formatDate(app.sa_rejection_at)}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* SA Confirmation Banner — shown to SA when approver has modified terms */}
+          {app.status === 'pending_sa_confirmation' && (
+            <SaConfirmationBanner app={app} id={id} onRefresh={fetchApp} />
+          )}
+
+          {/* SECTION 4 — Decision */}
+          {hasCiScore ? (
+            <DecisionSection
+              // Remount when official terms/status change (e.g. confirm-terms adopts the
+              // proposed amount/term) so the adjusted-terms inputs re-seed from fresh values.
+              key={`${app.status}-${app.loan_amount || app.amount}-${app.loan_term || app.term}`}
+              app={app}
+              id={id}
+              effectiveTier={effectiveTier}
+              effectiveFinal={effectiveFinal}
+              tierConfig={tierConfig}
+              onRefresh={fetchApp}
+            />
           ) : (
-            <Section title="Section 3 — CI Assessment Form">
+            <Section title="Section 4 — Decision">
               <div className="pt-4">
                 <div className="bg-surface-alt rounded-lg p-6 text-center">
                   <p className="text-muted text-sm">Awaiting CI Assessment</p>
                   <p className="text-muted/60 text-xs mt-1">
-                    Only the CI Officer, Approver, or Super Admin can complete this form.
+                    Complete the CI form above to unlock the decision panel
                   </p>
                 </div>
               </div>
             </Section>
-          ))}
+          )}
+        </div>
 
-        {/* CI Form Read-Only (after submission) */}
-        {hasCiScore && (app.ci_form_data || app.ci_form) && (
-          <Section title="Section 3 — CI Assessment (Submitted)" collapsible defaultOpen={false}>
-            <div className="pt-4">
-              <CiFormReadOnly ciFormData={app.ci_form_data || app.ci_form} />
-            </div>
-          </Section>
-        )}
-
-        {/* SO Confirmation section — only in approver stage */}
-        {app.stage === 'approver' && (
-          <Section title="Sales Officer Confirmation" collapsible defaultOpen>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-              {app.so_confirmation_sent_at && (
-                <FieldCard
-                  label="Confirmation Sent"
-                  value={formatDate(app.so_confirmation_sent_at)}
-                />
-              )}
-              {app.so_decision && (
-                <>
-                  <FieldCard
-                    label="SO Decision"
-                    value={app.so_decision === 'confirm' ? 'Confirmed' : 'Declined'}
-                  />
-                  {app.so_decision_at && (
-                    <FieldCard label="Decision Date" value={formatDate(app.so_decision_at)} />
-                  )}
-                </>
-              )}
-              {!app.so_confirmation_sent_at && (
-                <div className="col-span-full">
-                  <p className="text-muted text-sm">No confirmation request sent yet.</p>
-                </div>
-              )}
-              {app.so_confirmation_sent_at && !app.so_decision && (
-                <div className="col-span-full">
-                  <span className="text-yellow-400/70 text-sm animate-pulse">
-                    Awaiting sales officer response…
-                  </span>
-                </div>
-              )}
-              {app.returned_count > 0 && (
-                <FieldCard label="Times Returned" value={String(app.returned_count)} />
-              )}
-            </div>
-          </Section>
-        )}
-
-        {/* SA rejection note — shown to approver when SA sent terms back */}
-        {app.sa_rejection_note && app.status === 'pending' && app.stage === 'approver' && (
-          <div className="bg-red-500/7 border border-red-500/30 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-red-500/20 flex items-center gap-2">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="w-4 h-4 text-red-400 shrink-0"
-              >
-                <path
-                  d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <h3 className="text-red-400 font-semibold text-sm">
-                SA Rejected Modified Terms — Re-review Required
-              </h3>
-            </div>
-            <div className="px-5 py-4">
-              <p className="text-muted text-xs mb-1">Rejection reason from Sales Officer:</p>
-              <p className="text-white text-sm">{app.sa_rejection_note}</p>
-              {app.sa_rejection_at && (
-                <p className="text-muted text-xs mt-2">{formatDate(app.sa_rejection_at)}</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* SA Confirmation Banner — shown to SA when approver has modified terms */}
-        {app.status === 'pending_sa_confirmation' && (
-          <SaConfirmationBanner app={app} id={id} onRefresh={fetchApp} />
-        )}
-
-        {/* SECTION 4 — Decision */}
-        {hasCiScore ? (
-          <DecisionSection
-            // Remount when official terms/status change (e.g. confirm-terms adopts the
-            // proposed amount/term) so the adjusted-terms inputs re-seed from fresh values.
-            key={`${app.status}-${app.loan_amount || app.amount}-${app.loan_term || app.term}`}
+        {/* Side column (sticky on wide screens): timeline + borrower record */}
+        <aside className="x-detail-aside">
+          <ActivityLog
             app={app}
-            id={id}
-            effectiveTier={effectiveTier}
+            finscoreRaw={finscoreRaw}
+            finscoreNorm={finscoreNorm}
             effectiveFinal={effectiveFinal}
-            tierConfig={tierConfig}
-            onRefresh={fetchApp}
+            effectiveTier={effectiveTier}
           />
-        ) : (
-          <Section title="Section 4 — Decision">
-            <div className="pt-4">
-              <div className="bg-surface-alt rounded-lg p-6 text-center">
-                <p className="text-muted text-sm">Awaiting CI Assessment</p>
-                <p className="text-muted/60 text-xs mt-1">
-                  Complete the CI form above to unlock the decision panel
-                </p>
-              </div>
-            </div>
-          </Section>
-        )}
 
-        {/* Activity Log */}
-        <ActivityLog
-          app={app}
-          finscoreRaw={finscoreRaw}
-          finscoreNorm={finscoreNorm}
-          effectiveFinal={effectiveFinal}
-          effectiveTier={effectiveTier}
-        />
+          {/* Borrower record — name + every application tied to the same Loandisk borrower */}
+          <ClientApplicationsPanel app={app} fetcher={adminFetch} />
+        </aside>
       </div>
 
       {/* File Viewer Modal — fetches fresh signed URLs each time */}

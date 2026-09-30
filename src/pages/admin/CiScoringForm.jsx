@@ -17,7 +17,8 @@ const INTERVIEWERS = [
   'Ronald Allan Mendez',
   'Jerry Liquido',
   'Arnel Estrella',
-  'Rafael Roque',
+  // Rafael Roque resigned 2026-09-30; past assessments keep his name as stored text.
+  'Villy Estrella',
   'Anaceto DC Carreon',
 ]
 

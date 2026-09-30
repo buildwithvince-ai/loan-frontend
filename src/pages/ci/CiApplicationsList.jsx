@@ -1,22 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ciFetch } from './CiPortal'
-import { getApplicantName } from '../../lib/applicantName'
-
-const LOAN_TYPE_COLORS = {
-  personal: 'bg-blue/20 text-blue',
-  sme: 'bg-purple-500/20 text-purple-400',
-  akap: 'bg-amber-500/20 text-amber-400',
-  group: 'bg-teal-500/20 text-teal-400',
-  sbl: 'bg-pink-500/20 text-pink-400',
-}
-
-function Badge({ label, colorClass }) {
-  return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${colorClass}`}>
-      {label}
-    </span>
-  )
-}
+import { getApplicantName, getInitials } from '../../lib/applicantName'
 
 function formatCurrency(amount) {
   return '₱' + Number(amount || 0).toLocaleString()
@@ -36,6 +20,7 @@ export default function CiApplicationsList({ onStartAssessment }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
+  const [tab, setTab] = useState('pending') // 'pending' | 'done'
   const intervalRef = useRef(null)
 
   const fetchApps = async () => {
@@ -74,125 +59,177 @@ export default function CiApplicationsList({ onStartAssessment }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-2 border-green border-t-transparent rounded-full animate-spin" />
+      <div>
+        <div className="h-8 w-48 mb-6 rounded x-skel animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="x-panel p-4 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full x-skel animate-pulse" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-4 w-36 x-skel rounded animate-pulse" />
+                  <div className="h-3 w-24 x-skel rounded animate-pulse" />
+                </div>
+              </div>
+              <div className="h-9 w-full x-skel rounded-md animate-pulse" />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="text-center py-20">
-        <p className="text-red-400 mb-4">{error}</p>
-        <button onClick={fetchApps} className="text-green hover:text-green-hover text-sm">
+      <div className="x-panel p-12 text-center">
+        <p className="text-white font-medium mb-1">Failed to load applications</p>
+        <p className="text-muted text-sm mb-5">{error}</p>
+        <button onClick={fetchApps} className="x-pill">
           Retry
         </button>
       </div>
     )
   }
 
+  const tiles = [
+    { key: 'pending', label: 'Not yet assessed', count: notAssessed.length, tone: 'warn' },
+    { key: 'done', label: 'Assessed', count: assessed.length, tone: 'positive' },
+  ]
+  const shown = tab === 'pending' ? notAssessed : assessed
+
   return (
     <div>
-      {/* Search */}
       <div className="mb-6">
+        <h1 className="text-white font-medium text-2xl leading-tight">CI Assessments</h1>
+        <p className="text-muted text-sm mt-0.5">
+          Applications at the CI stage, and the ones you have already scored.
+        </p>
+      </div>
+
+      {/* Queue switch — each tile is a tab */}
+      <div className="x-stats mb-5 max-w-md" role="tablist" aria-label="Assessment queue">
+        {tiles.map((t, i) => (
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => setTab(t.key)}
+            style={{ '--i': i }}
+            className={`x-stat x-stagger x-stat--${t.tone}${tab === t.key ? ' is-active' : ''}`}
+          >
+            <span className="x-stat-count">{t.count}</span>
+            <span className="x-stat-label">{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-5">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+            />
+          </svg>
+        </span>
         <input
           type="text"
-          placeholder="Search by name or phone number..."
+          placeholder="Search by name or phone number…"
+          aria-label="Search applications"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-muted focus:border-green/50 focus:ring-1 focus:ring-green/30 outline-none"
+          className="x-control w-full pl-9"
         />
       </div>
 
-      {/* Not Yet Assessed */}
-      <div className="mb-8">
-        <h2 className="text-white font-semibold text-sm mb-3">
-          Not Yet Assessed
-          <span className="text-muted font-normal ml-2">({notAssessed.length})</span>
-        </h2>
-        {notAssessed.length === 0 ? (
-          <div className="bg-surface border border-border rounded-xl p-8 text-center">
-            <p className="text-muted text-sm">No pending assessments</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {notAssessed.map(app => (
+      {shown.length === 0 ? (
+        <div className="x-panel py-14 text-center">
+          <p className="text-white font-medium mb-1">
+            {tab === 'pending' ? 'No pending assessments' : 'No completed assessments'}
+          </p>
+          <p className="text-muted text-sm">
+            {search
+              ? 'Nothing matches your search.'
+              : tab === 'pending'
+                ? 'New applications appear here when they reach the CI stage.'
+                : 'Assessments you submit will be listed here.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {shown.map((app, i) => {
+            const name = getApplicantName(app)
+            const done = app.ci_score != null
+            return (
               <div
                 key={app.id || app.reference_id}
-                className="bg-surface border border-border rounded-xl p-4"
+                style={{ '--i': Math.min(i, 8) }}
+                className="x-panel x-stagger p-4 flex flex-col gap-4"
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <p className="text-white font-medium text-sm">
-                      {getApplicantName(app) || '—'}
+                <div className="flex items-start gap-3">
+                  <span className="x-avatar-sm">{getInitials(name)}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-white font-medium truncate leading-tight">{name || '—'}</p>
+                    <p className="text-muted text-xs truncate mt-0.5">
+                      {app.phone || app.mobile || '—'}
                     </p>
-                    <p className="text-muted text-xs">{app.phone || app.mobile || '—'}</p>
                   </div>
-                  <Badge
-                    label={app.loan_type || '—'}
-                    colorClass={LOAN_TYPE_COLORS[app.loan_type] || 'bg-gray-500/20 text-gray-400'}
-                  />
+                  {done ? (
+                    <span className="x-chip x-chip--positive">
+                      <span className="x-dot" aria-hidden="true" />
+                      CI done
+                    </span>
+                  ) : (
+                    <span className="x-chip x-chip--warn">
+                      <span className="x-dot" aria-hidden="true" />
+                      To assess
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center justify-between text-xs mb-3">
-                  <span className="text-muted">
-                    {formatCurrency(app.loan_amount || app.amount)}
-                  </span>
-                  <span className="text-muted">
-                    {formatDate(app.submitted_at || app.created_at)}
-                  </span>
-                </div>
-                <button
-                  onClick={() => onStartAssessment(app)}
-                  className="w-full bg-green hover:bg-green-hover text-white font-medium text-sm py-2 rounded-lg transition-colors"
-                >
-                  Start CI Assessment
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Already Assessed */}
-      <div>
-        <h2 className="text-white font-semibold text-sm mb-3">
-          Already Assessed
-          <span className="text-muted font-normal ml-2">({assessed.length})</span>
-        </h2>
-        {assessed.length === 0 ? (
-          <div className="bg-surface border border-border rounded-xl p-8 text-center">
-            <p className="text-muted text-sm">No completed assessments</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {assessed.map(app => (
-              <div
-                key={app.id || app.reference_id}
-                className="bg-surface border border-border rounded-xl p-4 opacity-80"
-              >
-                <div className="flex items-start justify-between mb-2">
+                <dl className="x-list-card-metrics">
                   <div>
-                    <p className="text-white font-medium text-sm">
-                      {getApplicantName(app) || '—'}
-                    </p>
-                    <p className="text-muted text-xs">{app.phone || app.mobile || '—'}</p>
+                    <dt className="x-caption">Amount</dt>
+                    <dd className="x-num text-white font-medium">
+                      {formatCurrency(app.loan_amount || app.amount)}
+                    </dd>
                   </div>
-                  <div className="flex gap-1.5">
-                    <Badge
-                      label={app.loan_type || '—'}
-                      colorClass={LOAN_TYPE_COLORS[app.loan_type] || 'bg-gray-500/20 text-gray-400'}
-                    />
+                  <div>
+                    <dt className="x-caption">Type</dt>
+                    <dd className="text-white uppercase text-xs">{app.loan_type || '—'}</dd>
                   </div>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted">{app.reviewed_by || app.interviewer || '—'}</span>
-                  <Badge label="CI Done" colorClass="bg-green/20 text-green" />
-                </div>
+                  <div>
+                    <dt className="x-caption">{done ? 'Interviewer' : 'Submitted'}</dt>
+                    <dd className="text-white">
+                      {done
+                        ? app.reviewed_by || app.interviewer || '—'
+                        : formatDate(app.submitted_at || app.created_at)}
+                    </dd>
+                  </div>
+                </dl>
+
+                {!done && (
+                  <button
+                    onClick={() => onStartAssessment(app)}
+                    className="x-btn x-btn--primary w-full"
+                  >
+                    Start CI Assessment
+                  </button>
+                )}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

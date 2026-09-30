@@ -2,29 +2,16 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import InviteUserModal from '../../components/users/InviteUserModal'
 import EditRoleModal from '../../components/users/EditRoleModal'
+import { getInitials } from '../../lib/applicantName'
+import { ROLE_LABEL } from '../../constants/roles'
 
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
 
-// ─── Role badge config ────────────────────────────────────────────────────────
-const ROLE_BADGE = {
-  super_admin: 'bg-purple-500/20 text-purple-400',
-  admin: 'bg-blue/20 text-blue',
-  sales_officer: 'bg-teal-500/20 text-teal-400',
-  verifier: 'bg-amber-500/20 text-amber-400',
-  ci_officer: 'bg-green/20 text-green',
-  approver: 'bg-indigo-500/20 text-indigo-400',
-  loan_processing_officer: 'bg-pink-500/20 text-pink-400',
-}
-
-const ROLE_LABEL = {
-  super_admin: 'Super Admin',
-  admin: 'Admin',
-  sales_officer: 'Sales Officer',
-  verifier: 'Verifier',
-  ci_officer: 'CI Officer',
-  approver: 'Approver',
-  loan_processing_officer: 'Loan Processing Officer',
+// Admin-level roles get the info tone; operational roles stay neutral.
+const ROLE_TONE = {
+  super_admin: 'x-chip--info',
+  admin: 'x-chip--info',
 }
 
 // ─── Tiny reusables ───────────────────────────────────────────────────────────
@@ -33,10 +20,7 @@ function RoleBadges({ roles }) {
   return (
     <div className="flex flex-wrap gap-1">
       {list.map(r => (
-        <span
-          key={r}
-          className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${ROLE_BADGE[r] || 'bg-surface-alt text-muted'}`}
-        >
+        <span key={r} className={`x-chip ${ROLE_TONE[r] || 'x-chip--neutral'}`}>
           {ROLE_LABEL[r] || r}
         </span>
       ))}
@@ -46,18 +30,35 @@ function RoleBadges({ roles }) {
 
 function StatusBadge({ active }) {
   return (
-    <span
-      className={`px-2 py-0.5 rounded-full text-xs font-medium ${active ? 'bg-green/20 text-green' : 'bg-red-500/20 text-red-400'}`}
-    >
+    <span className={`x-chip ${active ? 'x-chip--positive' : 'x-chip--neutral'}`}>
+      <span className="x-dot" aria-hidden="true" />
       {active ? 'Active' : 'Inactive'}
     </span>
   )
 }
 
-function Spinner() {
+function UserAvatar({ user }) {
   return (
-    <div className="flex items-center justify-center py-20">
-      <div className="w-8 h-8 border-2 border-green border-t-transparent rounded-full animate-spin" />
+    <span className={`x-avatar-sm${user.is_active ? '' : ' opacity-50'}`}>
+      {getInitials(user.full_name)}
+    </span>
+  )
+}
+
+function UsersSkeleton() {
+  return (
+    <div className="x-panel overflow-hidden">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="flex items-center gap-4 px-4 py-4 border-b border-border/50">
+          <div className="w-8 h-8 rounded-full x-skel animate-pulse" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3.5 w-40 x-skel rounded animate-pulse" />
+            <div className="h-3 w-52 x-skel rounded animate-pulse" />
+          </div>
+          <div className="h-5 w-24 x-skel rounded-full animate-pulse" />
+          <div className="h-5 w-16 x-skel rounded-full animate-pulse" />
+        </div>
+      ))}
     </div>
   )
 }
@@ -68,38 +69,36 @@ function ConfirmToggleModal({ user, onConfirm, onClose, loading }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+      className="x-modal-backdrop"
       onClick={e => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="w-full max-w-sm bg-surface border border-border rounded-xl p-6 shadow-2xl">
-        <h2 className="text-white font-bold text-lg mb-2">
-          {deactivating ? 'Deactivate' : 'Reactivate'} {user.full_name}?
-        </h2>
-        {deactivating && (
-          <p className="text-amber-400 text-sm mb-5 bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2.5">
-            This user will not be able to log in.
-          </p>
-        )}
-        {!deactivating && (
-          <p className="text-muted text-sm mb-5">This user will regain access to the system.</p>
-        )}
-        <div className="flex items-center gap-3">
+      <div className="x-modal max-w-sm" role="dialog" aria-modal="true">
+        <div className="px-6 pt-6 pb-4">
+          <h2 className="text-white font-medium text-lg">
+            {deactivating ? 'Deactivate' : 'Reactivate'} {user.full_name}?
+          </h2>
+          {deactivating ? (
+            <p className="mt-3 text-amber-400 text-sm bg-amber-500/10 border border-amber-500/20 rounded-md px-3 py-2.5">
+              This user will not be able to log in.
+            </p>
+          ) : (
+            <p className="mt-2 text-muted text-sm">This user will regain access to the system.</p>
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
+          <button onClick={onClose} className="x-btn text-muted hover:text-white">
+            Cancel
+          </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className={`flex-1 font-semibold rounded-lg py-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white ${
+            className={`x-btn text-white ${
               deactivating ? 'bg-red-500 hover:bg-red-600' : 'bg-green hover:bg-green/90'
             }`}
           >
             {loading ? 'Please wait…' : deactivating ? 'Deactivate' : 'Reactivate'}
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 border border-border text-muted hover:text-white rounded-lg py-3 transition-colors"
-          >
-            Cancel
           </button>
         </div>
       </div>
@@ -136,6 +135,9 @@ export default function UserManagement() {
   const [toggleTarget, setToggleTarget] = useState(null) // user obj for confirm modal
   const [toggleLoading, setToggleLoading] = useState(false)
   const [toast, setToast] = useState(null) // { message, type }
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'active' | 'inactive'
+  const [roleFilter, setRoleFilter] = useState('all')
 
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type })
@@ -253,17 +255,14 @@ export default function UserManagement() {
       )}
 
       {/* Content */}
-      <div className="px-4 sm:px-6 py-6 max-w-7xl">
+      <div className="px-4 sm:px-6 py-6 max-w-7xl x-rise">
         {/* Page title + action */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-white font-bold text-2xl">User Management</h1>
+            <h1 className="text-white font-medium text-2xl leading-tight">Users</h1>
             <p className="text-muted text-sm mt-0.5">Manage staff accounts and access levels.</p>
           </div>
-          <button
-            onClick={() => setShowInvite(true)}
-            className="bg-green hover:bg-green/90 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2"
-          >
+          <button onClick={() => setShowInvite(true)} className="x-btn x-btn--primary">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="w-4 h-4"
@@ -279,143 +278,265 @@ export default function UserManagement() {
         </div>
 
         {/* States */}
-        {loading && <Spinner />}
+        {loading && <UsersSkeleton />}
 
         {!loading && error && (
-          <div className="text-center py-20">
-            <p className="text-red-400 mb-4">{error}</p>
-            <button
-              onClick={fetchUsers}
-              className="text-green hover:text-green/80 text-sm transition-colors"
-            >
+          <div className="x-panel p-12 text-center">
+            <p className="text-white font-medium mb-1">Failed to load users</p>
+            <p className="text-muted text-sm mb-5">{error}</p>
+            <button onClick={fetchUsers} className="x-pill">
               Retry
             </button>
           </div>
         )}
 
         {!loading && !error && (
-          <>
-            <p className="text-muted text-sm mb-4">
-              {users.length} user{users.length !== 1 ? 's' : ''}
-            </p>
-
-            {/* Desktop table */}
-            <div className="hidden md:block bg-surface border border-border rounded-xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left text-muted uppercase text-xs bg-surface-alt">
-                      <th className="px-4 py-3 font-medium">Full Name</th>
-                      <th className="px-4 py-3 font-medium">Email</th>
-                      <th className="px-4 py-3 font-medium">Roles</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-4 py-3 font-medium">Created</th>
-                      <th className="px-4 py-3 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center text-muted">
-                          No users found.
-                        </td>
-                      </tr>
-                    )}
-                    {users.map(u => (
-                      <tr
-                        key={u.id}
-                        className={`border-t border-border/50 hover:bg-surface-alt/30 transition-colors ${!u.is_active ? 'opacity-50' : ''}`}
-                      >
-                        <td className="px-4 py-3 text-white font-medium whitespace-nowrap">
-                          {u.full_name}
-                        </td>
-                        <td className="px-4 py-3 text-muted whitespace-nowrap">{u.email}</td>
-                        <td className="px-4 py-3">
-                          <RoleBadges roles={u.roles} />
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusBadge active={u.is_active} />
-                        </td>
-                        <td className="px-4 py-3 text-muted whitespace-nowrap">
-                          {formatDate(u.created_at)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            {!u.roles.includes('super_admin') && (
-                              <button
-                                onClick={() => setEditTarget(u)}
-                                className="text-xs px-3 py-1.5 rounded-lg border border-border text-muted hover:text-white hover:border-muted transition-colors whitespace-nowrap"
-                              >
-                                Edit
-                              </button>
-                            )}
-                            {!u.roles.includes('super_admin') && (
-                              <button
-                                onClick={() => setToggleTarget(u)}
-                                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors whitespace-nowrap ${
-                                  u.is_active
-                                    ? 'border-red-500/40 text-red-400 hover:bg-red-500/10'
-                                    : 'border-green/40 text-green hover:bg-green/10'
-                                }`}
-                              >
-                                {u.is_active ? 'Deactivate' : 'Reactivate'}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Mobile card list */}
-            <div className="md:hidden flex flex-col gap-3">
-              {users.length === 0 && (
-                <p className="text-muted text-sm text-center py-12">No users found.</p>
-              )}
-              {users.map(u => (
-                <div
-                  key={u.id}
-                  className={`bg-surface border border-border rounded-xl p-4 ${!u.is_active ? 'opacity-50' : ''}`}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div>
-                      <p className="text-white font-semibold text-sm">{u.full_name}</p>
-                      <p className="text-muted text-xs mt-0.5">{u.email}</p>
-                    </div>
-                    <StatusBadge active={u.is_active} />
-                  </div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <RoleBadges roles={u.roles} />
-                    <span className="text-muted text-xs">{formatDate(u.created_at)}</span>
-                  </div>
-                  {!u.roles.includes('super_admin') && (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setEditTarget(u)}
-                        className="flex-1 text-xs px-3 py-2 rounded-lg border border-border text-muted hover:text-white hover:border-muted transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => setToggleTarget(u)}
-                        className={`flex-1 text-xs px-3 py-2 rounded-lg border transition-colors ${
-                          u.is_active
-                            ? 'border-red-500/40 text-red-400 hover:bg-red-500/10'
-                            : 'border-green/40 text-green hover:bg-green/10'
-                        }`}
-                      >
-                        {u.is_active ? 'Deactivate' : 'Reactivate'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </>
+          <UsersView
+            users={users}
+            search={search}
+            setSearch={setSearch}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            roleFilter={roleFilter}
+            setRoleFilter={setRoleFilter}
+            formatDate={formatDate}
+            onEdit={setEditTarget}
+            onToggle={setToggleTarget}
+          />
         )}
+      </div>
+    </>
+  )
+}
+
+// ─── Users list: status strip + toolbar + table (desktop) / cards (mobile) ────
+function UsersView({
+  users,
+  search,
+  setSearch,
+  statusFilter,
+  setStatusFilter,
+  roleFilter,
+  setRoleFilter,
+  formatDate,
+  onEdit,
+  onToggle,
+}) {
+  const activeCount = users.filter(u => u.is_active).length
+  const tiles = [
+    { label: 'All users', count: users.length, filter: 'all' },
+    { label: 'Active', count: activeCount, filter: 'active', tone: 'positive' },
+    { label: 'Inactive', count: users.length - activeCount, filter: 'inactive', tone: 'muted' },
+  ]
+  const rolesPresent = Object.keys(ROLE_LABEL).filter(r => users.some(u => u.roles.includes(r)))
+
+  const q = search.trim().toLowerCase()
+  const filtered = users.filter(u => {
+    if (statusFilter === 'active' && !u.is_active) return false
+    if (statusFilter === 'inactive' && u.is_active) return false
+    if (roleFilter !== 'all' && !u.roles.includes(roleFilter)) return false
+    if (q) {
+      const hay = `${u.full_name || ''} ${u.email || ''}`.toLowerCase()
+      if (!hay.includes(q)) return false
+    }
+    return true
+  })
+  const filtersOn = statusFilter !== 'all' || roleFilter !== 'all' || q.length > 0
+  const clearFilters = () => {
+    setSearch('')
+    setStatusFilter('all')
+    setRoleFilter('all')
+  }
+
+  const actions = (u, wide) =>
+    u.roles.includes('super_admin') ? (
+      <span className="text-muted text-xs">Protected</span>
+    ) : (
+      <div className={`flex items-center gap-2${wide ? ' w-full' : ''}`}>
+        <button
+          onClick={() => onEdit(u)}
+          className={`x-pill x-pill--sm${wide ? ' flex-1 justify-center' : ''}`}
+        >
+          Edit
+        </button>
+        <button
+          onClick={() => onToggle(u)}
+          className={`x-pill x-pill--sm ${u.is_active ? 'x-pill--danger' : 'x-pill--positive'}${
+            wide ? ' flex-1 justify-center' : ''
+          }`}
+        >
+          {u.is_active ? 'Deactivate' : 'Reactivate'}
+        </button>
+      </div>
+    )
+
+  return (
+    <>
+      <div className="x-stats mb-5 max-w-xl" role="group" aria-label="Filter by status">
+        {tiles.map((t, i) => {
+          const active = statusFilter === t.filter
+          return (
+            <button
+              key={t.filter}
+              onClick={() => setStatusFilter(t.filter)}
+              aria-pressed={active}
+              style={{ '--i': i }}
+              className={`x-stat x-stagger${t.tone ? ` x-stat--${t.tone}` : ''}${
+                active ? ' is-active' : ''
+              }`}
+            >
+              <span className="x-stat-count">{t.count}</span>
+              <span className="x-stat-label">{t.label}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="x-panel overflow-hidden">
+        <div className="x-toolbar">
+          <div className="relative flex-1 min-w-[220px]">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+                />
+              </svg>
+            </span>
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search name or email…"
+              aria-label="Search users"
+              className="x-control w-full pl-9"
+            />
+          </div>
+          <select
+            value={roleFilter}
+            onChange={e => setRoleFilter(e.target.value)}
+            aria-label="Role"
+            className="x-control flex-1 lg:flex-none min-w-[160px]"
+          >
+            <option value="all">All Roles</option>
+            {rolesPresent.map(r => (
+              <option key={r} value={r}>
+                {ROLE_LABEL[r]}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-3 lg:ml-auto">
+            <span className="text-muted text-xs whitespace-nowrap" aria-live="polite">
+              {filtered.length === users.length
+                ? `${users.length} user${users.length !== 1 ? 's' : ''}`
+                : `${filtered.length} of ${users.length}`}
+            </span>
+            {filtersOn && (
+              <button onClick={clearFilters} className="x-pill x-pill--sm">
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="x-table x-table--static">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Roles</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-muted">
+                    {users.length === 0 ? 'No users found.' : 'No users match these filters.'}
+                  </td>
+                </tr>
+              )}
+              {filtered.map(u => (
+                <tr key={u.id}>
+                  <td>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <UserAvatar user={u} />
+                      <div className="min-w-0">
+                        <p
+                          className={`font-medium truncate leading-tight ${
+                            u.is_active ? 'text-white' : 'text-muted'
+                          }`}
+                        >
+                          {u.full_name}
+                        </p>
+                        <p className="text-muted text-xs truncate mt-0.5">{u.email}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <RoleBadges roles={u.roles} />
+                  </td>
+                  <td>
+                    <StatusBadge active={u.is_active} />
+                  </td>
+                  <td className="text-muted whitespace-nowrap">{formatDate(u.created_at)}</td>
+                  <td>
+                    <div className="flex justify-end">{actions(u, false)}</div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="md:hidden flex flex-col gap-3 mt-3">
+        {filtered.length === 0 && (
+          <div className="x-panel py-12 text-center text-muted text-sm">
+            {users.length === 0 ? 'No users found.' : 'No users match these filters.'}
+          </div>
+        )}
+        {filtered.map((u, i) => (
+          <div
+            key={u.id}
+            style={{ '--i': Math.min(i, 8) }}
+            className="x-panel x-stagger p-4 flex flex-col gap-3"
+          >
+            <div className="flex items-start gap-3">
+              <UserAvatar user={u} />
+              <div className="min-w-0 flex-1">
+                <p
+                  className={`font-medium truncate leading-tight ${
+                    u.is_active ? 'text-white' : 'text-muted'
+                  }`}
+                >
+                  {u.full_name}
+                </p>
+                <p className="text-muted text-xs truncate mt-0.5">{u.email}</p>
+              </div>
+              <StatusBadge active={u.is_active} />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <RoleBadges roles={u.roles} />
+              <span className="text-muted text-xs whitespace-nowrap">
+                {formatDate(u.created_at)}
+              </span>
+            </div>
+            {actions(u, true)}
+          </div>
+        ))}
       </div>
     </>
   )

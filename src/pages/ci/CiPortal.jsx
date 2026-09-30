@@ -1,14 +1,57 @@
 import { useState, useCallback, createContext, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { useTheme } from '../../context/ThemeContext'
 import CiApplicationsList from './CiApplicationsList'
 import CiAssessmentForm from './CiAssessmentForm'
-import ReportProblemButton from '../../components/ReportProblemButton'
+import AppShell from '../../components/AppShell'
+import ReportingIcon from '../../components/ReportingIcon'
+import { INSIGHT_ROLES } from '../../constants/roles'
 
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL || 'https://loan-backend-production-cd45.up.railway.app'
 const CI_API = `${API_BASE}/api/ci`
+
+// CI menu. The shell adds theme, Report a Problem and Sign Out.
+const ASSESSMENTS_ITEM = {
+  label: 'Assessments',
+  path: '/ci',
+  icon: (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.5}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0 1 18 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3 1.5 1.5 3-3.75"
+      />
+    </svg>
+  ),
+  match: p => p === '/ci',
+}
+
+/**
+ * CI portal menu items for the signed-in user. Reporting is listed for everyone:
+ * admins go to the real page, CI officers to a locked access-restricted page.
+ * @returns {Array<object>} nav items for AppShell
+ */
+export function useCiNav() {
+  const { hasAnyRole } = useAuth()
+  const canSee = hasAnyRole(INSIGHT_ROLES)
+  return [
+    ASSESSMENTS_ITEM,
+    {
+      label: 'Reporting',
+      path: canSee ? '/admin/reporting' : '/ci/reporting',
+      icon: <ReportingIcon />,
+      match: p => p === '/ci/reporting',
+      locked: !canSee,
+    },
+  ]
+}
 
 const ToastContext = createContext()
 export const useCiToast = () => useContext(ToastContext)
@@ -69,8 +112,8 @@ function Toast({ toasts, removeToast }) {
 }
 
 export default function CiPortal() {
-  const { logout, getToken, fullName } = useAuth()
-  const { isDark, toggleTheme } = useTheme()
+  const { logout, getToken } = useAuth()
+  const ciNav = useCiNav()
   const navigate = useNavigate()
 
   // Wire up module-level _getToken so ciFetch can access JWT
@@ -100,11 +143,6 @@ export default function CiPortal() {
     setSelectedApp(null)
   }
 
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login', { replace: true })
-  }
-
   // Wire up the auth-expiry handler so a 401 on any CI call clears the expired
   // session and sends the user back to re-login (role redirect returns a
   // ci_officer to /ci) instead of dead-ending on the raw 401 error.
@@ -117,74 +155,18 @@ export default function CiPortal() {
   return (
     <ToastContext.Provider value={addToast}>
       <Toast toasts={toasts} removeToast={removeToast} />
-      <div className={`min-h-screen bg-canvas ${isDark ? '' : 'light-mode'}`}>
-        <header className="bg-surface border-b border-border sticky top-0 z-40">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src="/gr8logo.png" alt="GR8" className="w-8 h-8 opacity-80" />
-              <div className="hidden sm:block">
-                <span className="text-white font-bold text-sm">GR8 Lending</span>
-                <span className="text-green text-xs font-medium ml-2">CI Portal</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              {fullName && <span className="text-sm text-muted hidden sm:inline">{fullName}</span>}
-              <button
-                onClick={toggleTheme}
-                className="text-muted hover:text-white transition-colors p-1"
-                title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                {isDark ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"
-                    />
-                  </svg>
-                )}
-              </button>
-              <button
-                onClick={handleLogout}
-                className="text-sm text-muted hover:text-red-400 transition-colors"
-              >
-                Logout
-              </button>
-            </div>
+      {/* No tab bar: the assessment form owns the bottom edge (score + Submit bar). */}
+      <AppShell navItems={ciNav} showTabBar={false}>
+        <div className="max-w-5xl px-4 sm:px-6 py-6">
+          <div key={view} className="x-rise">
+            {view === 'list' ? (
+              <CiApplicationsList onStartAssessment={openForm} />
+            ) : (
+              <CiAssessmentForm app={selectedApp} onBack={backToList} />
+            )}
           </div>
-        </header>
-
-        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
-          {view === 'list' ? (
-            <CiApplicationsList onStartAssessment={openForm} />
-          ) : (
-            <CiAssessmentForm app={selectedApp} onBack={backToList} />
-          )}
-        </main>
-      </div>
-      <ReportProblemButton />
+        </div>
+      </AppShell>
     </ToastContext.Provider>
   )
 }
