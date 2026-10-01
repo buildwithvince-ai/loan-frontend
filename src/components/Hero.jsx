@@ -71,79 +71,88 @@ export default function Hero() {
           {/* Visual stack, phone + peso cash motifs + GR8 logo */}
           <div className="lg:col-span-6 flex justify-center lg:justify-end">
             <div className="animate-scale-in delay-200 relative w-[330px] sm:w-[400px] py-8">
-              {/* Phone mockup — iPhone-sized, tall aspect */}
-              <div className="relative mx-auto w-[330px] rounded-[3.5rem] bg-[#0F1B20] p-3 card-soft">
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-32 h-7 rounded-b-2xl bg-[#0F1B20] z-10" />
-                <div className="h-[600px] rounded-[3rem] bg-surface overflow-hidden flex flex-col">
-                  {/* Status bar */}
-                  <div className="flex items-center justify-between px-7 pt-5 pb-1 text-white text-xs font-semibold">
-                    <span>9:41</span>
-                    <span className="flex items-center gap-1.5 text-muted">
-                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                        <path d="M2 22h20V2L2 22Z" />
-                      </svg>
-                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                        <rect x="2" y="7" width="18" height="10" rx="2" />
-                        <rect x="21" y="10" width="1.5" height="4" rx="0.75" />
-                      </svg>
-                    </span>
-                  </div>
+              {/* Phone mockup — 3D iPhone, same 330px footprint */}
+              <div className="iphone-3d relative mx-auto w-[330px]">
+                <div className="iphone-3d-body">
+                  {/* Side buttons: action + volume (left), power (right) */}
+                  <span className="iphone-3d-btn iphone-3d-btn-left top-[118px] h-8" />
+                  <span className="iphone-3d-btn iphone-3d-btn-left top-[170px] h-14" />
+                  <span className="iphone-3d-btn iphone-3d-btn-left top-[238px] h-14" />
+                  <span className="iphone-3d-btn iphone-3d-btn-right top-[190px] h-20" />
+                  <div className="iphone-3d-bezel">
+                    <div className="iphone-3d-screen h-[600px] bg-surface flex flex-col">
+                      <div className="iphone-3d-island" />
+                      {/* Status bar */}
+                      <div className="flex items-center justify-between px-8 pt-[18px] pb-1 text-white text-xs font-semibold">
+                        <span>9:41</span>
+                        <span className="flex items-center gap-1.5 text-muted">
+                          <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                            <path d="M2 22h20V2L2 22Z" />
+                          </svg>
+                          <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                            <rect x="2" y="7" width="18" height="10" rx="2" />
+                            <rect x="21" y="10" width="1.5" height="4" rx="0.75" />
+                          </svg>
+                        </span>
+                      </div>
 
-                  {/* Screen header with GR8 logo */}
-                  <div className="flex items-center gap-2.5 px-7 pt-4 pb-5 border-b border-border">
-                    <img
-                      src="/gr8logo.png"
-                      alt="GR8 Lending"
-                      className="h-7 w-auto object-contain"
-                    />
-                    <span className="text-white font-bold text-base">GR8 Lending</span>
-                  </div>
-
-                  {/* Screen body */}
-                  <div className="flex-1 px-7 py-6 flex flex-col">
-                    <div className="w-[84px] h-[84px] rounded-full bg-gradient-to-br from-green to-green-hover flex items-center justify-center text-white text-5xl font-bold card-soft">
-                      ₱
-                    </div>
-
-                    <div className="mt-6 inline-flex w-fit items-center gap-2 px-3.5 py-2 rounded-full bg-green/12 text-green text-sm font-semibold">
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        className="w-4 h-4"
-                      >
-                        <path
-                          d="M4.5 12.75l6 6 9-13.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
+                      {/* Screen header with GR8 logo */}
+                      <div className="flex items-center gap-2.5 px-7 pt-4 pb-5 border-b border-border">
+                        <img
+                          src="/gr8logo.png"
+                          alt="GR8 Lending"
+                          className="h-7 w-auto object-contain"
                         />
-                      </svg>
-                      Loan approved
-                    </div>
-
-                    <div className="text-white text-4xl font-bold mt-5 tracking-tight">
-                      ₱50,000.00
-                    </div>
-                    <div className="text-muted text-sm mt-2">GR8 Loan · 12 months</div>
-
-                    <div className="mt-7 space-y-4">
-                      <div className="flex items-center justify-between border-b border-border pb-4">
-                        <span className="text-muted text-base">Monthly payment</span>
-                        <span className="text-white font-bold text-lg">₱5,641.00</span>
+                        <span className="text-white font-bold text-base">GR8 Lending</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted text-base">Interest rate</span>
-                        <span className="text-white font-bold text-lg">5% / mo</span>
-                      </div>
-                    </div>
 
-                    {/* Bottom action pinned to base of screen */}
-                    <div className="mt-auto pt-6">
-                      <div className="w-full py-4 rounded-full bg-green text-white font-semibold text-center text-base card-soft">
-                        View loan details
+                      {/* Screen body */}
+                      <div className="flex-1 px-7 py-6 flex flex-col">
+                        <div className="w-[84px] h-[84px] rounded-full bg-gradient-to-br from-green to-green-hover flex items-center justify-center text-white text-5xl font-bold card-soft">
+                          ₱
+                        </div>
+
+                        <div className="mt-6 inline-flex w-fit items-center gap-2 px-3.5 py-2 rounded-full bg-green/12 text-green text-sm font-semibold">
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            className="w-4 h-4"
+                          >
+                            <path
+                              d="M4.5 12.75l6 6 9-13.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          Loan approved
+                        </div>
+
+                        <div className="text-white text-4xl font-bold mt-5 tracking-tight">
+                          ₱50,000.00
+                        </div>
+                        <div className="text-muted text-sm mt-2">GR8 Loan · 12 months</div>
+
+                        <div className="mt-7 space-y-4">
+                          <div className="flex items-center justify-between border-b border-border pb-4">
+                            <span className="text-muted text-base">Monthly payment</span>
+                            <span className="text-white font-bold text-lg">₱5,641.00</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted text-base">Interest rate</span>
+                            <span className="text-white font-bold text-lg">5% / mo</span>
+                          </div>
+                        </div>
+
+                        {/* Bottom action pinned to base of screen */}
+                        <div className="mt-auto pt-6">
+                          <div className="w-full py-4 rounded-full bg-green text-white font-semibold text-center text-base card-soft">
+                            View loan details
+                          </div>
+                          <div className="mx-auto mt-5 w-32 h-1.5 rounded-full bg-surface-alt" />
+                        </div>
                       </div>
-                      <div className="mx-auto mt-5 w-32 h-1.5 rounded-full bg-surface-alt" />
                     </div>
                   </div>
                 </div>
